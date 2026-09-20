@@ -1,10 +1,14 @@
 <?php // includes/nav.php
+if (!isset($currentSection)) {
+    $currentSection = '';
+}
 
-$currentSection = $currentSection ?? '';
-$currentPage = $currentPage ?? '';
+if (!isset($currentPage)) {
+    $currentPage = '';
+}
 
 $loggedInUsername = (string)($_SESSION['username'] ?? '');
-$navigationLoginErrorMessage = $loginErrorMessage ?? '';
+$navigationLoginErrorMessage = isset($loginErrorMessage) ? $loginErrorMessage : '';
 
 $onAdministratorHome =
     operatorIsAdministrator()
@@ -21,21 +25,33 @@ $onOperatorList =
     &&
     $currentPage === 'list';
 
-$navigationClass = operatorIsLoggedIn()
-    ? 'site-navigation site-navigation-logged-in'
-    : 'site-navigation site-navigation-public';
+$onOperatorFormPage =
+    $onOperatorPage
+    &&
+    in_array(
+        $currentPage,
+        [
+            'create',
+            'update'
+        ],
+        true
+    );
 
+$onAccountPage =
+    $currentSection === 'account';
+
+$navigationClass =
+    operatorIsLoggedIn()
+        ? 'site-navigation site-navigation-logged-in'
+        : 'site-navigation site-navigation-public';
 ?>
 
 <aside class="<?= $navigationClass ?>">
-
     <?php if (!operatorIsLoggedIn()): ?>
-
         <nav
             class="navigation-menu navigation-login"
             aria-label="Login"
         >
-
             <div class="navigation-login-heading">
                 Operator Login
             </div>
@@ -45,11 +61,9 @@ $navigationClass = operatorIsLoggedIn()
             </div>
 
             <?php if ($navigationLoginErrorMessage !== ''): ?>
-
                 <div class="navigation-login-error">
                     <?= escapeOutput($navigationLoginErrorMessage) ?>
                 </div>
-
             <?php endif; ?>
 
             <form
@@ -58,7 +72,6 @@ $navigationClass = operatorIsLoggedIn()
                 action="<?= APPLICATION_URL ?>/index.php#login"
                 class="navigation-login-form"
             >
-
                 <input
                     type="hidden"
                     name="form_security_token"
@@ -102,15 +115,13 @@ $navigationClass = operatorIsLoggedIn()
                 >
                     Login
                 </button>
-
             </form>
 
             <div class="navigation-demo-note">
                 Demo Admin and Operator credentials are listed below
             </div>
 
-            <div class="message message-warning">
-
+            <div class="message message-warning navigation-demo-notice">
                 <strong>
                     Demo Admin Credentials
                 </strong>
@@ -122,10 +133,6 @@ $navigationClass = operatorIsLoggedIn()
                 <div>
                     Password: Admin#123
                 </div>
-
-            </div>
-
-            <div class="message message-warning">
 
                 <strong>
                     Demo Operator Credentials
@@ -139,8 +146,6 @@ $navigationClass = operatorIsLoggedIn()
                     Password: #Testing123
                 </div>
 
-                <br>
-
                 <div>
                     Username: TestAlice
                 </div>
@@ -148,20 +153,14 @@ $navigationClass = operatorIsLoggedIn()
                 <div>
                     Password: Testing123$
                 </div>
-
             </div>
-
         </nav>
-
     <?php else: ?>
-
         <nav
             class="navigation-menu"
             aria-label="Main navigation"
         >
-
             <?php if (!operatorHasAssignedAccess()): ?>
-
                 <div class="navigation-operator">
                     <span class="navigation-operator-label">
                         Logged in as:
@@ -171,9 +170,7 @@ $navigationClass = operatorIsLoggedIn()
                         <?= escapeOutput($loggedInUsername) ?>
                     </strong>
                 </div>
-
             <?php elseif ($onOperatorList): ?>
-
                 <a
                     href="<?= APPLICATION_URL ?>/index.php"
                     class="navigation-link navigation-home-link"
@@ -198,7 +195,6 @@ $navigationClass = operatorIsLoggedIn()
                 </a>
 
                 <div class="operator-nav-actions">
-
                     <a
                         href="<?= APPLICATION_URL ?>/operators/create.php"
                         class="button operator-nav-button operator-nav-create"
@@ -208,29 +204,35 @@ $navigationClass = operatorIsLoggedIn()
 
                     <button
                         type="submit"
+                        id="operatorUpdateButton"
                         form="operatorSelectionForm"
                         formaction="<?= APPLICATION_URL ?>/operators/update.php"
-                        formmethod="get"
+                        formmethod="post"
                         class="button operator-nav-button operator-nav-update"
+                        disabled
                     >
                         Update Operator
                     </button>
 
                     <button
                         type="submit"
+                        id="operatorStatusButton"
                         form="operatorSelectionForm"
                         formaction="<?= APPLICATION_URL ?>/operators/delete.php"
-                        formmethod="get"
+                        formmethod="post"
                         class="button operator-nav-button operator-nav-delete"
                         aria-describedby="currentAccountDeleteNote"
+                        disabled
                     >
                         Delete Operator
                     </button>
 
                     <button
                         type="reset"
+                        id="operatorClearButton"
                         form="operatorSelectionForm"
                         class="button operator-nav-button operator-nav-clear"
+                        disabled
                     >
                         Clear Selection
                     </button>
@@ -241,7 +243,6 @@ $navigationClass = operatorIsLoggedIn()
                     >
                         Current account cannot be deleted.
                     </div>
-
                 </div>
 
                 <div class="navigation-operator">
@@ -253,9 +254,7 @@ $navigationClass = operatorIsLoggedIn()
                         <?= escapeOutput($loggedInUsername) ?>
                     </strong>
                 </div>
-
             <?php elseif ($onOperatorPage): ?>
-
                 <a
                     href="<?= APPLICATION_URL ?>/index.php"
                     class="navigation-link navigation-home-link"
@@ -286,6 +285,15 @@ $navigationClass = operatorIsLoggedIn()
                     Manage My Account
                 </a>
 
+                <?php if ($onOperatorFormPage): ?>
+                    <a
+                        href="<?= APPLICATION_URL ?>/operators/list.php"
+                        class="navigation-link"
+                    >
+                        Cancel
+                    </a>
+                <?php endif; ?>
+
                 <div class="navigation-operator">
                     <span class="navigation-operator-label">
                         Logged in as:
@@ -296,8 +304,7 @@ $navigationClass = operatorIsLoggedIn()
                     </strong>
                 </div>
 
-                <?php if ($currentPage === 'delete'): ?>
-
+                <?php if (!$onOperatorFormPage): ?>
                     <div
                         class="navigation-feature-image"
                         aria-hidden="true"
@@ -307,13 +314,9 @@ $navigationClass = operatorIsLoggedIn()
                             alt=""
                         >
                     </div>
-
                 <?php endif; ?>
-
             <?php else: ?>
-
                 <?php if ($currentPage !== 'home'): ?>
-
                     <a
                         href="<?= APPLICATION_URL ?>/index.php"
                         class="navigation-link navigation-home-link"
@@ -329,29 +332,33 @@ $navigationClass = operatorIsLoggedIn()
                             Home
                         </span>
                     </a>
-
                 <?php endif; ?>
 
                 <?php if ($onAdministratorHome): ?>
-
                     <a
                         href="<?= APPLICATION_URL ?>/operators/list.php"
                         class="navigation-link"
                     >
                         Manage Operators
                     </a>
-
                 <?php endif; ?>
 
-                <?php if ($currentSection !== 'account'): ?>
-
+                <?php if (!$onAccountPage): ?>
                     <a
                         href="<?= APPLICATION_URL ?>/account.php"
                         class="navigation-link"
                     >
                         Manage My Account
                     </a>
+                <?php endif; ?>
 
+                <?php if ($onAccountPage): ?>
+                    <a
+                        href="<?= APPLICATION_URL ?>/index.php"
+                        class="navigation-link"
+                    >
+                        Cancel
+                    </a>
                 <?php endif; ?>
 
                 <div class="navigation-operator">
@@ -365,7 +372,6 @@ $navigationClass = operatorIsLoggedIn()
                 </div>
 
                 <?php if ($currentPage === 'home'): ?>
-
                     <div
                         class="navigation-feature-image"
                         aria-hidden="true"
@@ -375,13 +381,8 @@ $navigationClass = operatorIsLoggedIn()
                             alt=""
                         >
                     </div>
-
                 <?php endif; ?>
-
             <?php endif; ?>
-
         </nav>
-
     <?php endif; ?>
-
 </aside>

@@ -1,4 +1,4 @@
-<?php // operators/delete.php
+<?php // operators/reactivate.php
 require_once __DIR__ . '/../includes/access_control.php';
 
 requireAdministrator();
@@ -61,59 +61,53 @@ if (!$operatorRecord) {
     exit('The selected operator was not found.');
 }
 
-$deleteIsAllowed =
-    (int)$operatorID
-    !==
-    (int)$_SESSION['operator_id']
-    &&
+$reactivateIsAllowed =
     (int)$operatorRecord['Active']
     ===
-    1;
+    0;
 
 if (
     $_SERVER['REQUEST_METHOD'] === 'POST'
     &&
-    isset($_POST['confirm_delete'])
+    isset($_POST['confirm_reactivate'])
 ) {
-    if (!$deleteIsAllowed) {
+    if (!$reactivateIsAllowed) {
         $errorMessage =
-            'This operator cannot be deleted.';
+            'This operator is already active.';
     } else {
         try {
-            $deleteOperatorStatement =
+            $reactivateOperatorStatement =
                 $databaseConnection->prepare(
                     '
-                    CALL sp_delete_operator(
-                        ?,
+                    CALL sp_reactivate_operator(
                         ?
                     )
                     '
                 );
 
-            $deleteOperatorStatement->execute([
-                (int)$operatorID,
-                (int)$_SESSION['operator_id']
+            $reactivateOperatorStatement->execute([
+                (int)$operatorID
             ]);
 
-            $deleteOperatorStatement->closeCursor();
+            $reactivateOperatorStatement->closeCursor();
 
             header(
-                'Location: list.php?deleted=1'
+                'Location: list.php?reactivated=1&show_inactive=1'
             );
             exit;
         } catch (PDOException $exception) {
             $errorMessage =
                 getSafeDatabaseErrorMessage(
                     $exception,
-                    'The operator could not be deleted.'
+                    'The operator could not be reactivated.'
                 );
         }
     }
 }
 
-$pageTitle = 'Delete Operator';
+$pageTitle = 'Reactivate Operator';
 $currentSection = 'operators';
-$currentPage = 'delete';
+$currentPage = 'reactivate';
 
 require __DIR__ . '/../includes/header.php';
 ?>
@@ -121,11 +115,11 @@ require __DIR__ . '/../includes/header.php';
 <section class="content-panel delete-panel">
     <div class="page-intro">
         <h1>
-            Confirm Delete Operator
+            Confirm Reactivate Operator
         </h1>
 
         <p>
-            Review the operator information carefully before continuing.
+            Review the operator information before restoring access.
         </p>
     </div>
 
@@ -135,23 +129,9 @@ require __DIR__ . '/../includes/header.php';
         </div>
     <?php endif; ?>
 
-    <?php if (!$deleteIsAllowed): ?>
+    <?php if (!$reactivateIsAllowed): ?>
         <div class="message message-warning">
-            <?php if (
-                (int)$operatorID
-                ===
-                (int)$_SESSION['operator_id']
-            ): ?>
-                You cannot delete the account that you are currently using.
-            <?php elseif (
-                (int)$operatorRecord['Active']
-                !==
-                1
-            ): ?>
-                This operator is already inactive and cannot be deleted again.
-            <?php else: ?>
-                This operator cannot be deleted.
-            <?php endif; ?>
+            This operator is already active.
         </div>
 
         <div class="form-actions">
@@ -164,7 +144,7 @@ require __DIR__ . '/../includes/header.php';
         </div>
     <?php else: ?>
         <div class="delete-confirmation-question">
-            Are you sure you want to delete this operator?
+            Are you sure you want to reactivate this operator?
         </div>
 
         <div class="operator-summary">
@@ -229,8 +209,8 @@ require __DIR__ . '/../includes/header.php';
             </div>
         </div>
 
-        <div class="message message-warning">
-            This action makes the operator inactive so historical sales information remains connected to the correct employee.
+        <div class="message message-info">
+            Reactivating restores this account to its existing role and assigned store.
         </div>
 
         <form method="post">
@@ -249,11 +229,11 @@ require __DIR__ . '/../includes/header.php';
             <div class="form-actions delete-confirmation-actions">
                 <button
                     type="submit"
-                    name="confirm_delete"
+                    name="confirm_reactivate"
                     value="1"
-                    class="button button-danger"
+                    class="button button-primary"
                 >
-                    Yes, Delete Operator
+                    Yes, Reactivate Operator
                 </button>
 
                 <a

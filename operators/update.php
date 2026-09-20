@@ -1,103 +1,145 @@
 <?php // operators/update.php
-
 require_once __DIR__ . '/../includes/access_control.php';
 
 requireAdministrator();
 
 $databaseConnection = connectDatabase();
-
 $errorMessage = '';
 
-$operatorID = filter_input(
-    INPUT_GET,
-    'id',
-    FILTER_VALIDATE_INT
-);
+$operatorID =
+    filter_input(
+        INPUT_POST,
+        'id',
+        FILTER_VALIDATE_INT
+    );
 
 if (!$operatorID) {
     http_response_code(400);
     exit('A valid operator ID is required.');
 }
 
+$submittedSecurityToken =
+    $_POST['form_security_token'] ?? '';
 
-// Load the selected operator
-$operatorStatement = $databaseConnection->prepare(
-    '
-    SELECT
-        OperatorID,
-        StoreID,
-        EmployeeNumber,
-        Username,
-        FirstName,
-        MiddleInitial,
-        LastName,
-        Email,
-        Phone,
-        Role,
-        HireDate
-    FROM vw_operatorlist
-    WHERE OperatorID = :operatorID
-    LIMIT 1
-    '
-);
+if (
+    !formSecurityTokenIsValid(
+        $submittedSecurityToken
+    )
+) {
+    http_response_code(403);
+    exit('The form expired. Please return to the Operator List and try again.');
+}
+
+$operatorStatement =
+    $databaseConnection->prepare(
+        '
+        SELECT *
+        FROM vw_operatorlist
+        WHERE OperatorID = :operatorID
+        LIMIT 1
+        '
+    );
 
 $operatorStatement->execute([
     ':operatorID' => $operatorID
 ]);
 
-$operatorRecord = $operatorStatement->fetch();
+$operatorRecord =
+    $operatorStatement->fetch();
 
 if (!$operatorRecord) {
     http_response_code(404);
-    exit('The selected operator was not found.');
+    exit('The selected user was not found.');
 }
 
+$storeListStatement =
+    $databaseConnection->query(
+        '
+        SELECT
+            StoreID,
+            StoreNumber,
+            StoreName
+        FROM vw_storelist
+        WHERE Active = 1
+        ORDER BY StoreNumber
+        '
+    );
 
-// Load active stores
-$storeListStatement = $databaseConnection->query(
-    '
-    SELECT
-        StoreID,
-        StoreNumber,
-        StoreName
-    FROM vw_storelist
-    WHERE Active = 1
-    ORDER BY StoreNumber
-    '
-);
+$storeRecords =
+    $storeListStatement->fetchAll();
 
-$storeRecords = $storeListStatement->fetchAll();
+$selectedStoreID =
+    $operatorRecord['StoreID'];
+$employeeNumber =
+    $operatorRecord['EmployeeNumber'];
+$username =
+    $operatorRecord['Username'];
+$firstName =
+    $operatorRecord['FirstName'];
+$middleInitial =
+    $operatorRecord['MiddleInitial'] ?? '';
+$lastName =
+    $operatorRecord['LastName'];
+$email =
+    $operatorRecord['Email'];
+$phone =
+    $operatorRecord['Phone'] ?? '';
+$selectedRole =
+    $operatorRecord['Role'];
+$hireDate =
+    $operatorRecord['HireDate'] ?? '';
 
-$selectedStoreID = $operatorRecord['StoreID'];
-$employeeNumber = $operatorRecord['EmployeeNumber'];
-$username = $operatorRecord['Username'];
-$firstName = $operatorRecord['FirstName'];
-$middleInitial = $operatorRecord['MiddleInitial'] ?? '';
-$lastName = $operatorRecord['LastName'];
-$email = $operatorRecord['Email'];
-$phone = $operatorRecord['Phone'] ?? '';
-$selectedRole = $operatorRecord['Role'];
-$hireDate = $operatorRecord['HireDate'] ?? '';
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST'
+    &&
+    isset($_POST['save_update'])
+) {
+    $selectedStoreID =
+        $_POST['store_id'] ?? '';
 
+    $username =
+        trim(
+            $_POST['username'] ?? ''
+        );
 
-// Process the Update Operator form
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $selectedStoreID = $_POST['store_id'] ?? '';
-    $username = trim($_POST['username'] ?? '');
-    $firstName = trim($_POST['first_name'] ?? '');
-    $middleInitial = trim($_POST['middle_initial'] ?? '');
-    $lastName = trim($_POST['last_name'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $phone = trim($_POST['phone'] ?? '');
-    $selectedRole = $_POST['role'] ?? 'Pending';
-    $hireDate = $_POST['hire_date'] ?? '';
-    $newPassword = $_POST['new_password'] ?? '';
-    $confirmedPassword = $_POST['confirm_password'] ?? '';
-    $submittedSecurityToken = $_POST['form_security_token'] ?? '';
+    $firstName =
+        trim(
+            $_POST['first_name'] ?? ''
+        );
 
-    if (!formSecurityTokenIsValid($submittedSecurityToken)) {
-        $errorMessage = 'The form expired. Please try again.';
-    } elseif (
+    $middleInitial =
+        trim(
+            $_POST['middle_initial'] ?? ''
+        );
+
+    $lastName =
+        trim(
+            $_POST['last_name'] ?? ''
+        );
+
+    $email =
+        trim(
+            $_POST['email'] ?? ''
+        );
+
+    $phone =
+        trim(
+            $_POST['phone'] ?? ''
+        );
+
+    $selectedRole =
+        $_POST['role'] ?? 'Pending';
+
+    $hireDate =
+        $_POST['hire_date'] ?? '';
+
+    $newPassword =
+        $_POST['new_password'] ?? '';
+
+    $confirmedPassword =
+        $_POST['confirm_password'] ?? '';
+
+    if (
         $selectedStoreID === ''
         ||
         $username === ''
@@ -108,17 +150,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ||
         $email === ''
     ) {
-        $errorMessage = 'Complete all required fields.';
-    } elseif (strlen($username) > 50) {
-        $errorMessage = 'Username cannot contain more than 50 characters.';
-    } elseif (!middleInitialIsValid($middleInitial)) {
-        $errorMessage = 'Middle initial must be one letter or left blank.';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errorMessage = 'Enter a valid email address.';
+        $errorMessage =
+            'Complete all required fields.';
+    } elseif (
+        !middleInitialIsValid(
+            $middleInitial
+        )
+    ) {
+        $errorMessage =
+            'Middle initial must be one letter or left blank.';
+    } elseif (
+        !filter_var(
+            $email,
+            FILTER_VALIDATE_EMAIL
+        )
+    ) {
+        $errorMessage =
+            'Enter a valid email address.';
     } elseif (
         $newPassword !== ''
         &&
-        !passwordMeetsRequirements($newPassword)
+        !passwordMeetsRequirements(
+            $newPassword
+        )
     ) {
         $errorMessage =
             'The new password must contain at least 8 characters, 1 uppercase letter, 1 lowercase letter, and 1 symbol.';
@@ -127,7 +181,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         &&
         $newPassword !== $confirmedPassword
     ) {
-        $errorMessage = 'The new password and confirmation do not match.';
+        $errorMessage =
+            'The new password and confirmation do not match.';
     } elseif (
         !in_array(
             $selectedRole,
@@ -139,39 +194,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             true
         )
     ) {
-        $errorMessage = 'Select a valid access level.';
+        $errorMessage =
+            'Select a valid access level.';
     } else {
         try {
             if ($middleInitial !== '') {
-                $middleInitial = strtoupper($middleInitial);
+                $middleInitial =
+                    strtoupper(
+                        $middleInitial
+                    );
             }
 
             $newPasswordHash = null;
 
             if ($newPassword !== '') {
-                $newPasswordHash = password_hash(
-                    $newPassword,
-                    PASSWORD_DEFAULT
-                );
+                $newPasswordHash =
+                    password_hash(
+                        $newPassword,
+                        PASSWORD_DEFAULT
+                    );
             }
 
-            $updateOperatorStatement = $databaseConnection->prepare(
-                '
-                CALL sp_update_operator(
-                    ?,
-                    ?,
-                    ?,
-                    ?,
-                    ?,
-                    ?,
-                    ?,
-                    ?,
-                    ?,
-                    ?,
-                    ?
-                )
-                '
-            );
+            $updateOperatorStatement =
+                $databaseConnection->prepare(
+                    '
+                    CALL sp_update_operator(
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?
+                    )
+                    '
+                );
 
             $updateOperatorStatement->execute([
                 (int)$operatorID,
@@ -184,12 +245,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $email,
                 $phone,
                 $selectedRole,
-                $hireDate === '' ? null : $hireDate
+                $hireDate === ''
+                    ? null
+                    : $hireDate
             ]);
 
             $updateOperatorStatement->closeCursor();
 
-            // Refresh the session when the administrator edits their own account
             if (
                 (int)$operatorID
                 ===
@@ -198,18 +260,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 refreshCurrentOperatorSession();
 
                 if (!operatorIsAdministrator()) {
-                    header('Location: ' . APPLICATION_URL . '/index.php');
+                    header(
+                        'Location: '
+                        . APPLICATION_URL
+                        . '/index.php'
+                    );
                     exit;
                 }
             }
 
-            header('Location: list.php?updated=1');
+            header(
+                'Location: list.php?updated=1'
+            );
             exit;
         } catch (PDOException $exception) {
-            $errorMessage = getSafeDatabaseErrorMessage(
-                $exception,
-                'The operator could not be updated.'
-            );
+            $errorMessage =
+                getSafeDatabaseErrorMessage(
+                    $exception,
+                    'The user could not be updated.'
+                );
         }
     }
 }
@@ -222,35 +291,36 @@ require __DIR__ . '/../includes/header.php';
 ?>
 
 <section class="content-panel form-panel">
-
     <div class="page-intro">
         <h1>
             Update Operator
         </h1>
 
         <p>
-            Update the selected FnH Groceries operator and access level.
+            Update the selected FnH Groceries user and access level.
         </p>
     </div>
 
     <?php if ($errorMessage !== ''): ?>
-
         <div class="message message-error">
             <?= escapeOutput($errorMessage) ?>
         </div>
-
     <?php endif; ?>
 
     <form method="post">
-
         <input
             type="hidden"
             name="form_security_token"
             value="<?= escapeOutput(getFormSecurityToken()) ?>"
         >
 
-        <div class="form-grid">
+        <input
+            type="hidden"
+            name="id"
+            value="<?= (int)$operatorID ?>"
+        >
 
+        <div class="form-grid">
             <div class="form-field">
                 <label for="store_id">
                     Assigned Store *
@@ -266,7 +336,6 @@ require __DIR__ . '/../includes/header.php';
                     </option>
 
                     <?php foreach ($storeRecords as $storeRecord): ?>
-
                         <option
                             value="<?= (int)$storeRecord['StoreID'] ?>"
                             <?= (string)$selectedStoreID === (string)$storeRecord['StoreID'] ? 'selected' : '' ?>
@@ -275,9 +344,7 @@ require __DIR__ . '/../includes/header.php';
                             -
                             <?= escapeOutput($storeRecord['StoreName']) ?>
                         </option>
-
                     <?php endforeach; ?>
-
                 </select>
             </div>
 
@@ -303,7 +370,6 @@ require __DIR__ . '/../includes/header.php';
                     value="<?= escapeOutput($username) ?>"
                     maxlength="50"
                     required
-                    autocomplete="username"
                 >
             </div>
 
@@ -397,7 +463,6 @@ require __DIR__ . '/../includes/header.php';
                     value="<?= escapeOutput($email) ?>"
                     maxlength="120"
                     required
-                    autocomplete="email"
                 >
             </div>
 
@@ -412,7 +477,6 @@ require __DIR__ . '/../includes/header.php';
                     name="phone"
                     value="<?= escapeOutput($phone) ?>"
                     maxlength="20"
-                    autocomplete="tel"
                 >
             </div>
 
@@ -460,13 +524,13 @@ require __DIR__ . '/../includes/header.php';
                     autocomplete="new-password"
                 >
             </div>
-
         </div>
 
         <div class="form-actions">
-
             <button
                 type="submit"
+                name="save_update"
+                value="1"
                 class="button button-primary"
             >
                 Save Changes
@@ -478,11 +542,10 @@ require __DIR__ . '/../includes/header.php';
             >
                 Cancel
             </a>
-
         </div>
-
     </form>
-
 </section>
 
-<?php require __DIR__ . '/../includes/footer.php'; ?>
+<?php
+require __DIR__ . '/../includes/footer.php';
+?>
