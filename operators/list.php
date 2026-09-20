@@ -48,9 +48,8 @@ $operatorListStatement =
             AND
             (:showAllRoles = 1 OR Role = :roleFilter)
         ORDER BY
-            Active DESC,
-            LastName,
-            FirstName
+            EmployeeNumber ASC,
+            Username ASC
         '
     );
 
@@ -142,7 +141,10 @@ require __DIR__ . '/../includes/header.php';
             </div>
 
             <div class="operator-filter-field">
-                <label for="showInactive">
+                <label
+                    for="showInactive"
+                    class="operator-inactive-label"
+                >
                     <input
                         type="checkbox"
                         id="showInactive"
@@ -151,7 +153,9 @@ require __DIR__ . '/../includes/header.php';
                         <?= $showInactive ? 'checked' : '' ?>
                         onchange="this.form.submit()"
                     >
-                    Inactive
+                    <span>
+                        Inactive
+                    </span>
                 </label>
             </div>
         </form>
@@ -205,9 +209,9 @@ require __DIR__ . '/../includes/header.php';
                                     Employee
                                 </span>
 
-                                <small>
+                                <span class="operator-heading-second-line">
                                     Number
-                                </small>
+                                </span>
                             </th>
 
                             <th>
@@ -219,9 +223,9 @@ require __DIR__ . '/../includes/header.php';
                                     Name
                                 </span>
 
-                                <small class="operator-heading-detail">
+                                <span class="operator-heading-second-line">
                                     Last, First, MI
-                                </small>
+                                </span>
                             </th>
 
                             <th>
