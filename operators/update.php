@@ -1,0 +1,488 @@
+<?php // operators/update.php
+
+require_once __DIR__ . '/../includes/access_control.php';
+
+requireAdministrator();
+
+$databaseConnection = connectDatabase();
+
+$errorMessage = '';
+
+$operatorID = filter_input(
+    INPUT_GET,
+    'id',
+    FILTER_VALIDATE_INT
+);
+
+if (!$operatorID) {
+    http_response_code(400);
+    exit('A valid operator ID is required.');
+}
+
+
+// Load the selected operator
+$operatorStatement = $databaseConnection->prepare(
+    '
+    SELECT
+        OperatorID,
+        StoreID,
+        EmployeeNumber,
+        Username,
+        FirstName,
+        MiddleInitial,
+        LastName,
+        Email,
+        Phone,
+        Role,
+        HireDate
+    FROM vw_operatorlist
+    WHERE OperatorID = :operatorID
+    LIMIT 1
+    '
+);
+
+$operatorStatement->execute([
+    ':operatorID' => $operatorID
+]);
+
+$operatorRecord = $operatorStatement->fetch();
+
+if (!$operatorRecord) {
+    http_response_code(404);
+    exit('The selected operator was not found.');
+}
+
+
+// Load active stores
+$storeListStatement = $databaseConnection->query(
+    '
+    SELECT
+        StoreID,
+        StoreNumber,
+        StoreName
+    FROM vw_storelist
+    WHERE Active = 1
+    ORDER BY StoreNumber
+    '
+);
+
+$storeRecords = $storeListStatement->fetchAll();
+
+$selectedStoreID = $operatorRecord['StoreID'];
+$employeeNumber = $operatorRecord['EmployeeNumber'];
+$username = $operatorRecord['Username'];
+$firstName = $operatorRecord['FirstName'];
+$middleInitial = $operatorRecord['MiddleInitial'] ?? '';
+$lastName = $operatorRecord['LastName'];
+$email = $operatorRecord['Email'];
+$phone = $operatorRecord['Phone'] ?? '';
+$selectedRole = $operatorRecord['Role'];
+$hireDate = $operatorRecord['HireDate'] ?? '';
+
+
+// Process the Update Operator form
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $selectedStoreID = $_POST['store_id'] ?? '';
+    $username = trim($_POST['username'] ?? '');
+    $firstName = trim($_POST['first_name'] ?? '');
+    $middleInitial = trim($_POST['middle_initial'] ?? '');
+    $lastName = trim($_POST['last_name'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $selectedRole = $_POST['role'] ?? 'Pending';
+    $hireDate = $_POST['hire_date'] ?? '';
+    $newPassword = $_POST['new_password'] ?? '';
+    $confirmedPassword = $_POST['confirm_password'] ?? '';
+    $submittedSecurityToken = $_POST['form_security_token'] ?? '';
+
+    if (!formSecurityTokenIsValid($submittedSecurityToken)) {
+        $errorMessage = 'The form expired. Please try again.';
+    } elseif (
+        $selectedStoreID === ''
+        ||
+        $username === ''
+        ||
+        $firstName === ''
+        ||
+        $lastName === ''
+        ||
+        $email === ''
+    ) {
+        $errorMessage = 'Complete all required fields.';
+    } elseif (strlen($username) > 50) {
+        $errorMessage = 'Username cannot contain more than 50 characters.';
+    } elseif (!middleInitialIsValid($middleInitial)) {
+        $errorMessage = 'Middle initial must be one letter or left blank.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errorMessage = 'Enter a valid email address.';
+    } elseif (
+        $newPassword !== ''
+        &&
+        !passwordMeetsRequirements($newPassword)
+    ) {
+        $errorMessage =
+            'The new password must contain at least 8 characters, 1 uppercase letter, 1 lowercase letter, and 1 symbol.';
+    } elseif (
+        $newPassword !== ''
+        &&
+        $newPassword !== $confirmedPassword
+    ) {
+        $errorMessage = 'The new password and confirmation do not match.';
+    } elseif (
+        !in_array(
+            $selectedRole,
+            [
+                'Pending',
+                'Operator',
+                'Administrator'
+            ],
+            true
+        )
+    ) {
+        $errorMessage = 'Select a valid access level.';
+    } else {
+        try {
+            if ($middleInitial !== '') {
+                $middleInitial = strtoupper($middleInitial);
+            }
+
+            $newPasswordHash = null;
+
+            if ($newPassword !== '') {
+                $newPasswordHash = password_hash(
+                    $newPassword,
+                    PASSWORD_DEFAULT
+                );
+            }
+
+            $updateOperatorStatement = $databaseConnection->prepare(
+                '
+                CALL sp_update_operator(
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?
+                )
+                '
+            );
+
+            $updateOperatorStatement->execute([
+                (int)$operatorID,
+                (int)$selectedStoreID,
+                $username,
+                $newPasswordHash,
+                $firstName,
+                $middleInitial,
+                $lastName,
+                $email,
+                $phone,
+                $selectedRole,
+                $hireDate === '' ? null : $hireDate
+            ]);
+
+            $updateOperatorStatement->closeCursor();
+
+            // Refresh the session when the administrator edits their own account
+            if (
+                (int)$operatorID
+                ===
+                (int)$_SESSION['operator_id']
+            ) {
+                refreshCurrentOperatorSession();
+
+                if (!operatorIsAdministrator()) {
+                    header('Location: ' . APPLICATION_URL . '/index.php');
+                    exit;
+                }
+            }
+
+            header('Location: list.php?updated=1');
+            exit;
+        } catch (PDOException $exception) {
+            $errorMessage = getSafeDatabaseErrorMessage(
+                $exception,
+                'The operator could not be updated.'
+            );
+        }
+    }
+}
+
+$pageTitle = 'Update Operator';
+$currentSection = 'operators';
+$currentPage = 'update';
+
+require __DIR__ . '/../includes/header.php';
+?>
+
+<section class="content-panel form-panel">
+
+    <div class="page-intro">
+        <h1>
+            Update Operator
+        </h1>
+
+        <p>
+            Update the selected FnH Groceries operator and access level.
+        </p>
+    </div>
+
+    <?php if ($errorMessage !== ''): ?>
+
+        <div class="message message-error">
+            <?= escapeOutput($errorMessage) ?>
+        </div>
+
+    <?php endif; ?>
+
+    <form method="post">
+
+        <input
+            type="hidden"
+            name="form_security_token"
+            value="<?= escapeOutput(getFormSecurityToken()) ?>"
+        >
+
+        <div class="form-grid">
+
+            <div class="form-field">
+                <label for="store_id">
+                    Assigned Store *
+                </label>
+
+                <select
+                    id="store_id"
+                    name="store_id"
+                    required
+                >
+                    <option value="">
+                        Select Store
+                    </option>
+
+                    <?php foreach ($storeRecords as $storeRecord): ?>
+
+                        <option
+                            value="<?= (int)$storeRecord['StoreID'] ?>"
+                            <?= (string)$selectedStoreID === (string)$storeRecord['StoreID'] ? 'selected' : '' ?>
+                        >
+                            <?= escapeOutput($storeRecord['StoreNumber']) ?>
+                            -
+                            <?= escapeOutput($storeRecord['StoreName']) ?>
+                        </option>
+
+                    <?php endforeach; ?>
+
+                </select>
+            </div>
+
+            <div class="form-field">
+                <label>
+                    Employee Number
+                </label>
+
+                <div class="read-only-value">
+                    <?= escapeOutput($employeeNumber) ?>
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label for="username">
+                    Username *
+                </label>
+
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    value="<?= escapeOutput($username) ?>"
+                    maxlength="50"
+                    required
+                    autocomplete="username"
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="role">
+                    Access *
+                </label>
+
+                <select
+                    id="role"
+                    name="role"
+                    required
+                >
+                    <option
+                        value="Pending"
+                        <?= $selectedRole === 'Pending' ? 'selected' : '' ?>
+                    >
+                        No Access
+                    </option>
+
+                    <option
+                        value="Operator"
+                        <?= $selectedRole === 'Operator' ? 'selected' : '' ?>
+                    >
+                        Operator
+                    </option>
+
+                    <option
+                        value="Administrator"
+                        <?= $selectedRole === 'Administrator' ? 'selected' : '' ?>
+                    >
+                        Administrator
+                    </option>
+                </select>
+            </div>
+
+            <div class="form-field">
+                <label for="first_name">
+                    First Name *
+                </label>
+
+                <input
+                    type="text"
+                    id="first_name"
+                    name="first_name"
+                    value="<?= escapeOutput($firstName) ?>"
+                    maxlength="60"
+                    required
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="middle_initial">
+                    Middle Initial (Optional)
+                </label>
+
+                <input
+                    type="text"
+                    id="middle_initial"
+                    name="middle_initial"
+                    value="<?= escapeOutput($middleInitial) ?>"
+                    maxlength="1"
+                    pattern="[A-Za-z]"
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="last_name">
+                    Last Name *
+                </label>
+
+                <input
+                    type="text"
+                    id="last_name"
+                    name="last_name"
+                    value="<?= escapeOutput($lastName) ?>"
+                    maxlength="60"
+                    required
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="email">
+                    Email *
+                </label>
+
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value="<?= escapeOutput($email) ?>"
+                    maxlength="120"
+                    required
+                    autocomplete="email"
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="phone">
+                    Phone
+                </label>
+
+                <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value="<?= escapeOutput($phone) ?>"
+                    maxlength="20"
+                    autocomplete="tel"
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="hire_date">
+                    Hire Date
+                </label>
+
+                <input
+                    type="date"
+                    id="hire_date"
+                    name="hire_date"
+                    value="<?= escapeOutput($hireDate) ?>"
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="new_password">
+                    New Password
+                </label>
+
+                <input
+                    type="password"
+                    id="new_password"
+                    name="new_password"
+                    minlength="8"
+                    autocomplete="new-password"
+                >
+
+                <div class="field-help">
+                    Leave blank to keep the current password.
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label for="confirm_password">
+                    Confirm New Password
+                </label>
+
+                <input
+                    type="password"
+                    id="confirm_password"
+                    name="confirm_password"
+                    minlength="8"
+                    autocomplete="new-password"
+                >
+            </div>
+
+        </div>
+
+        <div class="form-actions">
+
+            <button
+                type="submit"
+                class="button button-primary"
+            >
+                Save Changes
+            </button>
+
+            <a
+                href="list.php"
+                class="button button-secondary"
+            >
+                Cancel
+            </a>
+
+        </div>
+
+    </form>
+
+</section>
+
+<?php require __DIR__ . '/../includes/footer.php'; ?>
