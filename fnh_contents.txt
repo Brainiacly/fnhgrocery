@@ -1,0 +1,7274 @@
+========================================
+FILE PATH: C:\xampp\htdocs\CSC_680\account.php
+FILENAME: account.php
+SIZE_BYTES: 13873
+----------------------------------------
+<?php // account.php
+
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+
+require_once __DIR__ . '/includes/access_control.php';
+
+requireOperatorLogin();
+
+$databaseConnection = connectDatabase();
+
+$errorMessage = '';
+$successMessage = '';
+
+
+// Load the current operator
+$accountStatement = $databaseConnection->prepare(
+    '
+    SELECT
+        OperatorID,
+        StoreID,
+        StoreNumber,
+        StoreName,
+        EmployeeNumber,
+        Username,
+        PasswordHash,
+        FirstName,
+        MiddleInitial,
+        LastName,
+        Email,
+        Phone,
+        Role
+    FROM vw_operatorlogin
+    WHERE OperatorID = :operatorID
+    LIMIT 1
+    '
+);
+
+$accountStatement->execute([
+    ':operatorID' => $_SESSION['operator_id']
+]);
+
+$accountRecord = $accountStatement->fetch();
+
+if (!$accountRecord) {
+    header('Location: ' . APPLICATION_URL . '/logout.php');
+    exit;
+}
+
+
+// Load active stores
+$storeListStatement = $databaseConnection->query(
+    '
+    SELECT
+        StoreID,
+        StoreNumber,
+        StoreName
+    FROM vw_storelist
+    WHERE Active = 1
+    ORDER BY StoreNumber
+    '
+);
+
+$storeRecords = $storeListStatement->fetchAll();
+
+$selectedStoreID = $accountRecord['StoreID'];
+$username = $accountRecord['Username'];
+$firstName = $accountRecord['FirstName'];
+$middleInitial = (string)$accountRecord['MiddleInitial'];
+$lastName = $accountRecord['LastName'];
+$email = $accountRecord['Email'];
+$phone = (string)$accountRecord['Phone'];
+
+
+// Show confirmation after an update
+if (isset($_GET['updated'])) {
+    $successMessage = 'Your account was updated successfully.';
+}
+
+
+// Process account changes
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $selectedStoreID = $_POST['store_id'] ?? '';
+    $username = trim($_POST['username'] ?? '');
+    $firstName = trim($_POST['first_name'] ?? '');
+    $middleInitial = trim($_POST['middle_initial'] ?? '');
+    $lastName = trim($_POST['last_name'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+
+    $currentPassword = $_POST['current_password'] ?? '';
+    $newPassword = $_POST['new_password'] ?? '';
+    $confirmNewPassword = $_POST['confirm_new_password'] ?? '';
+    $submittedSecurityToken = $_POST['form_security_token'] ?? '';
+
+    $isChangingPassword =
+        $currentPassword !== ''
+        ||
+        $newPassword !== ''
+        ||
+        $confirmNewPassword !== '';
+
+    if (!formSecurityTokenIsValid($submittedSecurityToken)) {
+        $errorMessage = 'The form expired. Please try again.';
+    } elseif (
+        $selectedStoreID === ''
+        ||
+        $username === ''
+        ||
+        $firstName === ''
+        ||
+        $lastName === ''
+        ||
+        $email === ''
+    ) {
+        $errorMessage = 'Complete all required fields.';
+    } elseif (strlen($username) > 50) {
+        $errorMessage = 'Username cannot contain more than 50 characters.';
+    } elseif (!middleInitialIsValid($middleInitial)) {
+        $errorMessage = 'Middle initial must be one letter or left blank.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errorMessage = 'Enter a valid email address.';
+    } elseif (strlen($phone) > 20) {
+        $errorMessage = 'Phone number cannot contain more than 20 characters.';
+    } elseif (
+        $isChangingPassword
+        &&
+        (
+            $currentPassword === ''
+            ||
+            $newPassword === ''
+            ||
+            $confirmNewPassword === ''
+        )
+    ) {
+        $errorMessage =
+            'Enter your current password, a new password, and the confirmation to change your password.';
+    } elseif (
+        $isChangingPassword
+        &&
+        !password_verify(
+            $currentPassword,
+            $accountRecord['PasswordHash']
+        )
+    ) {
+        $errorMessage = 'Your current password is incorrect.';
+    } elseif (
+        $isChangingPassword
+        &&
+        !passwordMeetsRequirements($newPassword)
+    ) {
+        $errorMessage =
+            'The new password must contain at least 8 characters, 1 uppercase letter, 1 lowercase letter, and 1 symbol.';
+    } elseif (
+        $isChangingPassword
+        &&
+        $newPassword !== $confirmNewPassword
+    ) {
+        $errorMessage =
+            'The new password and confirmation do not match.';
+    } else {
+        try {
+            if ($middleInitial !== '') {
+                $middleInitial = strtoupper($middleInitial);
+            }
+
+            $newPasswordHash = $isChangingPassword
+                ? password_hash($newPassword, PASSWORD_DEFAULT)
+                : null;
+
+            $updateAccountStatement = $databaseConnection->prepare(
+                '
+                CALL sp_update_own_account(
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?
+                )
+                '
+            );
+
+            $updateAccountStatement->execute([
+                (int)$_SESSION['operator_id'],
+                (int)$selectedStoreID,
+                $username,
+                $firstName,
+                $middleInitial,
+                $lastName,
+                $email,
+                $phone,
+                $newPasswordHash
+            ]);
+
+            $updateAccountStatement->closeCursor();
+
+            // Refresh the session after account changes
+            refreshCurrentOperatorSession();
+
+            header(
+                'Location: '
+                . APPLICATION_URL
+                . '/account.php?updated=1'
+            );
+
+            exit;
+        } catch (PDOException $exception) {
+            $errorMessage = getSafeDatabaseErrorMessage(
+                $exception,
+                'Your account could not be updated.'
+            );
+        }
+    }
+}
+
+
+$pageTitle = 'My Account';
+$currentSection = 'account';
+$currentPage = 'account';
+
+require __DIR__ . '/includes/header.php';
+?>
+
+<section class="content-panel form-panel">
+
+    <div class="page-intro">
+        <h1>
+            My Account
+        </h1>
+
+        <p>
+            Update your account, assigned store, contact details, or password.
+        </p>
+    </div>
+
+    <?php if ($successMessage !== ''): ?>
+
+        <div class="message message-success">
+            <?= escapeOutput($successMessage) ?>
+        </div>
+
+    <?php endif; ?>
+
+    <?php if ($errorMessage !== ''): ?>
+
+        <div class="message message-error">
+            <?= escapeOutput($errorMessage) ?>
+        </div>
+
+    <?php endif; ?>
+
+    <form method="post">
+
+        <input
+            type="hidden"
+            name="form_security_token"
+            value="<?= escapeOutput(getFormSecurityToken()) ?>"
+        >
+
+        <div class="form-grid">
+
+            <div class="form-field">
+                <label>
+                    Employee Number
+                </label>
+
+                <div class="read-only-value">
+                    <?= escapeOutput($accountRecord['EmployeeNumber']) ?>
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label for="username">
+                    Username *
+                </label>
+
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    value="<?= escapeOutput($username) ?>"
+                    maxlength="50"
+                    required
+                    autocomplete="username"
+                >
+
+                <div class="field-help">
+                    Username must be unique.
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label for="store_id">
+                    Assigned Store *
+                </label>
+
+                <select
+                    id="store_id"
+                    name="store_id"
+                    required
+                >
+                    <option value="">
+                        Select Store
+                    </option>
+
+                    <?php foreach ($storeRecords as $storeRecord): ?>
+
+                        <option
+                            value="<?= (int)$storeRecord['StoreID'] ?>"
+                            <?= (string)$selectedStoreID === (string)$storeRecord['StoreID'] ? 'selected' : '' ?>
+                        >
+                            <?= escapeOutput($storeRecord['StoreNumber']) ?>
+                            -
+                            <?= escapeOutput($storeRecord['StoreName']) ?>
+                        </option>
+
+                    <?php endforeach; ?>
+                </select>
+
+                <div class="field-help">
+                    Changing your assigned store affects future work only. Existing receipts keep their original store.
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label>
+                    Privilege
+                </label>
+
+                <div class="read-only-value">
+
+                    <?php if ($accountRecord['Role'] === 'Pending'): ?>
+
+                        No Access
+
+                    <?php else: ?>
+
+                        <?= escapeOutput($accountRecord['Role']) ?>
+
+                    <?php endif; ?>
+
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label for="first_name">
+                    First Name *
+                </label>
+
+                <input
+                    type="text"
+                    id="first_name"
+                    name="first_name"
+                    value="<?= escapeOutput($firstName) ?>"
+                    maxlength="60"
+                    required
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="middle_initial">
+                    Middle Initial (Optional)
+                </label>
+
+                <input
+                    type="text"
+                    id="middle_initial"
+                    name="middle_initial"
+                    value="<?= escapeOutput($middleInitial) ?>"
+                    maxlength="1"
+                    pattern="[A-Za-z]"
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="last_name">
+                    Last Name *
+                </label>
+
+                <input
+                    type="text"
+                    id="last_name"
+                    name="last_name"
+                    value="<?= escapeOutput($lastName) ?>"
+                    maxlength="60"
+                    required
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="email">
+                    Email *
+                </label>
+
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value="<?= escapeOutput($email) ?>"
+                    maxlength="120"
+                    required
+                    autocomplete="email"
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="phone">
+                    Phone
+                </label>
+
+                <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value="<?= escapeOutput($phone) ?>"
+                    maxlength="20"
+                    autocomplete="tel"
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="current_password">
+                    Current Password
+                </label>
+
+                <input
+                    type="password"
+                    id="current_password"
+                    name="current_password"
+                    autocomplete="current-password"
+                >
+
+                <div class="field-help">
+                    Required only when changing your password.
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label for="new_password">
+                    New Password
+                </label>
+
+                <input
+                    type="password"
+                    id="new_password"
+                    name="new_password"
+                    minlength="8"
+                    autocomplete="new-password"
+                >
+
+                <div class="field-help">
+                    Leave blank to keep your current password.
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label for="confirm_new_password">
+                    Confirm New Password
+                </label>
+
+                <input
+                    type="password"
+                    id="confirm_new_password"
+                    name="confirm_new_password"
+                    minlength="8"
+                    autocomplete="new-password"
+                >
+            </div>
+
+        </div>
+
+        <div class="form-actions">
+
+            <button
+                type="submit"
+                class="button button-primary"
+            >
+                Save Changes
+            </button>
+
+            <a
+                href="<?= APPLICATION_URL ?>/index.php"
+                class="button button-secondary"
+            >
+                Cancel
+            </a>
+
+        </div>
+
+    </form>
+
+</section>
+
+<?php require __DIR__ . '/includes/footer.php'; ?>
+
+
+========================================
+FILE PATH: C:\xampp\htdocs\CSC_680\assets\css\index.css
+FILENAME: index.css
+SIZE_BYTES: 7513
+----------------------------------------
+/* assets/css/index.css */
+
+/* 
+  Brian Phillips
+  CSC 680
+*/
+
+/* Public home page */
+
+.home-public {
+    width: 100%;
+    min-height: 100%;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            2,
+            minmax(0, 1fr)
+        );
+
+    grid-template-areas:
+        "left-image right-image"
+        "main main";
+
+    align-content: center;
+
+    gap: 0.75rem;
+}
+
+
+/* Public home pictures */
+
+.home-public-image {
+    min-width: 0;
+    min-height: 0;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 0.375rem;
+}
+
+
+.home-public-image img {
+    display: block;
+
+    width: auto;
+    height: auto;
+
+    max-width: 100%;
+
+    object-fit: contain;
+}
+
+
+.home-public-image-left {
+    grid-area: left-image;
+}
+
+
+.home-public-image-right {
+    grid-area: right-image;
+}
+
+
+.home-public-image-left img {
+    max-width: 6.5rem;
+    max-height: 7.5rem;
+}
+
+
+.home-public-image-right img {
+    height: 8rem;
+
+    max-height: 8rem;
+}
+
+
+/* Public home information */
+
+.home-public-main {
+    grid-area: main;
+
+    width: 100%;
+    max-width: 44rem;
+
+    margin:
+        0 auto;
+}
+
+
+.home-public-heading {
+    margin-bottom: 0.75rem;
+
+    text-align: center;
+}
+
+
+.home-public-heading h1 {
+    margin:
+        0
+        0
+        0.25rem;
+
+    color:
+        var(--theme-primary-dark-color);
+
+    font-size:
+        clamp(
+            1.25rem,
+            5vw,
+            1.75rem
+        );
+
+    line-height: 1.15;
+}
+
+
+.home-public-heading p {
+    margin: 0;
+
+    color:
+        var(--secondary-text-color);
+
+    font-size: 0.9375rem;
+
+    line-height: 1.3;
+}
+
+
+/* Public information sections */
+
+.home-public-sections {
+    display: grid;
+
+    grid-template-columns: 1fr;
+
+    gap: 0.75rem;
+}
+
+
+.home-public-section {
+    padding:
+        0.875rem
+        1.125rem;
+
+    border:
+        0.0625rem solid
+        var(--standard-border-color);
+
+    border-left:
+        0.3125rem solid
+        var(--theme-orange-color);
+
+    border-radius:
+        var(--standard-border-radius);
+
+    background:
+        var(--panel-background-color);
+
+    box-shadow:
+        0 0.125rem 0.4375rem
+        rgba(15, 30, 45, 0.10);
+}
+
+
+.home-public-section h2 {
+    margin:
+        0
+        0
+        0.25rem;
+
+    color:
+        var(--shared-blue-color);
+
+    font-size: 1rem;
+
+    line-height: 1.2;
+
+    text-align: center;
+}
+
+
+.home-public-section p {
+    margin: 0;
+
+    color:
+        var(--secondary-text-color);
+
+    font-size: 0.875rem;
+
+    line-height: 1.35;
+}
+
+
+/* Pending account */
+
+.home-pending {
+    min-height: 12rem;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 0.625rem;
+
+    padding: 1.5rem;
+
+    background:
+        var(--shared-blue-color);
+
+    border-color:
+        var(--theme-primary-dark-color);
+
+    border-top-color:
+        var(--theme-primary-dark-color);
+
+    color: white;
+
+    text-align: center;
+}
+
+
+.home-pending-message {
+    font-size:
+        clamp(
+            1.125rem,
+            4vw,
+            1.5625rem
+        );
+
+    font-weight: bold;
+
+    line-height: 1.3;
+}
+
+
+.home-pending-user {
+    font-size: 0.9375rem;
+}
+
+
+.home-pending-user strong {
+    color:
+        var(--theme-light-green-color);
+}
+
+
+/* Signed-in account information */
+
+.home-account {
+    overflow: hidden;
+
+    border:
+        0.0625rem solid
+        var(--shared-blue-color);
+
+    border-radius:
+        var(--standard-border-radius);
+
+    background:
+        var(--theme-primary-light-color);
+}
+
+
+.home-account-row {
+    display: grid;
+
+    grid-template-columns: 1fr;
+}
+
+
+.home-account-row + .home-account-row {
+    border-top:
+        0.0625rem solid
+        var(--shared-blue-color);
+}
+
+
+.home-account-item {
+    min-height:
+        var(--minimum-touch-size);
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: flex-start;
+
+    gap: 0.125rem;
+
+    padding:
+        0.75rem
+        1rem;
+}
+
+
+.home-account-item + .home-account-item {
+    border-top:
+        0.0625rem solid
+        var(--shared-blue-color);
+}
+
+
+.home-account-label {
+    color:
+        var(--theme-primary-dark-color);
+
+    font-weight: bold;
+}
+
+
+.home-account-value {
+    min-width: 0;
+
+    overflow-wrap: anywhere;
+}
+
+
+.home-signed-in-note {
+    margin:
+        0.75rem
+        0
+        0;
+
+    color:
+        var(--secondary-text-color);
+
+    font-size: 0.9375rem;
+
+    line-height: 1.4;
+
+    text-align: center;
+}
+
+
+/* Security Tips */
+
+.home-security {
+    margin-top: 1.25rem;
+
+    padding:
+        1.125rem
+        1.5rem;
+
+    border:
+        0.0625rem solid
+        var(--standard-border-color);
+
+    border-left:
+        0.3125rem solid
+        var(--shared-blue-color);
+
+    border-radius:
+        var(--standard-border-radius);
+
+    background:
+        var(--panel-background-color);
+
+    box-shadow:
+        0 0.125rem 0.4375rem
+        rgba(15, 30, 45, 0.10);
+}
+
+
+.home-security h2 {
+    margin:
+        0
+        0
+        0.75rem;
+
+    color:
+        var(--theme-primary-dark-color);
+
+    font-size: 1.125rem;
+
+    line-height: 1.2;
+
+    text-align: center;
+}
+
+
+.home-security-list {
+    width: 100%;
+    max-width: 52rem;
+
+    margin:
+        0 auto;
+
+    padding-left:
+        1.5rem;
+
+    color:
+        var(--secondary-text-color);
+
+    font-size: 1rem;
+
+    line-height: 1.5;
+}
+
+
+.home-security-list li + li {
+    margin-top: 0.5rem;
+}
+
+
+/* Tablet layout */
+
+@media (min-width: 48rem) {
+
+    .home-public {
+        grid-template-columns:
+            minmax(6rem, 1fr)
+            minmax(24rem, 44rem)
+            minmax(6rem, 1fr);
+
+        grid-template-areas:
+            "left-image main right-image";
+
+        align-items: center;
+    }
+
+
+    .home-public-image {
+        width: 100%;
+        height: 100%;
+
+        padding: 0.5rem;
+    }
+
+
+    .home-public-image-left img {
+        max-width:
+            clamp(
+                10rem,
+                16vw,
+                17rem
+            );
+
+        max-height: 21rem;
+    }
+
+
+    .home-public-image-right img {
+        height:
+            clamp(
+                18rem,
+                26vw,
+                26rem
+            );
+
+        max-height: 66vh;
+    }
+
+
+    .home-account-row {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            );
+    }
+
+
+    .home-account-item {
+        flex-direction: row;
+
+        align-items: center;
+
+        gap: 0.375rem;
+    }
+
+
+    .home-account-item + .home-account-item {
+        border-top: 0;
+
+        border-left:
+            0.125rem solid
+            var(--shared-blue-color);
+    }
+
+
+    .home-security-list {
+        width: 75%;
+
+        font-size: 1.0625rem;
+    }
+}
+
+
+/* Desktop layout */
+
+@media (min-width: 64rem) {
+
+    .home-public {
+        grid-template-columns:
+            minmax(11rem, 1fr)
+            minmax(31rem, 44rem)
+            minmax(11rem, 1fr);
+
+        gap: 1rem;
+    }
+
+
+    .home-security h2 {
+        font-size: 1.25rem;
+    }
+
+
+    .home-security-list {
+        width: 70%;
+    }
+}
+
+
+========================================
+FILE PATH: C:\xampp\htdocs\CSC_680\assets\css\layout.css
+FILENAME: layout.css
+SIZE_BYTES: 14648
+----------------------------------------
+/* assets/css/layout.css */
+
+/* 
+  Brian Phillips
+  CSC 680
+*/
+
+/* Page shell */
+
+:root {
+    --header-height: 4rem;
+    --footer-height: 3rem;
+    --navigation-width: 10rem;
+    --page-content-padding: 0.75rem;
+    --navigation-image-height: 7rem;
+    --header-title-clearance: 5.5rem;
+    --header-logout-space: 5rem;
+}
+
+
+body {
+    display: grid;
+
+    grid-template-rows:
+        var(--header-height)
+        minmax(0, 1fr)
+        var(--footer-height);
+
+    overflow: hidden;
+}
+
+
+/* Header */
+
+.site-header {
+    position: relative;
+
+    width: 100%;
+    min-width: 0;
+
+    overflow: hidden;
+
+    background:
+        linear-gradient(
+            110deg,
+            var(--theme-black-color) 0%,
+            var(--theme-primary-dark-color) 36%,
+            var(--shared-blue-color) 70%,
+            var(--theme-black-color) 100%
+        );
+
+    border-bottom:
+        0.25rem solid
+        var(--theme-orange-color);
+}
+
+
+.header-content {
+    position: absolute;
+
+    inset: 0;
+
+    z-index: 3;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    pointer-events: none;
+}
+
+
+.application-title {
+    padding:
+        0.35rem
+        0.55rem;
+
+    border:
+        0.125rem solid
+        var(--theme-orange-color);
+
+    border-radius:
+        var(--standard-border-radius);
+
+    background:
+        rgba(7, 17, 26, 0.97);
+
+    color:
+        var(--neon-green-color);
+
+    font-family:
+        "Trebuchet MS",
+        "Arial Rounded MT Bold",
+        "Arial Black",
+        Arial,
+        sans-serif;
+
+    font-size:
+        clamp(
+            0.875rem,
+            3vw,
+            1.5rem
+        );
+
+    font-style: italic;
+    font-weight: 900;
+
+    letter-spacing: 0.05rem;
+
+    line-height: 1;
+
+    text-align: center;
+
+    white-space: nowrap;
+
+    box-shadow:
+        0 0.1875rem 0.5rem
+        rgba(0, 0, 0, 0.55);
+
+    text-shadow:
+        0 0 0.1875rem
+        var(--neon-green-color),
+        0 0 0.4375rem
+        rgba(57, 255, 20, 0.82),
+        0 0 0.75rem
+        rgba(57, 255, 20, 0.40);
+}
+
+
+/* Header pictures */
+
+.header-image-group {
+    position: absolute;
+
+    top: 0;
+    bottom: 0;
+
+    z-index: 1;
+
+    min-width: 0;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: space-evenly;
+
+    overflow: hidden;
+}
+
+
+.header-image-group-left {
+    left: 0;
+
+    right:
+        calc(
+            50%
+            +
+            var(--header-title-clearance)
+        );
+}
+
+
+.header-image-group-right {
+    left:
+        calc(
+            50%
+            +
+            var(--header-title-clearance)
+        );
+
+    right: 0;
+}
+
+
+.site-header-logged-in
+.header-image-group-right {
+    right:
+        var(--header-logout-space);
+}
+
+
+.header-image-space {
+    flex:
+        0 1 2rem;
+
+    width: 2rem;
+    height: 2.75rem;
+
+    min-width: 0;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+}
+
+
+.header-image-space img {
+    display: block;
+
+    width: auto;
+    height: auto;
+
+    max-width: 2rem;
+    max-height: 2.75rem;
+
+    object-fit: contain;
+}
+
+
+.header-image-group-left
+.header-image-space:nth-child(3),
+.header-image-group-left
+.header-image-space:nth-child(4),
+.header-image-group-right
+.header-image-space:nth-child(3) {
+    display: none;
+}
+
+
+/* Logout */
+
+.header-logout-button {
+    position: absolute;
+
+    top: 50%;
+    right: 0.25rem;
+
+    z-index: 5;
+
+    min-width: 4.5rem;
+
+    min-height:
+        var(--minimum-touch-size);
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    transform:
+        translateY(-50%);
+
+    padding:
+        0.5rem
+        0.625rem;
+
+    border:
+        0.0625rem solid
+        var(--theme-orange-color);
+
+    border-radius:
+        var(--standard-border-radius);
+
+    background:
+        var(--theme-primary-dark-color);
+
+    color: white;
+
+    font-size: 0.75rem;
+    font-weight: bold;
+
+    line-height: 1;
+
+    text-decoration: none;
+}
+
+
+.header-logout-button:hover,
+.header-logout-button:focus-visible {
+    background:
+        var(--theme-orange-color);
+
+    color:
+        var(--theme-black-color);
+
+    outline:
+        0.1875rem solid
+        var(--theme-light-green-color);
+
+    outline-offset:
+        0.0625rem;
+}
+
+
+/* Main page layout */
+
+.site-layout {
+    min-width: 0;
+    min-height: 0;
+
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr);
+
+    grid-template-rows:
+        auto
+        minmax(0, 1fr);
+
+    overflow: hidden;
+}
+
+
+.page-content {
+    min-width: 0;
+    min-height: 0;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    padding:
+        var(--page-content-padding);
+
+    background:
+        linear-gradient(
+            145deg,
+            var(--page-background-color),
+            var(--page-background-light-color)
+        );
+}
+
+
+/* Navigation */
+
+.site-navigation {
+    min-width: 0;
+    min-height: 0;
+
+    display: flex;
+
+    flex-direction: column;
+
+    padding: 0.625rem;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    background:
+        var(--theme-black-color);
+
+    border-bottom:
+        0.25rem solid
+        var(--shared-blue-color);
+}
+
+
+.navigation-menu {
+    width: 100%;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 0.625rem;
+}
+
+
+/* Navigation links */
+
+.navigation-link {
+    width: 100%;
+
+    min-height:
+        var(--minimum-touch-size);
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 0.375rem;
+
+    padding: 0.5rem;
+
+    border:
+        0.0625rem solid
+        var(--navigation-border-color);
+
+    border-radius:
+        var(--standard-border-radius);
+
+    background:
+        var(--theme-primary-dark-color);
+
+    color: white;
+
+    font-size: 0.75rem;
+    font-weight: bold;
+
+    line-height: 1.2;
+
+    text-align: center;
+
+    text-decoration: none;
+}
+
+
+.navigation-link-current {
+    border-left:
+        0.375rem solid
+        var(--theme-orange-color);
+
+    background:
+        var(--shared-blue-color);
+}
+
+
+.navigation-home-icon {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-size: 1.25rem;
+
+    line-height: 1;
+}
+
+
+.navigation-link:hover,
+.navigation-link:focus-visible {
+    background:
+        var(--theme-orange-color);
+
+    color:
+        var(--theme-black-color);
+
+    outline:
+        0.1875rem solid
+        var(--theme-light-green-color);
+
+    outline-offset:
+        0.0625rem;
+}
+
+
+/* Login navigation */
+
+.navigation-login {
+    width: 100%;
+}
+
+
+.navigation-login-heading {
+    color:
+        var(--theme-light-green-color);
+
+    font-size: 0.9375rem;
+    font-weight: bold;
+
+    line-height: 1.25;
+
+    text-align: center;
+}
+
+
+.navigation-login-description {
+    color:
+        var(--navigation-text-color);
+
+    font-size: 0.6875rem;
+
+    line-height: 1.35;
+
+    text-align: center;
+}
+
+
+.navigation-login-error {
+    padding: 0.5rem;
+
+    border:
+        0.0625rem solid
+        var(--danger-border-color);
+
+    border-radius:
+        var(--standard-border-radius);
+
+    background:
+        var(--danger-background-color);
+
+    color:
+        var(--danger-color);
+
+    font-size: 0.6875rem;
+
+    line-height: 1.3;
+}
+
+
+.navigation-login-form {
+    width: 100%;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 0.75rem;
+
+    margin-top: 0.25rem;
+}
+
+
+.navigation-login-field {
+    width: 100%;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 0.25rem;
+}
+
+
+.navigation-login-field label {
+    color: white;
+
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+
+.navigation-login-field input {
+    width: 100%;
+
+    min-height:
+        var(--minimum-touch-size);
+
+    padding: 0.5rem;
+
+    border:
+        0.0625rem solid
+        var(--input-border-color);
+
+    border-radius:
+        var(--standard-border-radius);
+
+    background: white;
+
+    color:
+        var(--main-text-color);
+
+    font-size: 0.875rem;
+}
+
+
+.navigation-login-field input:focus {
+    border-color:
+        var(--theme-orange-color);
+
+    outline:
+        0.1875rem solid
+        var(--theme-light-green-color);
+
+    outline-offset:
+        0.0625rem;
+}
+
+
+.navigation-login-button {
+    width: 100%;
+
+    min-height:
+        var(--minimum-touch-size);
+}
+
+
+/* Demo credential notice */
+
+.navigation-demo-note {
+    width: 100%;
+
+    color: white;
+
+    font-size: 0.75rem;
+    font-weight: bold;
+
+    line-height: 1.35;
+
+    text-align: center;
+}
+
+
+/* Logged-in navigation */
+
+.navigation-operator {
+    width: 100%;
+    min-width: 0;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 0.125rem;
+
+    padding:
+        0.625rem
+        0.25rem;
+
+    color: white;
+
+    font-size: 0.75rem;
+
+    line-height: 1.3;
+
+    overflow-wrap: anywhere;
+}
+
+
+.navigation-operator-label {
+    color: white;
+}
+
+
+.navigation-operator strong {
+    color:
+        var(--theme-light-green-color);
+
+    font-weight: bold;
+
+    overflow-wrap: anywhere;
+}
+
+
+/* Navigation picture */
+
+.navigation-feature-image {
+    width: 100%;
+
+    display: flex;
+
+    align-items: flex-start;
+    justify-content: center;
+
+    margin-top: 0.75rem;
+
+    pointer-events: none;
+}
+
+
+.navigation-feature-image img {
+    display: block;
+
+    width: auto;
+    height: auto;
+
+    max-width: 80%;
+
+    max-height:
+        var(--navigation-image-height);
+
+    object-fit: contain;
+}
+
+
+/* Footer */
+
+.site-footer {
+    min-width: 0;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 0.375rem;
+
+    padding:
+        0
+        0.375rem;
+
+    overflow: hidden;
+
+    background:
+        var(--theme-black-color);
+
+    color: white;
+
+    border-top:
+        0.1875rem solid
+        var(--theme-orange-color);
+
+    font-size: 0.6875rem;
+
+    white-space: nowrap;
+}
+
+
+.site-footer a {
+    min-height:
+        var(--minimum-touch-size);
+
+    display: inline-flex;
+
+    align-items: center;
+
+    color:
+        var(--theme-light-green-color);
+
+    text-decoration: underline;
+}
+
+
+.site-footer a:hover,
+.site-footer a:focus-visible {
+    color:
+        var(--theme-orange-color);
+
+    outline:
+        0.125rem solid
+        var(--theme-light-green-color);
+
+    outline-offset:
+        0.0625rem;
+}
+
+
+/* Tablet layout */
+
+@media (min-width: 40rem) {
+
+    :root {
+        --navigation-width: 12rem;
+        --page-content-padding: 1rem;
+        --header-title-clearance: 7rem;
+        --header-logout-space: 6.75rem;
+    }
+
+
+    .header-image-space {
+        flex-basis: 2.75rem;
+
+        width: 2.75rem;
+        height: 3rem;
+    }
+
+
+    .header-image-space img {
+        max-width: 2.75rem;
+        max-height: 3rem;
+    }
+
+
+    .header-image-group-left
+    .header-image-space:nth-child(3),
+    .header-image-group-right
+    .header-image-space:nth-child(3) {
+        display: flex;
+    }
+
+
+    .application-title {
+        padding:
+            0.4rem
+            1rem;
+
+        letter-spacing: 0.075rem;
+    }
+
+
+    .header-logout-button {
+        right: 0.75rem;
+
+        min-width: 5.5rem;
+
+        font-size: 0.875rem;
+    }
+
+
+    .site-layout {
+        grid-template-columns:
+            var(--navigation-width)
+            minmax(0, 1fr);
+
+        grid-template-rows:
+            minmax(0, 1fr);
+    }
+
+
+    .site-navigation {
+        padding: 0.75rem;
+
+        border-bottom: 0;
+
+        border-right:
+            0.25rem solid
+            var(--shared-blue-color);
+    }
+
+
+    .navigation-link {
+        padding: 0.625rem;
+
+        font-size: 0.875rem;
+    }
+
+
+    .navigation-login-heading {
+        font-size: 1rem;
+    }
+
+
+    .navigation-login-description,
+    .navigation-login-error,
+    .navigation-demo-note {
+        font-size: 0.75rem;
+    }
+
+
+    .navigation-login-field label,
+    .navigation-operator {
+        font-size: 0.8125rem;
+    }
+
+
+    .navigation-login-field input {
+        font-size: 0.9375rem;
+    }
+
+
+    .site-footer {
+        gap: 0.75rem;
+
+        padding:
+            0
+            1rem;
+
+        font-size: 0.8125rem;
+    }
+}
+
+
+/* Desktop layout */
+
+@media (min-width: 64rem) {
+
+    :root {
+        --navigation-width: 17.5rem;
+        --page-content-padding: 1.5rem;
+        --navigation-image-height: 12.5rem;
+        --header-title-clearance: 8.5rem;
+        --header-logout-space: 8rem;
+    }
+
+
+    .header-image-group-left
+    .header-image-space:nth-child(n),
+    .header-image-group-right
+    .header-image-space:nth-child(n) {
+        display: flex;
+    }
+
+
+    .header-image-space {
+        flex-basis: 4rem;
+
+        width: 4rem;
+        height: 3.5rem;
+    }
+
+
+    .header-image-space img {
+        max-width: 4rem;
+        max-height: 3.5rem;
+    }
+
+
+    .application-title {
+        padding:
+            0.4375rem
+            1.75rem;
+
+        letter-spacing: 0.1125rem;
+    }
+
+
+    .header-logout-button {
+        right: 1rem;
+
+        min-width: 6.25rem;
+
+        font-size: 0.9375rem;
+    }
+
+
+    .site-navigation {
+        padding: 1rem;
+    }
+
+
+    .navigation-menu {
+        gap: 0.75rem;
+    }
+
+
+    .navigation-link {
+        font-size: 1rem;
+    }
+
+
+    .navigation-home-icon {
+        font-size: 1.625rem;
+    }
+
+
+    .navigation-login-heading {
+        font-size: 1.125rem;
+    }
+
+
+    .navigation-login-description,
+    .navigation-login-error,
+    .navigation-demo-note {
+        font-size: 0.8125rem;
+    }
+
+
+    .navigation-login-field label {
+        font-size: 0.875rem;
+    }
+
+
+    .navigation-login-field input {
+        font-size: 1rem;
+    }
+
+
+    .navigation-operator {
+        flex-direction: row;
+
+        align-items: center;
+        justify-content: center;
+
+        gap: 0.375rem;
+
+        font-size: 0.9375rem;
+    }
+}
+
+
+/* Extra-wide desktop layout */
+
+@media (min-width: 90rem) {
+
+    .header-image-space {
+        flex-basis: 4.25rem;
+
+        width: 4.25rem;
+        height: 3.625rem;
+    }
+
+
+    .header-image-space img {
+        max-width: 4.25rem;
+        max-height: 3.625rem;
+    }
+}
+
+
+========================================
+FILE PATH: C:\xampp\htdocs\CSC_680\assets\css\operators.css
+FILENAME: operators.css
+SIZE_BYTES: 9024
+----------------------------------------
+/* assets/css/operators.css */
+
+/* 
+  Brian Phillips
+  CSC 680
+*/
+
+.operator-nav-actions {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.operator-nav-button {
+    width: 100%;
+    min-height: var(--minimum-touch-size);
+    padding: 0.5rem 0.375rem;
+    font-size: 0.875rem;
+    line-height: 1.2;
+}
+
+.operator-nav-create {
+    background: var(--shared-blue-color);
+    color: white;
+    border: 0.0625rem solid var(--theme-primary-dark-color);
+}
+
+.operator-nav-update,
+.operator-nav-delete,
+.operator-nav-clear {
+    background: var(--disabled-background-color);
+    color: var(--disabled-text-color);
+    border: 0.0625rem solid var(--disabled-border-color);
+}
+
+.operator-nav-button:disabled {
+    opacity: 0.72;
+    cursor: not-allowed;
+}
+
+.operator-nav-update:not(:disabled),
+.operator-nav-delete:not(:disabled),
+.operator-nav-clear:not(:disabled) {
+    background: var(--shared-blue-color);
+    color: white;
+    border-color: var(--theme-primary-dark-color);
+    opacity: 1;
+    cursor: pointer;
+}
+
+.operator-nav-create:hover,
+.operator-nav-create:focus-visible,
+.operator-nav-update:not(:disabled):hover,
+.operator-nav-update:not(:disabled):focus-visible,
+.operator-nav-delete:not(:disabled):hover,
+.operator-nav-delete:not(:disabled):focus-visible,
+.operator-nav-clear:not(:disabled):hover,
+.operator-nav-clear:not(:disabled):focus-visible {
+    background: var(--theme-orange-color);
+    color: var(--theme-black-color);
+    outline: 0.1875rem solid var(--theme-light-green-color);
+    outline-offset: 0.0625rem;
+}
+
+.operator-delete-current-note {
+    display: none;
+    padding: 0.25rem 0.125rem;
+    color: #c9d2d9;
+    font-size: 0.6875rem;
+    line-height: 1.3;
+    text-align: center;
+}
+
+.site-layout:has(.operator-select-radio-current:checked)
+.operator-delete-current-note {
+    display: block;
+}
+
+.content-panel.operator-list-panel {
+    width: 100%;
+    max-width: none;
+}
+
+.operator-list-panel .page-intro {
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+.operator-list-intro {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.operator-list-heading,
+.operator-list-heading h1,
+.operator-list-heading p {
+    text-align: left;
+}
+
+.operator-selection-form {
+    width: 100%;
+    margin: 0;
+}
+
+.operator-filter-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.operator-filter-field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.operator-filter-field label {
+    margin: 0;
+    color: var(--theme-primary-dark-color);
+    font-weight: bold;
+}
+
+.operator-filter-field select {
+    width: 6.5rem;
+    min-width: 6.5rem;
+    max-width: 6.5rem;
+    height: 2.25rem;
+    min-height: 2.25rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 1rem;
+    line-height: 1.2;
+}
+
+.operator-inactive-label {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.operator-filter-field input[type="checkbox"] {
+    width: 1.125rem;
+    height: 1.125rem;
+    min-width: 1.125rem;
+    min-height: 1.125rem;
+    margin: 0;
+    padding: 0;
+    flex: 0 0 1.125rem;
+    cursor: pointer;
+    accent-color: var(--shared-blue-color);
+}
+
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-radius: var(--standard-border-radius);
+    scrollbar-gutter: stable;
+}
+
+.table-container:focus-visible {
+    outline: 0.1875rem solid var(--theme-orange-color);
+    outline-offset: 0.125rem;
+}
+
+.operator-table {
+    width: 100%;
+    min-width: 44rem;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--theme-primary-light-color);
+}
+
+.operator-column-select {
+    width: 8%;
+}
+
+.operator-column-employee {
+    width: 12%;
+}
+
+.operator-column-username {
+    width: 25%;
+}
+
+.operator-column-name {
+    width: 25%;
+}
+
+.operator-column-created {
+    width: 16%;
+}
+
+.operator-column-status {
+    width: 14%;
+}
+
+.operator-table th {
+    padding: 0.5rem;
+    border: 0.0625rem solid var(--shared-blue-color);
+    background: var(--shared-blue-color);
+    color: white;
+    text-align: left;
+    vertical-align: middle;
+    font-size: 0.875rem;
+    font-weight: bold;
+    line-height: 1.2;
+}
+
+.operator-table td {
+    padding: 0.3125rem 0.5rem;
+    border: 0.0625rem solid var(--shared-blue-color);
+    background: var(--theme-primary-light-color);
+    color: var(--main-text-color);
+    vertical-align: middle;
+    font-size: 0.875rem;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+.operator-table thead tr th:first-child {
+    border-top-left-radius: var(--standard-border-radius);
+}
+
+.operator-table thead tr th:last-child {
+    border-top-right-radius: var(--standard-border-radius);
+}
+
+.operator-table tbody tr:last-child td:first-child {
+    border-bottom-left-radius: var(--standard-border-radius);
+}
+
+.operator-table tbody tr:last-child td:last-child {
+    border-bottom-right-radius: var(--standard-border-radius);
+}
+
+.operator-table tbody tr:has(.operator-select-radio:checked) td {
+    background: var(--theme-light-green-color);
+}
+
+.operator-heading-select,
+.operator-select-cell,
+.operator-heading-employee,
+.operator-employee-cell {
+    text-align: center;
+}
+
+.operator-heading-employee span,
+.operator-heading-second-line {
+    display: block;
+    margin: 0;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+}
+
+.operator-created-cell {
+    white-space: nowrap;
+}
+
+.operator-radio-label {
+    width: 100%;
+    min-height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.operator-select-radio {
+    width: 1.125rem;
+    height: 1.125rem;
+    min-width: 1.125rem;
+    min-height: 1.125rem;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
+    accent-color: var(--shared-blue-color);
+}
+
+.operator-select-radio:focus-visible {
+    outline: 0.1875rem solid var(--theme-orange-color);
+    outline-offset: 0.1875rem;
+}
+
+.status-active,
+.status-inactive {
+    display: block;
+    font-weight: bold;
+}
+
+.status-active {
+    color: var(--success-color);
+}
+
+.status-inactive {
+    color: var(--secondary-text-color);
+}
+
+.status-context {
+    display: block;
+    margin-top: 0.125rem;
+    color: var(--secondary-text-color);
+    font-size: 0.6875rem;
+    font-weight: normal;
+    line-height: 1.2;
+}
+
+.operator-table-empty {
+    padding: 1.5rem;
+    background: var(--theme-primary-light-color);
+    color: var(--secondary-text-color);
+    text-align: center;
+    border: 0.0625rem solid var(--shared-blue-color);
+    border-radius: var(--standard-border-radius);
+}
+
+.operator-list-count {
+    margin: 0.5rem 0 0;
+    color: var(--secondary-text-color);
+    font-size: 0.875rem;
+}
+
+.operator-list-help {
+    margin-top: 1.5rem;
+}
+
+.operator-list-help h2 {
+    margin-bottom: 0.75rem;
+}
+
+.operator-list-help ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.operator-list-help li {
+    margin-bottom: 0.5rem;
+}
+
+.form-panel {
+    max-width: 56.25rem;
+}
+
+.delete-panel {
+    max-width: 43.75rem;
+}
+
+.delete-confirmation-question {
+    margin: 1.125rem 0;
+    color: var(--danger-color);
+    font-size: 1.25rem;
+    font-weight: bold;
+    line-height: 1.3;
+    text-align: center;
+}
+
+.operator-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    margin: 1rem 0;
+    padding: 1.25rem;
+    border: 0.125rem solid var(--shared-blue-color);
+    border-radius: var(--standard-border-radius);
+    background: var(--theme-primary-light-color);
+}
+
+.operator-summary-name {
+    padding-bottom: 0.625rem;
+    border-bottom: 0.0625rem solid var(--shared-blue-color);
+    color: var(--theme-primary-dark-color);
+    font-size: 1.25rem;
+    font-weight: bold;
+    text-align: center;
+}
+
+.operator-summary-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.125rem;
+}
+
+.operator-summary-label {
+    color: var(--theme-primary-dark-color);
+    font-weight: bold;
+}
+
+.delete-confirmation-actions {
+    justify-content: center;
+}
+
+@media (min-width: 40rem) {
+    .form-panel .form-actions {
+        justify-content: center;
+    }
+
+    .operator-summary-row {
+        grid-template-columns: 9.375rem minmax(0, 1fr);
+        gap: 0.75rem;
+    }
+
+    .delete-confirmation-actions .button {
+        min-width: 11.875rem;
+    }
+}
+
+@media (min-width: 64rem) {
+    .operator-nav-button {
+        font-size: 1rem;
+    }
+
+    .operator-table th,
+    .operator-table td {
+        font-size: 1rem;
+    }
+
+    .operator-list-count {
+        font-size: 0.9375rem;
+    }
+}
+
+
+========================================
+FILE PATH: C:\xampp\htdocs\CSC_680\assets\css\styles.css
+FILENAME: styles.css
+SIZE_BYTES: 9177
+----------------------------------------
+/* assets/css/styles.css */
+
+/* 
+  Brian Phillips
+  CSC 680
+*/
+
+/* Shared website values */
+
+:root {
+    --shared-blue-color: #1565a8;
+    --theme-primary-dark-color: #0b2239;
+    --theme-primary-light-color: #dceeff;
+
+    --theme-black-color: #111820;
+
+    --theme-orange-color: #f28c28;
+    --theme-orange-dark-color: #c9660e;
+
+    --theme-light-green-color: #dff3cf;
+    --theme-green-color: #5f913e;
+
+    --neon-green-color: #39ff14;
+
+    --page-background-color: #edf3f7;
+    --page-background-light-color: #f8fbfd;
+    --panel-background-color: #ffffff;
+
+    --main-text-color: #17212b;
+    --secondary-text-color: #5d6973;
+
+    --standard-border-color: #9aa9b5;
+    --input-border-color: #8997a3;
+    --navigation-border-color: #405364;
+    --navigation-text-color: #d9e1e7;
+
+    --success-color: #417326;
+    --success-background-color: #e7f5dd;
+
+    --danger-color: #a33131;
+    --danger-background-color: #f9e4e4;
+    --danger-border-color: #d9aaaa;
+
+    --warning-background-color: #fff0d7;
+    --warning-border-color: #e3b76d;
+
+    --information-background-color: #e5f1fb;
+
+    --disabled-background-color: #737b82;
+    --disabled-border-color: #4d5459;
+    --disabled-text-color: #e6e6e6;
+
+    --minimum-touch-size: 3rem;
+
+    --spacing-large: 1.5rem;
+
+    --standard-border-radius: 0.5rem;
+
+    --maximum-content-width: 68.75rem;
+    --form-panel-width: 56.25rem;
+
+    --main-action-button-width: 13.75rem;
+}
+
+
+/* Basic page settings */
+
+* {
+    box-sizing: border-box;
+}
+
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+
+    margin: 0;
+}
+
+
+html {
+    font-size: 100%;
+}
+
+
+body {
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    color:
+        var(--main-text-color);
+
+    background:
+        var(--page-background-color);
+}
+
+
+a {
+    color: inherit;
+}
+
+
+img {
+    max-width: 100%;
+}
+
+
+input,
+select,
+button {
+    font: inherit;
+}
+
+
+/* Screen reader text */
+
+.screen-reader-text {
+    position: absolute;
+
+    width: 0.0625rem;
+    height: 0.0625rem;
+
+    padding: 0;
+
+    margin:
+        -0.0625rem;
+
+    overflow: hidden;
+
+    clip:
+        rect(
+            0,
+            0,
+            0,
+            0
+        );
+
+    white-space: nowrap;
+
+    border: 0;
+}
+
+
+/* Shared content panels */
+
+.content-panel {
+    width: 100%;
+
+    max-width:
+        var(--maximum-content-width);
+
+    margin:
+        0 auto;
+
+    padding:
+        1rem;
+
+    background:
+        var(--panel-background-color);
+
+    border:
+        0.0625rem solid
+        var(--standard-border-color);
+
+    border-top:
+        0.3125rem solid
+        var(--shared-blue-color);
+
+    border-radius:
+        var(--standard-border-radius);
+
+    box-shadow:
+        0 0.1875rem 0.625rem
+        rgba(15, 30, 45, 0.10);
+}
+
+
+.content-panel h1 {
+    margin: 0;
+
+    color:
+        var(--theme-primary-dark-color);
+
+    font-size:
+        clamp(
+            1.25rem,
+            4vw,
+            1.625rem
+        );
+}
+
+
+/* Shared form panels */
+
+.form-panel {
+    max-width:
+        var(--form-panel-width);
+}
+
+
+/* Page introduction */
+
+.page-intro {
+    width: 100%;
+
+    margin:
+        0
+        0
+        1rem;
+
+    padding:
+        0.125rem
+        0
+        0.75rem;
+
+    border-bottom:
+        0.0625rem solid
+        var(--standard-border-color);
+
+    text-align: center;
+}
+
+
+.page-intro h1 {
+    margin:
+        0
+        0
+        0.25rem;
+
+    line-height: 1.2;
+}
+
+
+.page-intro p {
+    margin: 0;
+
+    color:
+        var(--secondary-text-color);
+
+    font-size: 0.9375rem;
+
+    line-height: 1.4;
+}
+
+
+/* Forms */
+
+.form-grid {
+    display: grid;
+
+    grid-template-columns: 1fr;
+
+    gap: 1rem;
+}
+
+
+.form-field {
+    min-width: 0;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap:
+        0.4375rem;
+}
+
+
+.form-field-full-width {
+    grid-column:
+        1 / -1;
+}
+
+
+.form-field label {
+    color:
+        var(--theme-primary-dark-color);
+
+    font-size: 0.9375rem;
+    font-weight: bold;
+}
+
+
+/* Form controls */
+
+input,
+select {
+    width: 100%;
+
+    min-height:
+        var(--minimum-touch-size);
+
+    padding:
+        0.625rem
+        0.75rem;
+
+    border:
+        0.0625rem solid
+        var(--input-border-color);
+
+    border-radius:
+        var(--standard-border-radius);
+
+    background: white;
+
+    color:
+        var(--main-text-color);
+
+    font-size: 1rem;
+}
+
+
+input:focus,
+select:focus {
+    border-color:
+        var(--shared-blue-color);
+
+    outline:
+        0.1875rem solid
+        rgba(21, 101, 168, 0.20);
+
+    outline-offset:
+        0.0625rem;
+}
+
+
+/* Read-only form information */
+
+.read-only-value {
+    min-height:
+        var(--minimum-touch-size);
+
+    display: flex;
+
+    align-items: center;
+
+    padding:
+        0.625rem
+        0.75rem;
+
+    border:
+        0.0625rem solid
+        var(--standard-border-color);
+
+    border-radius:
+        var(--standard-border-radius);
+
+    background:
+        var(--theme-primary-light-color);
+}
+
+
+/* Form help */
+
+.field-help,
+.password-requirements {
+    color:
+        var(--secondary-text-color);
+
+    font-size: 0.8125rem;
+
+    line-height: 1.4;
+}
+
+
+/* Buttons */
+
+.button {
+    min-height:
+        var(--minimum-touch-size);
+
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    padding:
+        0.625rem
+        1rem;
+
+    border:
+        0.0625rem solid
+        transparent;
+
+    border-radius:
+        var(--standard-border-radius);
+
+    font-size: 1rem;
+    font-weight: bold;
+
+    line-height: 1.2;
+
+    text-align: center;
+
+    text-decoration: none;
+
+    cursor: pointer;
+}
+
+
+.button-primary {
+    background:
+        var(--shared-blue-color);
+
+    color: white;
+
+    border-color:
+        var(--theme-primary-dark-color);
+}
+
+
+.button-secondary {
+    background:
+        var(--theme-light-green-color);
+
+    color:
+        var(--theme-black-color);
+
+    border-color:
+        var(--theme-green-color);
+}
+
+
+.button-danger {
+    background:
+        var(--theme-orange-dark-color);
+
+    color: white;
+
+    border-color:
+        var(--theme-black-color);
+}
+
+
+.button:hover,
+.button:focus-visible {
+    background:
+        var(--theme-orange-color);
+
+    color:
+        var(--theme-black-color);
+
+    outline:
+        0.1875rem solid
+        var(--theme-light-green-color);
+
+    outline-offset:
+        0.0625rem;
+}
+
+
+/* Form and page actions */
+
+.form-actions,
+.page-main-actions {
+    display: flex;
+
+    flex-direction: column;
+
+    gap:
+        0.75rem;
+
+    margin-top:
+        var(--spacing-large);
+}
+
+
+.form-actions .button,
+.page-main-actions .button {
+    width: 100%;
+}
+
+
+/* Messages */
+
+.message {
+    margin:
+        1rem
+        0;
+
+    padding:
+        0.875rem
+        1rem;
+
+    border-radius:
+        var(--standard-border-radius);
+
+    font-size: 0.9375rem;
+
+    line-height: 1.4;
+}
+
+
+.message-success {
+    color:
+        var(--success-color);
+
+    background:
+        var(--success-background-color);
+
+    border:
+        0.0625rem solid
+        var(--theme-green-color);
+}
+
+
+.message-error {
+    color:
+        var(--danger-color);
+
+    background:
+        var(--danger-background-color);
+
+    border:
+        0.0625rem solid
+        var(--danger-border-color);
+}
+
+
+.message-warning {
+    background:
+        var(--warning-background-color);
+
+    border:
+        0.0625rem solid
+        var(--warning-border-color);
+
+    border-left:
+        0.3125rem solid
+        var(--theme-orange-color);
+}
+
+
+.message-information {
+    color:
+        var(--theme-primary-dark-color);
+
+    background:
+        var(--information-background-color);
+
+    border:
+        0.0625rem solid
+        var(--shared-blue-color);
+}
+
+
+/* Wider form and action layout */
+
+@media (min-width: 40rem) {
+
+    .content-panel {
+        padding:
+            1.25rem;
+    }
+
+
+    .form-panel .form-actions {
+        justify-content: center;
+    }
+
+
+    .form-actions,
+    .page-main-actions {
+        flex-direction: row;
+
+        flex-wrap: wrap;
+    }
+
+
+    .form-actions {
+        align-items: center;
+    }
+
+
+    .page-main-actions {
+        justify-content: center;
+    }
+
+
+    .form-actions .button {
+        width: auto;
+
+        min-width: 10rem;
+    }
+
+
+    .page-main-actions .button {
+        width:
+            var(--main-action-button-width);
+    }
+}
+
+
+/* Two-column forms */
+
+@media (min-width: 48rem) {
+
+    .form-grid {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            );
+
+        gap:
+            1.125rem
+            1.25rem;
+    }
+}
+
+
+/* Desktop content panels */
+
+@media (min-width: 64rem) {
+
+    .content-panel {
+        padding:
+            1.375rem;
+    }
+}
+
+
+========================================
+FILE PATH: C:\xampp\htdocs\CSC_680\config\database.php
+FILENAME: database.php
+SIZE_BYTES: 1808
+----------------------------------------
+<?php // config/database.php
+
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+
+define('APPLICATION_NAME', 'FnH Groceries');
+define('APPLICATION_URL', '/CSC_680');
+
+define('DEVELOPER_NAME', 'Brian Phillips');
+define('DEVELOPER_EMAIL', 'B.Phillips958@student.nu.edu');
+
+
+// Connect to the FnH database
+function connectDatabase()
+{
+    $databaseHost = getenv('FNH_DB_HOST') ?: '127.0.0.1';
+    $databaseName = getenv('FNH_DB_NAME') ?: 'fnh_groceries';
+    $databaseUsername = getenv('FNH_DB_USER') ?: 'root';
+    $databasePassword = getenv('FNH_DB_PASSWORD') ?: '';
+
+    $connectionString =
+        "mysql:host=$databaseHost;dbname=$databaseName;charset=utf8mb4";
+
+    try {
+        $databaseConnection = new PDO(
+            $connectionString,
+            $databaseUsername,
+            $databasePassword
+        );
+
+        $databaseConnection->setAttribute(
+            PDO::ATTR_ERRMODE,
+            PDO::ERRMODE_EXCEPTION
+        );
+
+        $databaseConnection->setAttribute(
+            PDO::ATTR_DEFAULT_FETCH_MODE,
+            PDO::FETCH_ASSOC
+        );
+
+        $databaseConnection->setAttribute(
+            PDO::ATTR_EMULATE_PREPARES,
+            false
+        );
+
+        return $databaseConnection;
+    } catch (PDOException $exception) {
+        error_log($exception->getMessage());
+
+        exit(
+            'The database connection could not be established.'
+        );
+    }
+}
+
+
+// Return safe stored procedure errors
+function getSafeDatabaseErrorMessage(
+    $exception,
+    $defaultMessage
+) {
+    if (
+        isset($exception->errorInfo[0])
+        &&
+        $exception->errorInfo[0] === '45000'
+    ) {
+        return $exception->errorInfo[2];
+    }
+
+    error_log($exception->getMessage());
+
+    return $defaultMessage;
+}
+
+
+========================================
+FILE PATH: C:\xampp\htdocs\CSC_680\config\sql\01_create_tables.sql
+FILENAME: 01_create_tables.sql
+SIZE_BYTES: 8097
+----------------------------------------
+-- FnH Groceries table creation
+-- Run first in an empty database
+-- Order protects all foreign key dependencies
+
+-- Stores FnH store locations
+CREATE TABLE `store` (
+  `StoreID` INT NOT NULL AUTO_INCREMENT,
+  `StoreNumber` VARCHAR(10) NOT NULL,
+  `StoreName` VARCHAR(100) NOT NULL,
+  `AddressLine1` VARCHAR(120) NOT NULL,
+  `AddressLine2` VARCHAR(120) DEFAULT NULL,
+  `City` VARCHAR(80) NOT NULL,
+  `StateCode` CHAR(2) NOT NULL,
+  `PostalCode` VARCHAR(10) NOT NULL,
+  `Phone` VARCHAR(20) DEFAULT NULL,
+  `OpenDate` DATE DEFAULT NULL,
+  `Active` TINYINT NOT NULL DEFAULT 1,
+  PRIMARY KEY (`StoreID`),
+  UNIQUE KEY `uq_store_number` (`StoreNumber`),
+  INDEX `idx_store_location` (`City`,`StateCode`)
+);
+
+-- Groups related departments
+CREATE TABLE `category` (
+  `CategoryID` INT NOT NULL AUTO_INCREMENT,
+  `CategoryName` VARCHAR(60) NOT NULL,
+  `Description` VARCHAR(255) DEFAULT NULL,
+  PRIMARY KEY (`CategoryID`),
+  UNIQUE KEY `uq_category_name` (`CategoryName`)
+);
+
+-- Stores loyalty customers
+CREATE TABLE `customer` (
+  `CustomerID` INT NOT NULL AUTO_INCREMENT,
+  `LoyaltyNumber` VARCHAR(30) NOT NULL,
+  `FirstName` VARCHAR(60) NOT NULL,
+  `LastName` VARCHAR(60) NOT NULL,
+  `Email` VARCHAR(120) DEFAULT NULL,
+  `Phone` VARCHAR(20) DEFAULT NULL,
+  `JoinDate` DATE NOT NULL,
+  `LoyaltyPoints` INT NOT NULL DEFAULT 0,
+  `Active` TINYINT NOT NULL DEFAULT 1,
+  PRIMARY KEY (`CustomerID`),
+  UNIQUE KEY `uq_customer_loyalty_number` (`LoyaltyNumber`),
+  INDEX `idx_customer_name` (`LastName`,`FirstName`),
+  INDEX `idx_customer_email` (`Email`),
+  CONSTRAINT `chk_customer_loyalty_points` CHECK (`LoyaltyPoints` >= 0)
+);
+
+-- Stores checkout registers for each store
+CREATE TABLE `register` (
+  `RegisterID` INT NOT NULL AUTO_INCREMENT,
+  `StoreID` INT NOT NULL,
+  `RegisterNumber` INT NOT NULL,
+  `RegisterName` VARCHAR(50) DEFAULT NULL,
+  `Active` TINYINT NOT NULL DEFAULT 1,
+  PRIMARY KEY (`RegisterID`),
+  UNIQUE KEY `uq_register_store_number` (`StoreID`,`RegisterNumber`),
+  UNIQUE KEY `uq_register_store_id` (`StoreID`,`RegisterID`),
+  CONSTRAINT `fk_register_store` FOREIGN KEY (`StoreID`) REFERENCES `store` (`StoreID`)
+);
+
+-- Stores grocery departments
+CREATE TABLE `department` (
+  `DepartmentID` INT NOT NULL AUTO_INCREMENT,
+  `CategoryID` INT NOT NULL,
+  `DepartmentName` VARCHAR(80) NOT NULL,
+  `Description` VARCHAR(255) DEFAULT NULL,
+  PRIMARY KEY (`DepartmentID`),
+  UNIQUE KEY `uq_department_category_name` (`CategoryID`,`DepartmentName`),
+  CONSTRAINT `fk_department_category` FOREIGN KEY (`CategoryID`) REFERENCES `category` (`CategoryID`)
+);
+
+-- Stores employee login and access information
+CREATE TABLE `operator` (
+  `OperatorID` INT NOT NULL AUTO_INCREMENT,
+  `StoreID` INT NOT NULL,
+  `EmployeeNumber` INT DEFAULT NULL,
+  `Username` VARCHAR(50) NOT NULL,
+  `PasswordHash` VARCHAR(255) NOT NULL,
+  `FirstName` VARCHAR(60) NOT NULL,
+  `MiddleInitial` CHAR(1) DEFAULT NULL,
+  `LastName` VARCHAR(60) NOT NULL,
+  `Email` VARCHAR(120) NOT NULL,
+  `Phone` VARCHAR(20) DEFAULT NULL,
+  `Role` ENUM('Pending','Administrator','Operator') NOT NULL DEFAULT 'Pending',
+  `HireDate` DATE DEFAULT NULL,
+  `Active` TINYINT NOT NULL DEFAULT 1,
+  `CreatedAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`OperatorID`),
+  UNIQUE KEY `uq_operator_username` (`Username`),
+  UNIQUE KEY `uq_operator_email` (`Email`),
+  UNIQUE KEY `uq_operator_employee_number` (`EmployeeNumber`),
+  INDEX `idx_operator_name` (`LastName`,`FirstName`),
+  INDEX `idx_operator_store` (`StoreID`),
+  CONSTRAINT `fk_operator_store` FOREIGN KEY (`StoreID`) REFERENCES `store` (`StoreID`)
+);
+
+-- Stores products and pricing
+CREATE TABLE `product` (
+  `ProductID` INT NOT NULL AUTO_INCREMENT,
+  `DepartmentID` INT NOT NULL,
+  `UPC` VARCHAR(20) DEFAULT NULL,
+  `PLUCode` VARCHAR(10) DEFAULT NULL,
+  `ProductName` VARCHAR(120) NOT NULL,
+  `Description` VARCHAR(500) DEFAULT NULL,
+  `UnitType` ENUM('Each','Pound') NOT NULL DEFAULT 'Each',
+  `UnitCost` DECIMAL(10,2) DEFAULT NULL,
+  `RetailPrice` DECIMAL(10,2) NOT NULL,
+  `Active` TINYINT NOT NULL DEFAULT 1,
+  PRIMARY KEY (`ProductID`),
+  UNIQUE KEY `uq_product_upc` (`UPC`),
+  UNIQUE KEY `uq_product_plu` (`PLUCode`),
+  INDEX `idx_product_department` (`DepartmentID`),
+  INDEX `idx_product_name` (`ProductName`),
+  CONSTRAINT `fk_product_department` FOREIGN KEY (`DepartmentID`) REFERENCES `department` (`DepartmentID`),
+  CONSTRAINT `chk_product_cost` CHECK (`UnitCost` IS NULL or `UnitCost` >= 0),
+  CONSTRAINT `chk_product_retail_price` CHECK (`RetailPrice` >= 0)
+);
+
+-- Stores sale headers
+CREATE TABLE `salesreceipt` (
+  `ReceiptID` BIGINT NOT NULL AUTO_INCREMENT,
+  `TransactionNumber` VARCHAR(40) NOT NULL,
+  `StoreID` INT NOT NULL,
+  `RegisterID` INT NOT NULL,
+  `OperatorID` INT NOT NULL,
+  `CustomerID` INT DEFAULT NULL,
+  `TransactionDateTime` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `Status` ENUM('Completed','Voided','Refunded') NOT NULL DEFAULT 'Completed',
+  `ReceiptDiscountAmount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  `TaxAmount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  `PaymentMethod` ENUM('Cash','Credit','Debit','Gift Card','Other') NOT NULL DEFAULT 'Cash',
+  `AmountTendered` DECIMAL(10,2) DEFAULT NULL,
+  PRIMARY KEY (`ReceiptID`),
+  UNIQUE KEY `uq_sales_receipt_transaction_number` (`TransactionNumber`),
+  INDEX `fk_sales_receipt_register_store` (`StoreID`,`RegisterID`),
+  INDEX `idx_sales_receipt_store_date` (`StoreID`,`TransactionDateTime`),
+  INDEX `idx_sales_receipt_register_date` (`RegisterID`,`TransactionDateTime`),
+  INDEX `idx_sales_receipt_operator_date` (`OperatorID`,`TransactionDateTime`),
+  INDEX `idx_sales_receipt_customer_date` (`CustomerID`,`TransactionDateTime`),
+  CONSTRAINT `fk_sales_receipt_customer` FOREIGN KEY (`CustomerID`) REFERENCES `customer` (`CustomerID`),
+  CONSTRAINT `fk_sales_receipt_operator` FOREIGN KEY (`OperatorID`) REFERENCES `operator` (`OperatorID`),
+  CONSTRAINT `fk_sales_receipt_register_store` FOREIGN KEY (`StoreID`, `RegisterID`) REFERENCES `register` (`StoreID`, `RegisterID`),
+  CONSTRAINT `fk_sales_receipt_store` FOREIGN KEY (`StoreID`) REFERENCES `store` (`StoreID`),
+  CONSTRAINT `chk_sales_receipt_tax` CHECK (`TaxAmount` >= 0),
+  CONSTRAINT `chk_sales_receipt_tendered` CHECK (`AmountTendered` IS NULL or `AmountTendered` >= 0),
+  CONSTRAINT `chk_sales_receipt_discount` CHECK (`ReceiptDiscountAmount` >= 0)
+);
+
+-- Stores receipt line items
+CREATE TABLE `salesreceiptline` (
+  `ReceiptLineID` BIGINT NOT NULL AUTO_INCREMENT,
+  `ReceiptID` BIGINT NOT NULL,
+  `LineNumber` INT NOT NULL,
+  `ProductID` INT NOT NULL,
+  `Quantity` DECIMAL(12,3) NOT NULL,
+  `UnitPrice` DECIMAL(10,2) NOT NULL,
+  `LineDiscountAmount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  PRIMARY KEY (`ReceiptLineID`),
+  UNIQUE KEY `uq_sales_receipt_line_number` (`ReceiptID`,`LineNumber`),
+  INDEX `idx_sales_receipt_line_product` (`ProductID`,`ReceiptID`),
+  CONSTRAINT `fk_sales_receipt_line_product` FOREIGN KEY (`ProductID`) REFERENCES `product` (`ProductID`),
+  CONSTRAINT `fk_sales_receipt_line_receipt` FOREIGN KEY (`ReceiptID`) REFERENCES `salesreceipt` (`ReceiptID`) ON DELETE CASCADE,
+  CONSTRAINT `chk_sales_receipt_line_quantity` CHECK (`Quantity` > 0),
+  CONSTRAINT `chk_sales_receipt_line_price` CHECK (`UnitPrice` >= 0),
+  CONSTRAINT `chk_sales_receipt_line_discount` CHECK (`LineDiscountAmount` >= 0 AND `LineDiscountAmount` <= round(`Quantity` * `UnitPrice`,2))
+);
+
+-- Stores product quantities by store
+CREATE TABLE `storeinventory` (
+  `StoreID` INT NOT NULL,
+  `ProductID` INT NOT NULL,
+  `StockQuantity` DECIMAL(12,3) NOT NULL DEFAULT 0.000,
+  `Aisle` VARCHAR(20) DEFAULT NULL,
+  `SectionName` VARCHAR(50) DEFAULT NULL,
+  `ShelfLocation` VARCHAR(30) DEFAULT NULL,
+  `LastCountedAt` DATETIME DEFAULT NULL,
+  PRIMARY KEY (`StoreID`,`ProductID`),
+  INDEX `idx_store_inventory_product` (`ProductID`,`StoreID`),
+  CONSTRAINT `fk_store_inventory_product` FOREIGN KEY (`ProductID`) REFERENCES `product` (`ProductID`),
+  CONSTRAINT `fk_store_inventory_store` FOREIGN KEY (`StoreID`) REFERENCES `store` (`StoreID`),
+  CONSTRAINT `chk_store_inventory_quantity` CHECK (`StockQuantity` >= 0)
+);
+
+
+========================================
+FILE PATH: C:\xampp\htdocs\CSC_680\config\sql\02_seed_data.sql
+FILENAME: 02_seed_data.sql
+SIZE_BYTES: 4152
+----------------------------------------
+-- FnH Groceries seed data
+-- Run after 01_create_tables.sql
+-- Parent data is inserted before dependent data
+
+-- Seed store locations
+INSERT INTO `store` (`StoreID`, `StoreNumber`, `StoreName`, `AddressLine1`, `AddressLine2`, `City`, `StateCode`, `PostalCode`, `Phone`, `OpenDate`, `Active`)
+VALUES
+    (1,'001','FnH Groceries - Central','100 Fresh Way',NULL,'Los Angeles','CA','90001','555-0100','2020-01-01',1);
+
+-- Seed product categories
+INSERT INTO `category` (`CategoryID`, `CategoryName`, `Description`)
+VALUES
+    (1,'Food','Food and grocery products');
+
+-- Seed loyalty customers
+INSERT INTO `customer` (`CustomerID`, `LoyaltyNumber`, `FirstName`, `LastName`, `Email`, `Phone`, `JoinDate`, `LoyaltyPoints`, `Active`)
+VALUES
+    (1,'FNH10001','Jamie','Customer','jamie@example.com','555-0111','2026-01-15',125,1);
+
+-- Seed checkout registers
+INSERT INTO `register` (`RegisterID`, `StoreID`, `RegisterNumber`, `RegisterName`, `Active`)
+VALUES
+    (1,1,1,'Front Register 1',1),
+    (2,1,2,'Front Register 2',1),
+    (3,1,3,'Express Register',1);
+
+-- Seed grocery departments
+INSERT INTO `department` (`DepartmentID`, `CategoryID`, `DepartmentName`, `Description`)
+VALUES
+    (1,1,'Produce','Fresh fruits and vegetables'),
+    (2,1,'Dairy','Milk, cheese, yogurt, and refrigerated dairy'),
+    (3,1,'Bakery','Bread and baked goods'),
+    (4,1,'Grocery','Packaged grocery products');
+
+-- Seed operator accounts
+INSERT INTO `operator` (`OperatorID`, `StoreID`, `EmployeeNumber`, `Username`, `PasswordHash`, `FirstName`, `MiddleInitial`, `LastName`, `Email`, `Phone`, `Role`, `HireDate`, `Active`, `CreatedAt`)
+VALUES
+    (1,1,1001,'Admin','$2y$10$F7mugA8rBswpCEcij3wF/OUi0SJZGeBfCLBHylJejv1w2aOCg/4nq','Admin','I','Strator','administrator@fnh.local',NULL,'Administrator','2026-01-01',1,'2026-09-14 13:58:29'),
+    (2,1,1002,'CheesyChuck','$2y$10$0QDKUmKEZcdg5SlyBu7Eg.uyo7rQ6j.wRtSOuIXHS1X.tpXJ.e8hu','Chuck','E','Cheeesy','Chuck@email.com','555-555-5555','Administrator','2026-09-15',0,'2026-09-15 23:40:14'),
+    (3,1,1003,'TestBob','$2y$10$3yCZLi/0e56UqSFjXaJlHOpr1rOMIgkJA5bx7cLMxw6aYt1Y8vcMu','Bob','D','Tester','Bob@email.com','5555555555','Operator','2026-09-20',1,'2026-09-20 20:50:13'),
+    (4,1,1004,'TestAlice','$2y$10$6JMwioT7uTv3fzv6DJKBfOHkQWRL/PEW3b2N.opaZFcQoDpq691Vq','Alice','S','Restaurant','Alice@email.com','5555555555','Operator','2026-09-19',1,'2026-09-20 20:52:33');
+
+-- Seed products
+INSERT INTO `product` (`ProductID`, `DepartmentID`, `UPC`, `PLUCode`, `ProductName`, `Description`, `UnitType`, `UnitCost`, `RetailPrice`, `Active`)
+VALUES
+    (1,1,NULL,'4011','Bananas','Fresh bananas sold by weight','Pound',0.39,0.69,1),
+    (2,1,NULL,'4133','Gala Apples','Gala apples sold by weight','Pound',0.89,1.49,1),
+    (3,2,'100000000003',NULL,'Whole Milk - 1 Gallon','One gallon whole milk','Each',3.10,4.29,1),
+    (4,3,'100000000004',NULL,'Wheat Bread','Fresh wheat sandwich bread','Each',2.10,3.49,1),
+    (5,4,'100000000005',NULL,'Brown Rice - 2 lb','Two-pound bag of brown rice','Each',3.25,4.99,1);
+
+-- Seed sample sales receipt
+INSERT INTO `salesreceipt` (`ReceiptID`, `TransactionNumber`, `StoreID`, `RegisterID`, `OperatorID`, `CustomerID`, `TransactionDateTime`, `Status`, `ReceiptDiscountAmount`, `TaxAmount`, `PaymentMethod`, `AmountTendered`)
+VALUES
+    (1,'S001-20260914-000001',1,1,1,1,'2026-09-14 10:15:32','Completed',1.00,0.00,'Cash',10.00);
+
+-- Seed sample receipt lines
+INSERT INTO `salesreceiptline` (`ReceiptLineID`, `ReceiptID`, `LineNumber`, `ProductID`, `Quantity`, `UnitPrice`, `LineDiscountAmount`)
+VALUES
+    (1,1,1,1,2.500,0.69,0.00),
+    (2,1,2,3,1.000,4.29,0.00),
+    (3,1,3,4,1.000,3.49,0.00);
+
+-- Seed store inventory
+INSERT INTO `storeinventory` (`StoreID`, `ProductID`, `StockQuantity`, `Aisle`, `SectionName`, `ShelfLocation`, `LastCountedAt`)
+VALUES
+    (1,1,80.000,NULL,'Produce','Banana Table','2026-09-14 06:00:00'),
+    (1,2,55.000,NULL,'Produce','Apple Table','2026-09-14 06:00:00'),
+    (1,3,24.000,NULL,'Dairy','Cooler 2-B','2026-09-14 06:00:00'),
+    (1,4,30.000,NULL,'Bakery','Shelf 1','2026-09-14 06:00:00'),
+    (1,5,20.000,'4','Rice and Grains','Shelf B3','2026-09-14 06:00:00');
+
+
+========================================
+FILE PATH: C:\xampp\htdocs\CSC_680\config\sql\03_views_and_procedures.sql
+FILENAME: 03_views_and_procedures.sql
+SIZE_BYTES: 21480
+----------------------------------------
+-- FnH Groceries views and procedures
+-- Run this file after 01_create_tables.sql and 02_seed_data.sql
+-- Base views are created before views that depend on them
+
+-- Views
+
+-- Lists active and inactive stores
+-- Tables: store
+-- PHP: account.php, operators/create.php, operators/update.php
+CREATE VIEW `vw_storelist` AS
+SELECT `store`.`StoreID` AS `StoreID`,`store`.`StoreNumber` AS `StoreNumber`,`store`.`StoreName` AS `StoreName`,`store`.`AddressLine1` AS `AddressLine1`,`store`.`AddressLine2` AS `AddressLine2`,`store`.`City` AS `City`,`store`.`StateCode` AS `StateCode`,`store`.`PostalCode` AS `PostalCode`,`store`.`Phone` AS `Phone`,`store`.`Active` AS `Active` 
+FROM `store`;
+
+-- Returns active operator login and session data
+-- Tables: operator, store
+-- PHP: index.php, includes/access_control.php, account.php
+CREATE VIEW `vw_operatorlogin` AS
+SELECT `o`.`OperatorID` AS `OperatorID`,`o`.`StoreID` AS `StoreID`,`s`.`StoreNumber` AS `StoreNumber`,`s`.`StoreName` AS `StoreName`,`o`.`EmployeeNumber` AS `EmployeeNumber`,`o`.`Username` AS `Username`,`o`.`PasswordHash` AS `PasswordHash`,`o`.`FirstName` AS `FirstName`,`o`.`MiddleInitial` AS `MiddleInitial`,`o`.`LastName` AS `LastName`,`o`.`Email` AS `Email`,`o`.`Phone` AS `Phone`,`o`.`Role` AS `Role` 
+FROM (`operator` `o` 
+JOIN `store` `s` on(`s`.`StoreID` = `o`.`StoreID`)) 
+WHERE `o`.`Active` = 1 and `s`.`Active` = 1;
+
+-- Returns operator details for administration
+-- Tables: operator, store
+-- PHP: operators/list.php, operators/update.php, operators/delete.php, operators/reactivate.php
+CREATE VIEW `vw_operatorlist` AS
+SELECT `o`.`OperatorID` AS `OperatorID`,`o`.`StoreID` AS `StoreID`,`s`.`StoreNumber` AS `StoreNumber`,`s`.`StoreName` AS `StoreName`,`o`.`EmployeeNumber` AS `EmployeeNumber`,`o`.`Username` AS `Username`,`o`.`FirstName` AS `FirstName`,`o`.`MiddleInitial` AS `MiddleInitial`,`o`.`LastName` AS `LastName`,concat(`o`.`LastName`,', ',`o`.`FirstName`,case when `o`.`MiddleInitial` is null or trim(`o`.`MiddleInitial`) = '' then '' else concat(', ',ucase(`o`.`MiddleInitial`),'.') end) AS `FullName`,`o`.`Email` AS `Email`,`o`.`Phone` AS `Phone`,`o`.`Role` AS `Role`,`o`.`HireDate` AS `HireDate`,`o`.`Active` AS `Active`,`o`.`CreatedAt` AS `CreatedAt` 
+FROM (`operator` `o` 
+JOIN `store` `s` on(`s`.`StoreID` = `o`.`StoreID`));
+
+-- Summarizes product stock across stores
+-- Tables: product, department, category, storeinventory
+-- PHP: none in Assignment 1
+CREATE VIEW `vw_productinventory` AS
+SELECT `p`.`ProductID` AS `ProductID`,`p`.`ProductName` AS `ProductName`,`p`.`UPC` AS `UPC`,`p`.`PLUCode` AS `PLUCode`,`p`.`UnitType` AS `UnitType`,`p`.`UnitCost` AS `UnitCost`,`p`.`RetailPrice` AS `RetailPrice`,coalesce(sum(`si`.`StockQuantity`),0) AS `TotalStockQuantity`,count(distinct `si`.`StoreID`) AS `StoreCount`,`d`.`DepartmentID` AS `DepartmentID`,`d`.`DepartmentName` AS `DepartmentName`,`c`.`CategoryID` AS `CategoryID`,`c`.`CategoryName` AS `CategoryName`,`p`.`Active` AS `Active` 
+FROM (((`product` `p` 
+JOIN `department` `d` on(`d`.`DepartmentID` = `p`.`DepartmentID`)) 
+JOIN `category` `c` on(`c`.`CategoryID` = `d`.`CategoryID`)) 
+LEFT JOIN `storeinventory` `si` on(`si`.`ProductID` = `p`.`ProductID`)) 
+GROUP BY `p`.`ProductID`,`p`.`ProductName`,`p`.`UPC`,`p`.`PLUCode`,`p`.`UnitType`,`p`.`UnitCost`,`p`.`RetailPrice`,`d`.`DepartmentID`,`d`.`DepartmentName`,`c`.`CategoryID`,`c`.`CategoryName`,`p`.`Active`;
+
+-- Shows detailed inventory by store
+-- Tables: storeinventory, store, product, department, category
+-- PHP: none in Assignment 1
+CREATE VIEW `vw_storeinventorydetail` AS
+SELECT `s`.`StoreID` AS `StoreID`,`s`.`StoreNumber` AS `StoreNumber`,`s`.`StoreName` AS `StoreName`,`p`.`ProductID` AS `ProductID`,`p`.`ProductName` AS `ProductName`,`p`.`UPC` AS `UPC`,`p`.`PLUCode` AS `PLUCode`,`p`.`UnitType` AS `UnitType`,`p`.`UnitCost` AS `UnitCost`,`p`.`RetailPrice` AS `RetailPrice`,`si`.`StockQuantity` AS `StockQuantity`,`si`.`Aisle` AS `Aisle`,`si`.`SectionName` AS `SectionName`,`si`.`ShelfLocation` AS `ShelfLocation`,`si`.`LastCountedAt` AS `LastCountedAt`,`d`.`DepartmentName` AS `DepartmentName`,`c`.`CategoryName` AS `CategoryName`,`p`.`Active` AS `Active` 
+FROM ((((`storeinventory` `si` 
+JOIN `store` `s` on(`s`.`StoreID` = `si`.`StoreID`)) 
+JOIN `product` `p` on(`p`.`ProductID` = `si`.`ProductID`)) 
+JOIN `department` `d` on(`d`.`DepartmentID` = `p`.`DepartmentID`)) 
+JOIN `category` `c` on(`c`.`CategoryID` = `d`.`CategoryID`));
+
+-- Summarizes products and stock by department
+-- Tables: department, category, product, storeinventory
+-- PHP: none in Assignment 1
+CREATE VIEW `vw_departmentproducts` AS
+SELECT `d`.`DepartmentID` AS `DepartmentID`,`d`.`DepartmentName` AS `DepartmentName`,`c`.`CategoryName` AS `CategoryName`,count(`p`.`ProductID`) AS `ProductCount`,min(`p`.`RetailPrice`) AS `LowestPrice`,max(`p`.`RetailPrice`) AS `HighestPrice`,coalesce(sum(`inv`.`TotalStockQuantity`),0) AS `TotalStock` 
+FROM (((`department` `d` 
+JOIN `category` `c` on(`c`.`CategoryID` = `d`.`CategoryID`)) 
+LEFT JOIN `product` `p` on(`p`.`DepartmentID` = `d`.`DepartmentID` and `p`.`Active` = 1)) 
+LEFT JOIN (SELECT `storeinventory`.`ProductID` AS `ProductID`,sum(`storeinventory`.`StockQuantity`) AS `TotalStockQuantity` 
+FROM `storeinventory` 
+GROUP BY `storeinventory`.`ProductID`) `inv` on(`inv`.`ProductID` = `p`.`ProductID`)) 
+GROUP BY `d`.`DepartmentID`,`d`.`DepartmentName`,`c`.`CategoryName`;
+
+-- Shows receipt line item details
+-- Tables: salesreceipt, store, register, operator, salesreceiptline, product
+-- PHP: none in Assignment 1
+CREATE VIEW `vw_receiptdetail` AS
+SELECT `sr`.`ReceiptID` AS `ReceiptID`,`sr`.`TransactionNumber` AS `TransactionNumber`,`sr`.`TransactionDateTime` AS `PurchaseDateTime`,`sr`.`Status` AS `Status`,`sr`.`StoreID` AS `StoreID`,`s`.`StoreNumber` AS `StoreNumber`,`s`.`StoreName` AS `StoreName`,`sr`.`RegisterID` AS `RegisterID`,`r`.`RegisterNumber` AS `RegisterNumber`,`o`.`OperatorID` AS `CashierID`,`o`.`EmployeeNumber` AS `CashierEmployeeNumber`,`o`.`Username` AS `CashierUsername`,concat(`o`.`FirstName`,' ',`o`.`LastName`) AS `CashierName`,`sr`.`CustomerID` AS `CustomerID`,`srl`.`LineNumber` AS `LineNumber`,`p`.`ProductID` AS `ProductID`,`p`.`ProductName` AS `ProductName`,`p`.`UPC` AS `UPC`,`p`.`PLUCode` AS `PLUCode`,`srl`.`Quantity` AS `Quantity`,`p`.`UnitType` AS `UnitType`,`srl`.`UnitPrice` AS `UnitPrice`,`srl`.`LineDiscountAmount` AS `LineDiscountAmount`,round(`srl`.`Quantity` * `srl`.`UnitPrice` - `srl`.`LineDiscountAmount`,2) AS `LineTotal` 
+FROM (((((`salesreceipt` `sr` 
+JOIN `store` `s` on(`s`.`StoreID` = `sr`.`StoreID`)) 
+JOIN `register` `r` on(`r`.`StoreID` = `sr`.`StoreID` and `r`.`RegisterID` = `sr`.`RegisterID`)) 
+JOIN `operator` `o` on(`o`.`OperatorID` = `sr`.`OperatorID`)) 
+JOIN `salesreceiptline` `srl` on(`srl`.`ReceiptID` = `sr`.`ReceiptID`)) 
+JOIN `product` `p` on(`p`.`ProductID` = `srl`.`ProductID`));
+
+-- Calculates receipt totals and change
+-- Tables: salesreceipt, store, register, operator, salesreceiptline
+-- Dependent views: vw_customerpurchasehistory, vw_dailysalessummary, vw_operatoractivity
+CREATE VIEW `vw_receiptsummary` AS
+SELECT `sr`.`ReceiptID` AS `ReceiptID`,`sr`.`TransactionNumber` AS `TransactionNumber`,`sr`.`TransactionDateTime` AS `PurchaseDateTime`,`sr`.`Status` AS `Status`,`sr`.`StoreID` AS `StoreID`,`s`.`StoreNumber` AS `StoreNumber`,`s`.`StoreName` AS `StoreName`,`sr`.`RegisterID` AS `RegisterID`,`r`.`RegisterNumber` AS `RegisterNumber`,`o`.`OperatorID` AS `CashierID`,`o`.`EmployeeNumber` AS `CashierEmployeeNumber`,`o`.`Username` AS `CashierUsername`,concat(`o`.`FirstName`,' ',`o`.`LastName`) AS `CashierName`,`sr`.`CustomerID` AS `CustomerID`,round(sum(`srl`.`Quantity` * `srl`.`UnitPrice`),2) AS `GrossSubtotal`,round(sum(`srl`.`LineDiscountAmount`),2) AS `LineDiscountAmount`,round(sum(`srl`.`Quantity` * `srl`.`UnitPrice` - `srl`.`LineDiscountAmount`),2) AS `Subtotal`,`sr`.`ReceiptDiscountAmount` AS `ReceiptDiscountAmount`,`sr`.`TaxAmount` AS `TaxAmount`,round(sum(`srl`.`Quantity` * `srl`.`UnitPrice` - `srl`.`LineDiscountAmount`) - `sr`.`ReceiptDiscountAmount` + `sr`.`TaxAmount`,2) AS `TotalAmount`,`sr`.`PaymentMethod` AS `PaymentMethod`,`sr`.`AmountTendered` AS `AmountTendered`,case when `sr`.`AmountTendered` is null then NULL else round(`sr`.`AmountTendered` - (sum(`srl`.`Quantity` * `srl`.`UnitPrice` - `srl`.`LineDiscountAmount`) - `sr`.`ReceiptDiscountAmount` + `sr`.`TaxAmount`),2) end AS `ChangeDue` 
+FROM ((((`salesreceipt` `sr` 
+JOIN `store` `s` on(`s`.`StoreID` = `sr`.`StoreID`)) 
+JOIN `register` `r` on(`r`.`StoreID` = `sr`.`StoreID` and `r`.`RegisterID` = `sr`.`RegisterID`)) 
+JOIN `operator` `o` on(`o`.`OperatorID` = `sr`.`OperatorID`)) 
+JOIN `salesreceiptline` `srl` on(`srl`.`ReceiptID` = `sr`.`ReceiptID`)) 
+GROUP BY `sr`.`ReceiptID`,`sr`.`TransactionNumber`,`sr`.`TransactionDateTime`,`sr`.`Status`,`sr`.`StoreID`,`s`.`StoreNumber`,`s`.`StoreName`,`sr`.`RegisterID`,`r`.`RegisterNumber`,`o`.`OperatorID`,`o`.`EmployeeNumber`,`o`.`Username`,`o`.`FirstName`,`o`.`LastName`,`sr`.`CustomerID`,`sr`.`ReceiptDiscountAmount`,`sr`.`TaxAmount`,`sr`.`PaymentMethod`,`sr`.`AmountTendered`;
+
+-- Shows completed purchase history by customer
+-- Depends on: customer, vw_receiptsummary
+-- PHP: none in Assignment 1
+CREATE VIEW `vw_customerpurchasehistory` AS
+SELECT `cu`.`CustomerID` AS `CustomerID`,`cu`.`LoyaltyNumber` AS `LoyaltyNumber`,`cu`.`FirstName` AS `FirstName`,`cu`.`LastName` AS `LastName`,`cu`.`LoyaltyPoints` AS `LoyaltyPoints`,`rs`.`ReceiptID` AS `ReceiptID`,`rs`.`TransactionNumber` AS `TransactionNumber`,`rs`.`PurchaseDateTime` AS `PurchaseDateTime`,`rs`.`StoreNumber` AS `StoreNumber`,`rs`.`StoreName` AS `StoreName`,`rs`.`GrossSubtotal` AS `GrossSubtotal`,`rs`.`LineDiscountAmount` AS `LineDiscountAmount`,`rs`.`Subtotal` AS `Subtotal`,`rs`.`ReceiptDiscountAmount` AS `ReceiptDiscountAmount`,round(`rs`.`LineDiscountAmount` + `rs`.`ReceiptDiscountAmount`,2) AS `TotalDiscountAmount`,`rs`.`TaxAmount` AS `TaxAmount`,`rs`.`TotalAmount` AS `TotalAmount`,`rs`.`PaymentMethod` AS `PaymentMethod` 
+FROM (`customer` `cu` 
+JOIN `vw_receiptsummary` `rs` on(`rs`.`CustomerID` = `cu`.`CustomerID`)) 
+WHERE `rs`.`Status` = 'Completed';
+
+-- Summarizes completed sales by day
+-- Depends on: vw_receiptsummary
+-- PHP: none in Assignment 1
+CREATE VIEW `vw_dailysalessummary` AS
+SELECT `vw_receiptsummary`.`StoreID` AS `StoreID`,`vw_receiptsummary`.`StoreNumber` AS `StoreNumber`,`vw_receiptsummary`.`StoreName` AS `StoreName`,cast(`vw_receiptsummary`.`PurchaseDateTime` as date) AS `SaleDate`,count(0) AS `TransactionCount`,round(sum(`vw_receiptsummary`.`GrossSubtotal`),2) AS `GrossSales`,round(sum(`vw_receiptsummary`.`LineDiscountAmount` + `vw_receiptsummary`.`ReceiptDiscountAmount`),2) AS `TotalDiscounts`,round(sum(`vw_receiptsummary`.`Subtotal` - `vw_receiptsummary`.`ReceiptDiscountAmount`),2) AS `NetSales`,round(sum(`vw_receiptsummary`.`TaxAmount`),2) AS `TotalTax`,round(sum(`vw_receiptsummary`.`TotalAmount`),2) AS `TotalCollected` 
+FROM `vw_receiptsummary` 
+WHERE `vw_receiptsummary`.`Status` = 'Completed' 
+GROUP BY `vw_receiptsummary`.`StoreID`,`vw_receiptsummary`.`StoreNumber`,`vw_receiptsummary`.`StoreName`,cast(`vw_receiptsummary`.`PurchaseDateTime` as date);
+
+-- Summarizes completed sales by operator
+-- Depends on: operator, store, vw_receiptsummary
+-- PHP: none in Assignment 1
+CREATE VIEW `vw_operatoractivity` AS
+SELECT `o`.`OperatorID` AS `OperatorID`,`o`.`EmployeeNumber` AS `EmployeeNumber`,`o`.`Username` AS `Username`,concat(`o`.`FirstName`,' ',`o`.`LastName`) AS `OperatorName`,`o`.`Role` AS `Role`,`s`.`StoreNumber` AS `CurrentStoreNumber`,`s`.`StoreName` AS `CurrentStoreName`,count(`rs`.`ReceiptID`) AS `TransactionCount`,coalesce(round(sum(`rs`.`Subtotal` - `rs`.`ReceiptDiscountAmount`),2),0.00) AS `TotalSales`,min(`rs`.`PurchaseDateTime`) AS `FirstTransaction`,max(`rs`.`PurchaseDateTime`) AS `LastTransaction`,`o`.`Active` AS `Active` 
+FROM ((`operator` `o` 
+JOIN `store` `s` on(`s`.`StoreID` = `o`.`StoreID`)) 
+LEFT JOIN `vw_receiptsummary` `rs` on(`rs`.`CashierID` = `o`.`OperatorID` and `rs`.`Status` = 'Completed')) 
+GROUP BY `o`.`OperatorID`,`o`.`EmployeeNumber`,`o`.`Username`,`o`.`FirstName`,`o`.`LastName`,`o`.`Role`,`s`.`StoreNumber`,`s`.`StoreName`,`o`.`Active`;
+
+-- Procedures
+
+-- Creates an operator and assigns the next employee number
+-- Depends on tables: store, operator
+-- PHP: operators/create.php
+DELIMITER //
+CREATE PROCEDURE `sp_create_operator`(
+    IN pStoreID INT,
+    IN pUsername VARCHAR(50),
+    IN pPasswordHash VARCHAR(255),
+    IN pFirstName VARCHAR(60),
+    IN pMiddleInitial CHAR(1),
+    IN pLastName VARCHAR(60),
+    IN pEmail VARCHAR(120),
+    IN pPhone VARCHAR(20),
+    IN pRole VARCHAR(20),
+    IN pHireDate DATE
+)
+BEGIN
+    DECLARE newOperatorID INT;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM `store`
+        WHERE StoreID = pStoreID
+          AND Active = 1
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'The selected store does not exist or is inactive';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM `operator`
+        WHERE Username = pUsername
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Username already exists';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM `operator`
+        WHERE Email = pEmail
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Email address already exists';
+    END IF;
+
+    IF pRole NOT IN ('Administrator', 'Operator') THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Invalid operator role';
+    END IF;
+
+    INSERT INTO `operator` (
+        StoreID,
+        EmployeeNumber,
+        Username,
+        PasswordHash,
+        FirstName,
+        MiddleInitial,
+        LastName,
+        Email,
+        Phone,
+        Role,
+        HireDate,
+        Active
+    )
+    VALUES (
+        pStoreID,
+        NULL,
+        pUsername,
+        pPasswordHash,
+        pFirstName,
+        NULLIF(pMiddleInitial, ''),
+        pLastName,
+        pEmail,
+        NULLIF(pPhone, ''),
+        pRole,
+        pHireDate,
+        1
+    );
+
+    SET newOperatorID = LAST_INSERT_ID();
+
+    UPDATE `operator`
+    SET EmployeeNumber = newOperatorID + 1000
+    WHERE OperatorID = newOperatorID;
+END //
+DELIMITER ;
+
+-- Updates an operator while protecting the final administrator
+-- Depends on tables: store, operator
+-- PHP: operators/update.php
+DELIMITER //
+CREATE PROCEDURE `sp_update_operator`(
+    IN pOperatorID INT,
+    IN pStoreID INT,
+    IN pUsername VARCHAR(50),
+    IN pPasswordHash VARCHAR(255),
+    IN pFirstName VARCHAR(60),
+    IN pMiddleInitial CHAR(1),
+    IN pLastName VARCHAR(60),
+    IN pEmail VARCHAR(120),
+    IN pPhone VARCHAR(20),
+    IN pRole VARCHAR(20),
+    IN pHireDate DATE
+)
+BEGIN
+    DECLARE currentOperatorRole VARCHAR(20);
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM `operator`
+        WHERE OperatorID = pOperatorID
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Operator does not exist';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM `store`
+        WHERE StoreID = pStoreID
+          AND Active = 1
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'The selected store does not exist or is inactive';
+    END IF;
+
+    SELECT Role
+    INTO currentOperatorRole
+    FROM `operator`
+    WHERE OperatorID = pOperatorID;
+
+    IF EXISTS (
+        SELECT 1
+        FROM `operator`
+        WHERE Username = pUsername
+          AND OperatorID <> pOperatorID
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Username already exists';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM `operator`
+        WHERE Email = pEmail
+          AND OperatorID <> pOperatorID
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Email address already exists';
+    END IF;
+
+    IF pRole NOT IN ('Pending', 'Administrator', 'Operator') THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Invalid operator role';
+    END IF;
+
+    IF currentOperatorRole = 'Administrator'
+       AND pRole <> 'Administrator'
+       AND (
+            SELECT COUNT(*)
+            FROM `operator`
+            WHERE Role = 'Administrator'
+              AND Active = 1
+       ) <= 1 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'The final active administrator must remain an Administrator';
+    END IF;
+
+    UPDATE `operator`
+    SET StoreID = pStoreID,
+        Username = pUsername,
+        PasswordHash = CASE
+            WHEN pPasswordHash IS NULL OR pPasswordHash = '' THEN PasswordHash
+            ELSE pPasswordHash
+        END,
+        FirstName = pFirstName,
+        MiddleInitial = NULLIF(pMiddleInitial, ''),
+        LastName = pLastName,
+        Email = pEmail,
+        Phone = NULLIF(pPhone, ''),
+        Role = pRole,
+        HireDate = pHireDate
+    WHERE OperatorID = pOperatorID;
+END //
+DELIMITER ;
+
+-- Updates the currently logged-in operator account
+-- Depends on tables: store, operator
+-- PHP: account.php
+DELIMITER //
+CREATE PROCEDURE `sp_update_own_account`(
+    IN pOperatorID INT,
+    IN pStoreID INT,
+    IN pUsername VARCHAR(50),
+    IN pFirstName VARCHAR(60),
+    IN pMiddleInitial CHAR(1),
+    IN pLastName VARCHAR(60),
+    IN pEmail VARCHAR(120),
+    IN pPhone VARCHAR(20),
+    IN pPasswordHash VARCHAR(255)
+)
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM `operator`
+        WHERE OperatorID = pOperatorID
+          AND Active = 1
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Active operator does not exist';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM `store`
+        WHERE StoreID = pStoreID
+          AND Active = 1
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'The selected store does not exist or is inactive';
+    END IF;
+
+    IF pUsername IS NULL OR TRIM(pUsername) = '' THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Username is required';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM `operator`
+        WHERE Username = pUsername
+          AND OperatorID <> pOperatorID
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Username already exists';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM `operator`
+        WHERE Email = pEmail
+          AND OperatorID <> pOperatorID
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Email address already exists';
+    END IF;
+
+    UPDATE `operator`
+    SET StoreID = pStoreID,
+        Username = pUsername,
+        FirstName = pFirstName,
+        MiddleInitial = NULLIF(pMiddleInitial, ''),
+        LastName = pLastName,
+        Email = pEmail,
+        Phone = NULLIF(pPhone, ''),
+        PasswordHash = CASE
+            WHEN pPasswordHash IS NULL OR pPasswordHash = '' THEN PasswordHash
+            ELSE pPasswordHash
+        END
+    WHERE OperatorID = pOperatorID;
+END //
+DELIMITER ;
+
+-- Deactivates an operator while preserving historical records
+-- Depends on table: operator
+-- PHP: operators/delete.php
+DELIMITER //
+CREATE PROCEDURE `sp_delete_operator`(
+    IN pOperatorID INT,
+    IN pCurrentOperatorID INT
+)
+BEGIN
+    DECLARE operatorRole VARCHAR(20);
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM `operator`
+        WHERE OperatorID = pOperatorID
+          AND Active = 1
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Active operator does not exist';
+    END IF;
+
+    IF pOperatorID = pCurrentOperatorID THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'You cannot delete your own active account';
+    END IF;
+
+    SELECT Role
+    INTO operatorRole
+    FROM `operator`
+    WHERE OperatorID = pOperatorID;
+
+    IF operatorRole = 'Administrator'
+       AND (
+            SELECT COUNT(*)
+            FROM `operator`
+            WHERE Role = 'Administrator'
+              AND Active = 1
+       ) <= 1 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'The final active administrator cannot be deleted';
+    END IF;
+
+    UPDATE `operator`
+    SET Active = 0
+    WHERE OperatorID = pOperatorID;
+END //
+DELIMITER ;
+
+-- Reactivates an inactive operator
+-- Depends on table: operator
+-- PHP: operators/reactivate.php
+DELIMITER //
+CREATE PROCEDURE `sp_reactivate_operator`(
+    IN pOperatorID INT
+)
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM `operator`
+        WHERE OperatorID = pOperatorID
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Operator does not exist';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM `operator`
+        WHERE OperatorID = pOperatorID
+          AND Active = 1
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Operator is already active';
+    END IF;
+
+    UPDATE `operator`
+    SET Active = 1
+    WHERE OperatorID = pOperatorID;
+END //
+DELIMITER ;
+
+-- Current PHP dependency summary
+-- vw_operatorlogin: index.php, includes/access_control.php, account.php
+-- vw_storelist: account.php, operators/create.php, operators/update.php
+-- vw_operatorlist: operators/list.php, operators/update.php, operators/delete.php, operators/reactivate.php
+-- sp_create_operator: operators/create.php
+-- sp_update_operator: operators/update.php
+-- sp_update_own_account: account.php
+-- sp_delete_operator: operators/delete.php
+-- sp_reactivate_operator: operators/reactivate.php
+-- Other views currently support database reporting and later POS features
+
+
+========================================
+FILE PATH: C:\xampp\htdocs\CSC_680\includes\access_control.php
+FILENAME: access_control.php
+SIZE_BYTES: 8251
+----------------------------------------
+<?php // includes/access_control.php
+
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+
+require_once __DIR__ . '/../config/database.php';
+
+
+// This starts the session used to remember the logged-in user.
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+
+// This safely prepares text before displaying it in HTML.
+function escapeOutput($value)
+{
+    return htmlspecialchars(
+        (string)$value,
+        ENT_QUOTES,
+        'UTF-8'
+    );
+}
+
+
+// This clears all information belonging to the logged-in user.
+function clearOperatorLoginSession()
+{
+    unset(
+        $_SESSION['operator_id'],
+        $_SESSION['store_id'],
+        $_SESSION['store_number'],
+        $_SESSION['store_name'],
+        $_SESSION['employee_number'],
+        $_SESSION['username'],
+        $_SESSION['first_name'],
+        $_SESSION['middle_initial'],
+        $_SESSION['last_name'],
+        $_SESSION['role']
+    );
+}
+
+
+// This checks whether a user is currently logged in.
+function operatorIsLoggedIn()
+{
+    return isset(
+        $_SESSION['operator_id']
+    );
+}
+
+
+// This checks whether the logged-in user is an administrator.
+function operatorIsAdministrator()
+{
+    return
+        operatorIsLoggedIn()
+        &&
+        isset($_SESSION['role'])
+        &&
+        $_SESSION['role'] === 'Administrator';
+}
+
+
+// This checks whether the logged-in user has been granted system access.
+function operatorHasAssignedAccess()
+{
+    if (!operatorIsLoggedIn()) {
+        return false;
+    }
+
+
+    $currentRole =
+        $_SESSION['role'] ?? '';
+
+
+    return in_array(
+        $currentRole,
+        [
+            'Administrator',
+            'Operator'
+        ],
+        true
+    );
+}
+
+
+// This checks whether the logged-in account is still waiting for access.
+function operatorIsPending()
+{
+    return
+        operatorIsLoggedIn()
+        &&
+        isset($_SESSION['role'])
+        &&
+        $_SESSION['role'] === 'Pending';
+}
+
+
+// This creates the name displayed beside Logged in as.
+function getLoggedInOperatorDisplayName()
+{
+    $firstName =
+        trim(
+            (string)(
+                $_SESSION['first_name']
+                ??
+                ''
+            )
+        );
+
+    $middleInitial =
+        trim(
+            (string)(
+                $_SESSION['middle_initial']
+                ??
+                ''
+            )
+        );
+
+    $lastName =
+        trim(
+            (string)(
+                $_SESSION['last_name']
+                ??
+                ''
+            )
+        );
+
+
+    $displayName = '';
+
+
+    if ($firstName !== '') {
+
+        $displayName =
+            $firstName;
+    }
+
+
+    if ($middleInitial !== '') {
+
+        if ($displayName !== '') {
+            $displayName .= ' ';
+        }
+
+        $displayName .=
+            strtoupper($middleInitial)
+            . '.';
+    }
+
+
+    if ($lastName !== '') {
+
+        if ($displayName !== '') {
+            $displayName .= ' ';
+        }
+
+        $displayName .=
+            $lastName;
+    }
+
+
+    // The username is used if a complete name is not available.
+    if ($displayName === '') {
+
+        $displayName =
+            trim(
+                (string)(
+                    $_SESSION['username']
+                    ??
+                    ''
+                )
+            );
+    }
+
+
+    if ($displayName === '') {
+
+        $displayName =
+            'User';
+    }
+
+
+    return $displayName;
+}
+
+
+// This refreshes the current user's session information from the database.
+function refreshCurrentOperatorSession()
+{
+    if (!operatorIsLoggedIn()) {
+        return;
+    }
+
+
+    try {
+
+        $databaseConnection =
+            connectDatabase();
+
+
+        $operatorStatement =
+            $databaseConnection->prepare(
+                '
+                SELECT
+                    OperatorID,
+                    StoreID,
+                    StoreNumber,
+                    StoreName,
+                    EmployeeNumber,
+                    Username,
+                    FirstName,
+                    MiddleInitial,
+                    LastName,
+                    Role
+                FROM vw_operatorlogin
+                WHERE OperatorID = :operatorID
+                LIMIT 1
+                '
+            );
+
+
+        $operatorStatement->execute([
+            ':operatorID' =>
+                $_SESSION['operator_id']
+        ]);
+
+
+        $operatorRecord =
+            $operatorStatement->fetch();
+
+
+        /*
+           If the account or store is no longer active,
+           the current login is removed.
+        */
+        if (!$operatorRecord) {
+
+            clearOperatorLoginSession();
+
+            return;
+        }
+
+
+        $_SESSION['operator_id'] =
+            $operatorRecord['OperatorID'];
+
+        $_SESSION['store_id'] =
+            $operatorRecord['StoreID'];
+
+        $_SESSION['store_number'] =
+            $operatorRecord['StoreNumber'];
+
+        $_SESSION['store_name'] =
+            $operatorRecord['StoreName'];
+
+        $_SESSION['employee_number'] =
+            $operatorRecord['EmployeeNumber'];
+
+        $_SESSION['username'] =
+            $operatorRecord['Username'];
+
+        $_SESSION['first_name'] =
+            $operatorRecord['FirstName'];
+
+        $_SESSION['middle_initial'] =
+            $operatorRecord['MiddleInitial'];
+
+        $_SESSION['last_name'] =
+            $operatorRecord['LastName'];
+
+        $_SESSION['role'] =
+            $operatorRecord['Role'];
+
+    } catch (PDOException $exception) {
+
+        error_log(
+            $exception->getMessage()
+        );
+
+        clearOperatorLoginSession();
+    }
+}
+
+
+// This prevents logged-out visitors from accessing protected pages.
+function requireOperatorLogin()
+{
+    if (!operatorIsLoggedIn()) {
+
+        header(
+            'Location: '
+            . APPLICATION_URL
+            . '/index.php'
+        );
+
+        exit;
+    }
+}
+
+
+// This prevents Pending users from accessing normal operator pages.
+function requireAssignedAccess()
+{
+    requireOperatorLogin();
+
+
+    if (!operatorHasAssignedAccess()) {
+
+        header(
+            'Location: '
+            . APPLICATION_URL
+            . '/index.php'
+        );
+
+        exit;
+    }
+}
+
+
+// This prevents Operators and Pending users from accessing administrator pages.
+function requireAdministrator()
+{
+    requireOperatorLogin();
+
+
+    if (!operatorIsAdministrator()) {
+
+        header(
+            'Location: '
+            . APPLICATION_URL
+            . '/index.php'
+        );
+
+        exit;
+    }
+}
+
+
+// This creates a security token for forms that change information.
+function getFormSecurityToken()
+{
+    if (
+        empty(
+            $_SESSION['form_security_token']
+        )
+    ) {
+
+        $_SESSION['form_security_token'] =
+            bin2hex(
+                random_bytes(32)
+            );
+    }
+
+
+    return
+        $_SESSION['form_security_token'];
+}
+
+
+// This verifies that a submitted form belongs to the current session.
+function formSecurityTokenIsValid($submittedToken)
+{
+    return
+        isset(
+            $_SESSION['form_security_token']
+        )
+        &&
+        is_string(
+            $submittedToken
+        )
+        &&
+        hash_equals(
+            $_SESSION['form_security_token'],
+            $submittedToken
+        );
+}
+
+
+// This checks the password requirements used by the website.
+function passwordMeetsRequirements($password)
+{
+    $passwordPattern =
+        '/^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9\s]).{8,}$/';
+
+
+    return preg_match(
+        $passwordPattern,
+        $password
+    ) === 1;
+}
+
+
+// This permits one alphabetic middle initial or a blank value.
+function middleInitialIsValid($middleInitial)
+{
+    if ($middleInitial === '') {
+        return true;
+    }
+
+
+    return preg_match(
+        '/^[A-Za-z]$/',
+        $middleInitial
+    ) === 1;
+}
+
+
+// This keeps an existing login synchronized with the database.
+refreshCurrentOperatorSession();
+
+
+========================================
+FILE PATH: C:\xampp\htdocs\CSC_680\includes\footer.php
+FILENAME: footer.php
+SIZE_BYTES: 450
+----------------------------------------
+<?php // includes/footer.php
+
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+
+?>
+
+    </main>
+
+</div>
+
+
+<footer class="site-footer">
+
+    <span>
+        Developed by
+        <?= escapeOutput(DEVELOPER_NAME) ?>
+    </span>
+
+    <span>
+        |
+    </span>
+
+    <a
+        href="mailto:<?= escapeOutput(DEVELOPER_EMAIL) ?>?subject=FnH%20Groceries%20Feedback"
+    >
+        Send Feedback
+    </a>
+
+</footer>
+
+
+</body>
+
+</html>
+
+
+========================================
+FILE PATH: C:\xampp\htdocs\CSC_680\includes\header.php
+FILENAME: header.php
+SIZE_BYTES: 3745
+----------------------------------------
+<?php // includes/header.php
+
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+
+require_once __DIR__ . '/access_control.php';
+
+$pageTitle = $pageTitle ?? APPLICATION_NAME;
+$currentSection = $currentSection ?? '';
+$currentPage = $currentPage ?? '';
+
+if (!operatorIsLoggedIn()) {
+    $siteLayoutClass = 'site-layout site-layout-public';
+} elseif (!operatorHasAssignedAccess()) {
+    $siteLayoutClass = 'site-layout site-layout-restricted';
+} else {
+    $siteLayoutClass = 'site-layout site-layout-authenticated';
+}
+
+$siteHeaderClass = operatorIsLoggedIn()
+    ? 'site-header site-header-logged-in'
+    : 'site-header site-header-public';
+
+
+// Select the stylesheet needed by the current page
+$pageStylesheet = '';
+
+if ($currentPage === 'home') {
+    $pageStylesheet = 'index.css';
+} elseif ($currentSection === 'operators') {
+    $pageStylesheet = 'operators.css';
+}
+
+?>
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        <?= escapeOutput($pageTitle) ?>
+        |
+        <?= escapeOutput(APPLICATION_NAME) ?>
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="<?= APPLICATION_URL ?>/assets/css/styles.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="<?= APPLICATION_URL ?>/assets/css/layout.css"
+    >
+
+    <?php if ($pageStylesheet !== ''): ?>
+
+        <link
+            rel="stylesheet"
+            href="<?= APPLICATION_URL ?>/assets/css/<?= escapeOutput($pageStylesheet) ?>"
+        >
+
+    <?php endif; ?>
+
+</head>
+
+<body>
+
+<header class="<?= $siteHeaderClass ?>">
+
+    <div
+        class="header-image-group header-image-group-left"
+        aria-hidden="true"
+    >
+
+        <div class="header-image-space">
+            <img
+                src="<?= APPLICATION_URL ?>/assets/images/image1.png"
+                alt=""
+            >
+        </div>
+
+        <div class="header-image-space">
+            <img
+                src="<?= APPLICATION_URL ?>/assets/images/image2.png"
+                alt=""
+            >
+        </div>
+
+        <div class="header-image-space">
+            <img
+                src="<?= APPLICATION_URL ?>/assets/images/image3.png"
+                alt=""
+            >
+        </div>
+
+        <div class="header-image-space">
+            <img
+                src="<?= APPLICATION_URL ?>/assets/images/image4.png"
+                alt=""
+            >
+        </div>
+
+    </div>
+
+    <div class="header-content">
+
+        <div class="application-title">
+            FnH Groceries
+        </div>
+
+    </div>
+
+    <div
+        class="header-image-group header-image-group-right"
+        aria-hidden="true"
+    >
+
+        <div class="header-image-space">
+            <img
+                src="<?= APPLICATION_URL ?>/assets/images/image5.png"
+                alt=""
+            >
+        </div>
+
+        <div class="header-image-space">
+            <img
+                src="<?= APPLICATION_URL ?>/assets/images/image6.png"
+                alt=""
+            >
+        </div>
+
+        <div class="header-image-space">
+            <img
+                src="<?= APPLICATION_URL ?>/assets/images/image7.png"
+                alt=""
+            >
+        </div>
+
+    </div>
+
+    <?php if (operatorIsLoggedIn()): ?>
+
+        <a
+            href="<?= APPLICATION_URL ?>/logout.php"
+            class="header-logout-button"
+        >
+            Logout
+        </a>
+
+    <?php endif; ?>
+
+</header>
+
+<div class="<?= $siteLayoutClass ?>">
+
+    <?php require __DIR__ . '/nav.php'; ?>
+
+    <main class="page-content">
+
+
+========================================
+FILE PATH: C:\xampp\htdocs\CSC_680\includes\nav.php
+FILENAME: nav.php
+SIZE_BYTES: 12494
+----------------------------------------
+<?php // includes/nav.php
+
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+if (!isset($currentSection)) {
+    $currentSection = '';
+}
+
+if (!isset($currentPage)) {
+    $currentPage = '';
+}
+
+$loggedInUsername = (string)($_SESSION['username'] ?? '');
+$navigationLoginErrorMessage = isset($loginErrorMessage) ? $loginErrorMessage : '';
+
+$onAdministratorHome =
+    operatorIsAdministrator()
+    &&
+    $currentPage === 'home';
+
+$onOperatorPage =
+    operatorIsAdministrator()
+    &&
+    $currentSection === 'operators';
+
+$onOperatorList =
+    $onOperatorPage
+    &&
+    $currentPage === 'list';
+
+$onOperatorFormPage =
+    $onOperatorPage
+    &&
+    in_array(
+        $currentPage,
+        [
+            'create',
+            'update'
+        ],
+        true
+    );
+
+$onAccountPage =
+    $currentSection === 'account';
+
+$navigationClass =
+    operatorIsLoggedIn()
+        ? 'site-navigation site-navigation-logged-in'
+        : 'site-navigation site-navigation-public';
+?>
+
+<aside class="<?= $navigationClass ?>">
+    <?php if (!operatorIsLoggedIn()): ?>
+        <nav
+            class="navigation-menu navigation-login"
+            aria-label="Login"
+        >
+            <div class="navigation-login-heading">
+                Operator Login
+            </div>
+
+            <div class="navigation-login-description">
+                Enter your assigned FnH Groceries credentials.
+            </div>
+
+            <?php if ($navigationLoginErrorMessage !== ''): ?>
+                <div class="navigation-login-error">
+                    <?= escapeOutput($navigationLoginErrorMessage) ?>
+                </div>
+            <?php endif; ?>
+
+            <form
+                id="login"
+                method="post"
+                action="<?= APPLICATION_URL ?>/index.php#login"
+                class="navigation-login-form"
+            >
+                <input
+                    type="hidden"
+                    name="form_security_token"
+                    value="<?= escapeOutput(getFormSecurityToken()) ?>"
+                >
+
+                <div class="navigation-login-field">
+                    <label for="username">
+                        Username
+                    </label>
+
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        maxlength="50"
+                        required
+                        autocomplete="username"
+                    >
+                </div>
+
+                <div class="navigation-login-field">
+                    <label for="password">
+                        Password
+                    </label>
+
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        required
+                        autocomplete="current-password"
+                    >
+                </div>
+
+                <button
+                    type="submit"
+                    name="login"
+                    value="1"
+                    class="button button-primary navigation-login-button"
+                >
+                    Login
+                </button>
+            </form>
+
+            <div class="navigation-demo-note">
+                Demo Admin and Operator credentials are listed below
+            </div>
+
+            <div class="message message-warning navigation-demo-notice">
+                <strong>
+                    Demo Admin Credentials
+                </strong>
+
+                <div>
+                    Username: admin
+                </div>
+
+                <div>
+                    Password: Admin#123
+                </div>
+
+                <strong>
+                    Demo Operator Credentials
+                </strong>
+
+                <div>
+                    Username: TestBob
+                </div>
+
+                <div>
+                    Password: #Testing123
+                </div>
+
+                <div>
+                    Username: TestAlice
+                </div>
+
+                <div>
+                    Password: Testing123$
+                </div>
+            </div>
+        </nav>
+    <?php else: ?>
+        <nav
+            class="navigation-menu"
+            aria-label="Main navigation"
+        >
+            <?php if (!operatorHasAssignedAccess()): ?>
+                <div class="navigation-operator">
+                    <span class="navigation-operator-label">
+                        Logged in as:
+                    </span>
+
+                    <strong>
+                        <?= escapeOutput($loggedInUsername) ?>
+                    </strong>
+                </div>
+            <?php elseif ($onOperatorList): ?>
+                <a
+                    href="<?= APPLICATION_URL ?>/index.php"
+                    class="navigation-link navigation-home-link"
+                >
+                    <span
+                        class="navigation-home-icon"
+                        aria-hidden="true"
+                    >
+                        &#8962;
+                    </span>
+
+                    <span>
+                        Home
+                    </span>
+                </a>
+
+                <a
+                    href="<?= APPLICATION_URL ?>/account.php"
+                    class="navigation-link"
+                >
+                    Manage My Account
+                </a>
+
+                <div class="operator-nav-actions">
+                    <a
+                        href="<?= APPLICATION_URL ?>/operators/create.php"
+                        class="button operator-nav-button operator-nav-create"
+                    >
+                        Create Operator
+                    </a>
+
+                    <button
+                        type="submit"
+                        id="operatorUpdateButton"
+                        form="operatorSelectionForm"
+                        formaction="<?= APPLICATION_URL ?>/operators/update.php"
+                        formmethod="post"
+                        class="button operator-nav-button operator-nav-update"
+                        disabled
+                    >
+                        Update Operator
+                    </button>
+
+                    <button
+                        type="submit"
+                        id="operatorStatusButton"
+                        form="operatorSelectionForm"
+                        formaction="<?= APPLICATION_URL ?>/operators/delete.php"
+                        formmethod="post"
+                        class="button operator-nav-button operator-nav-delete"
+                        aria-describedby="currentAccountDeleteNote"
+                        disabled
+                    >
+                        Delete Operator
+                    </button>
+
+                    <button
+                        type="reset"
+                        id="operatorClearButton"
+                        form="operatorSelectionForm"
+                        class="button operator-nav-button operator-nav-clear"
+                        disabled
+                    >
+                        Clear Selection
+                    </button>
+
+                    <div
+                        id="currentAccountDeleteNote"
+                        class="operator-delete-current-note"
+                    >
+                        Current account cannot be deleted.
+                    </div>
+                </div>
+
+                <div class="navigation-operator">
+                    <span class="navigation-operator-label">
+                        Logged in as:
+                    </span>
+
+                    <strong>
+                        <?= escapeOutput($loggedInUsername) ?>
+                    </strong>
+                </div>
+            <?php elseif ($onOperatorPage): ?>
+                <a
+                    href="<?= APPLICATION_URL ?>/index.php"
+                    class="navigation-link navigation-home-link"
+                >
+                    <span
+                        class="navigation-home-icon"
+                        aria-hidden="true"
+                    >
+                        &#8962;
+                    </span>
+
+                    <span>
+                        Home
+                    </span>
+                </a>
+
+                <a
+                    href="<?= APPLICATION_URL ?>/operators/list.php"
+                    class="navigation-link"
+                >
+                    Manage Operators
+                </a>
+
+                <a
+                    href="<?= APPLICATION_URL ?>/account.php"
+                    class="navigation-link"
+                >
+                    Manage My Account
+                </a>
+
+                <?php if ($onOperatorFormPage): ?>
+                    <a
+                        href="<?= APPLICATION_URL ?>/operators/list.php"
+                        class="navigation-link"
+                    >
+                        Cancel
+                    </a>
+                <?php endif; ?>
+
+                <div class="navigation-operator">
+                    <span class="navigation-operator-label">
+                        Logged in as:
+                    </span>
+
+                    <strong>
+                        <?= escapeOutput($loggedInUsername) ?>
+                    </strong>
+                </div>
+
+                <?php if (!$onOperatorFormPage): ?>
+                    <div
+                        class="navigation-feature-image"
+                        aria-hidden="true"
+                    >
+                        <img
+                            src="<?= APPLICATION_URL ?>/assets/images/image3.png"
+                            alt=""
+                        >
+                    </div>
+                <?php endif; ?>
+            <?php else: ?>
+                <?php if ($currentPage !== 'home'): ?>
+                    <a
+                        href="<?= APPLICATION_URL ?>/index.php"
+                        class="navigation-link navigation-home-link"
+                    >
+                        <span
+                            class="navigation-home-icon"
+                            aria-hidden="true"
+                        >
+                            &#8962;
+                        </span>
+
+                        <span>
+                            Home
+                        </span>
+                    </a>
+                <?php endif; ?>
+
+                <?php if ($onAdministratorHome): ?>
+                    <a
+                        href="<?= APPLICATION_URL ?>/operators/list.php"
+                        class="navigation-link"
+                    >
+                        Manage Operators
+                    </a>
+                <?php endif; ?>
+
+                <?php if (!$onAccountPage): ?>
+                    <a
+                        href="<?= APPLICATION_URL ?>/account.php"
+                        class="navigation-link"
+                    >
+                        Manage My Account
+                    </a>
+                <?php endif; ?>
+
+                <?php if ($onAccountPage): ?>
+                    <a
+                        href="<?= APPLICATION_URL ?>/index.php"
+                        class="navigation-link"
+                    >
+                        Cancel
+                    </a>
+                <?php endif; ?>
+
+                <div class="navigation-operator">
+                    <span class="navigation-operator-label">
+                        Logged in as:
+                    </span>
+
+                    <strong>
+                        <?= escapeOutput($loggedInUsername) ?>
+                    </strong>
+                </div>
+
+                <?php if ($currentPage === 'home'): ?>
+                    <div
+                        class="navigation-feature-image"
+                        aria-hidden="true"
+                    >
+                        <img
+                            src="<?= APPLICATION_URL ?>/assets/images/image3.png"
+                            alt=""
+                        >
+                    </div>
+                <?php endif; ?>
+            <?php endif; ?>
+        </nav>
+    <?php endif; ?>
+</aside>
+
+
+========================================
+FILE PATH: C:\xampp\htdocs\CSC_680\index.php
+FILENAME: index.php
+SIZE_BYTES: 8701
+----------------------------------------
+<?php // index.php
+
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+
+require_once __DIR__ . '/includes/access_control.php';
+
+$loginErrorMessage = '';
+
+
+// Process the login form
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
+    $enteredUsername = trim($_POST['username'] ?? '');
+    $enteredPassword = $_POST['password'] ?? '';
+    $submittedSecurityToken = $_POST['form_security_token'] ?? '';
+
+    if (!formSecurityTokenIsValid($submittedSecurityToken)) {
+        $loginErrorMessage = 'The login form expired. Please try again.';
+    } elseif ($enteredUsername === '' || $enteredPassword === '') {
+        $loginErrorMessage = 'Enter both your username and password.';
+    } else {
+        try {
+            $databaseConnection = connectDatabase();
+
+            $loginStatement = $databaseConnection->prepare(
+                '
+                SELECT
+                    OperatorID,
+                    StoreID,
+                    StoreNumber,
+                    StoreName,
+                    EmployeeNumber,
+                    Username,
+                    PasswordHash,
+                    FirstName,
+                    MiddleInitial,
+                    LastName,
+                    Role
+                FROM vw_operatorlogin
+                WHERE Username = :enteredUsername
+                LIMIT 1
+                '
+            );
+
+            $loginStatement->execute([
+                ':enteredUsername' => $enteredUsername
+            ]);
+
+            $operatorRecord = $loginStatement->fetch();
+
+            if (
+                $operatorRecord
+                &&
+                password_verify(
+                    $enteredPassword,
+                    $operatorRecord['PasswordHash']
+                )
+            ) {
+                session_regenerate_id(true);
+
+                $_SESSION['operator_id'] = $operatorRecord['OperatorID'];
+                $_SESSION['store_id'] = $operatorRecord['StoreID'];
+                $_SESSION['store_number'] = $operatorRecord['StoreNumber'];
+                $_SESSION['store_name'] = $operatorRecord['StoreName'];
+                $_SESSION['employee_number'] = $operatorRecord['EmployeeNumber'];
+                $_SESSION['username'] = $operatorRecord['Username'];
+                $_SESSION['first_name'] = $operatorRecord['FirstName'];
+                $_SESSION['middle_initial'] = $operatorRecord['MiddleInitial'];
+                $_SESSION['last_name'] = $operatorRecord['LastName'];
+                $_SESSION['role'] = $operatorRecord['Role'];
+
+                header('Location: ' . APPLICATION_URL . '/index.php');
+                exit;
+            }
+
+            $loginErrorMessage = 'The username or password is incorrect.';
+        } catch (PDOException $exception) {
+            error_log($exception->getMessage());
+            $loginErrorMessage = 'The login could not be completed.';
+        }
+    }
+}
+
+$pageTitle = 'Home';
+$currentSection = 'home';
+$currentPage = 'home';
+
+require __DIR__ . '/includes/header.php';
+?>
+
+<?php if (!operatorIsLoggedIn()): ?>
+
+    <div class="home-public">
+
+        <div
+            class="home-public-image home-public-image-left"
+            aria-hidden="true"
+        >
+            <img
+                src="<?= APPLICATION_URL ?>/assets/images/image3.png"
+                alt=""
+            >
+        </div>
+
+        <section class="home-public-main">
+
+            <div class="home-public-heading">
+                <h1>
+                    FnH Groceries Employee System
+                </h1>
+
+                <p>
+                    Authorized employees may sign in using their assigned credentials.
+                </p>
+            </div>
+
+            <div class="home-public-sections">
+
+                <section class="home-public-section">
+                    <h2>
+                        Protect Private Information
+                    </h2>
+
+                    <p>
+                        Employees are responsible for protecting the privacy of customer, employee, and company information they access while using this system.
+                    </p>
+                </section>
+
+                <section class="home-public-section">
+                    <h2>
+                        Use Passwords Safely
+                    </h2>
+
+                    <p>
+                        Be careful when entering your password, never share it with another person, and change your password regularly to help keep your account secure.
+                    </p>
+                </section>
+
+                <section class="home-public-section">
+                    <h2>
+                        Secure Your Workstation
+                    </h2>
+
+                    <p>
+                        Never leave a signed-in workstation unattended. Log out before stepping away and report anything unusual to an administrator.
+                    </p>
+                </section>
+
+            </div>
+
+        </section>
+
+        <div
+            class="home-public-image home-public-image-right"
+            aria-hidden="true"
+        >
+            <img
+                src="<?= APPLICATION_URL ?>/assets/images/image6.png"
+                alt=""
+            >
+        </div>
+
+    </div>
+
+<?php elseif (!operatorHasAssignedAccess()): ?>
+
+    <section class="content-panel home-pending">
+
+        <div class="home-pending-message">
+            Contact Administrator for Access
+        </div>
+
+        <div class="home-pending-user">
+            Logged in as:
+
+            <strong>
+                <?= escapeOutput($_SESSION['username'] ?? '') ?>
+            </strong>
+        </div>
+
+    </section>
+
+<?php else: ?>
+
+    <section class="content-panel">
+
+        <div class="page-intro">
+            <h1>
+                Welcome,
+                <?= escapeOutput(getLoggedInOperatorDisplayName()) ?>
+            </h1>
+        </div>
+
+        <div class="home-account">
+
+            <div class="home-account-row">
+
+                <div class="home-account-item">
+                    <span class="home-account-label">
+                        Username:
+                    </span>
+
+                    <span class="home-account-value">
+                        <?= escapeOutput($_SESSION['username'] ?? '') ?>
+                    </span>
+                </div>
+
+                <div class="home-account-item">
+                    <span class="home-account-label">
+                        Store:
+                    </span>
+
+                    <span class="home-account-value">
+                        <?= escapeOutput($_SESSION['store_number'] ?? '') ?>
+                        -
+                        <?= escapeOutput($_SESSION['store_name'] ?? '') ?>
+                    </span>
+                </div>
+
+            </div>
+
+            <div class="home-account-row">
+
+                <div class="home-account-item">
+                    <span class="home-account-label">
+                        Employee Number:
+                    </span>
+
+                    <span class="home-account-value">
+                        <?= escapeOutput($_SESSION['employee_number'] ?? '') ?>
+                    </span>
+                </div>
+
+                <div class="home-account-item">
+                    <span class="home-account-label">
+                        Privilege:
+                    </span>
+
+                    <span class="home-account-value">
+
+                        <?php if (($_SESSION['role'] ?? '') === 'Pending'): ?>
+
+                            No Access
+
+                        <?php else: ?>
+
+                            <?= escapeOutput($_SESSION['role'] ?? '') ?>
+
+                        <?php endif; ?>
+
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+
+        <p class="home-signed-in-note">
+            You are signed in to the FnH Groceries system.
+        </p>
+
+        <section class="home-security">
+
+            <h2>
+                Security Tips
+            </h2>
+
+            <ul class="home-security-list">
+                <li>
+                    Do not leave this workstation unattended.
+                </li>
+
+                <li>
+                    Log out before stepping away.
+                </li>
+
+                <li>
+                    Contact an administrator if you notice anything wrong.
+                </li>
+            </ul>
+
+        </section>
+
+    </section>
+
+<?php endif; ?>
+
+<?php require __DIR__ . '/includes/footer.php'; ?>
+
+
+========================================
+FILE PATH: C:\xampp\htdocs\CSC_680\logout.php
+FILENAME: logout.php
+SIZE_BYTES: 415
+----------------------------------------
+<?php // logout.php
+
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+
+require_once __DIR__ . '/includes/access_control.php';
+
+
+// This removes all information stored in the current login session.
+$_SESSION = [];
+
+
+// This destroys the current login session.
+session_destroy();
+
+
+// This returns the visitor to the login page.
+header(
+    'Location: '
+    . APPLICATION_URL
+    . '/index.php'
+);
+
+exit;
+
+
+========================================
+FILE PATH: C:\xampp\htdocs\CSC_680\operators\create.php
+FILENAME: create.php
+SIZE_BYTES: 10074
+----------------------------------------
+<?php // operators/create.php
+
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+
+require_once __DIR__ . '/../includes/access_control.php';
+
+requireAdministrator();
+
+$databaseConnection = connectDatabase();
+
+$errorMessage = '';
+
+$selectedStoreID = '';
+$username = '';
+$firstName = '';
+$middleInitial = '';
+$lastName = '';
+$email = '';
+$phone = '';
+$selectedRole = 'Operator';
+$hireDate = '';
+
+
+// Load active stores
+$storeListStatement = $databaseConnection->query(
+    '
+    SELECT
+        StoreID,
+        StoreNumber,
+        StoreName
+    FROM vw_storelist
+    WHERE Active = 1
+    ORDER BY StoreNumber
+    '
+);
+
+$storeRecords = $storeListStatement->fetchAll();
+
+
+// Process the Create Operator form
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $selectedStoreID = $_POST['store_id'] ?? '';
+    $username = trim($_POST['username'] ?? '');
+    $enteredPassword = $_POST['password'] ?? '';
+    $confirmedPassword = $_POST['confirm_password'] ?? '';
+    $firstName = trim($_POST['first_name'] ?? '');
+    $middleInitial = trim($_POST['middle_initial'] ?? '');
+    $lastName = trim($_POST['last_name'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $selectedRole = $_POST['role'] ?? 'Operator';
+    $hireDate = $_POST['hire_date'] ?? '';
+    $submittedSecurityToken = $_POST['form_security_token'] ?? '';
+
+    if (!formSecurityTokenIsValid($submittedSecurityToken)) {
+        $errorMessage = 'The form expired. Please try again.';
+    } elseif (
+        $selectedStoreID === ''
+        ||
+        $username === ''
+        ||
+        $enteredPassword === ''
+        ||
+        $firstName === ''
+        ||
+        $lastName === ''
+        ||
+        $email === ''
+    ) {
+        $errorMessage = 'Complete all required fields.';
+    } elseif (strlen($username) > 50) {
+        $errorMessage = 'Username cannot contain more than 50 characters.';
+    } elseif (!middleInitialIsValid($middleInitial)) {
+        $errorMessage = 'Middle initial must be one letter or left blank.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errorMessage = 'Enter a valid email address.';
+    } elseif (strlen($phone) > 20) {
+        $errorMessage = 'Phone number cannot contain more than 20 characters.';
+    } elseif (!passwordMeetsRequirements($enteredPassword)) {
+        $errorMessage =
+            'The password must contain at least 8 characters, 1 uppercase letter, 1 lowercase letter, and 1 symbol.';
+    } elseif ($enteredPassword !== $confirmedPassword) {
+        $errorMessage = 'The password and confirmation do not match.';
+    } elseif (
+        !in_array(
+            $selectedRole,
+            [
+                'Administrator',
+                'Operator'
+            ],
+            true
+        )
+    ) {
+        $errorMessage = 'Select a valid operator role.';
+    } else {
+        try {
+            if ($middleInitial !== '') {
+                $middleInitial = strtoupper($middleInitial);
+            }
+
+            $passwordHash = password_hash(
+                $enteredPassword,
+                PASSWORD_DEFAULT
+            );
+
+            $createOperatorStatement = $databaseConnection->prepare(
+                '
+                CALL sp_create_operator(
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?
+                )
+                '
+            );
+
+            $createOperatorStatement->execute([
+                (int) $selectedStoreID,
+                $username,
+                $passwordHash,
+                $firstName,
+                $middleInitial,
+                $lastName,
+                $email,
+                $phone,
+                $selectedRole,
+                $hireDate === '' ? null : $hireDate
+            ]);
+
+            $createOperatorStatement->closeCursor();
+
+            header('Location: list.php?created=1');
+            exit;
+        } catch (PDOException $exception) {
+            $errorMessage = getSafeDatabaseErrorMessage(
+                $exception,
+                'The operator could not be created.'
+            );
+        }
+    }
+}
+
+$pageTitle = 'Create Operator';
+$currentSection = 'operators';
+$currentPage = 'create';
+
+require __DIR__ . '/../includes/header.php';
+?>
+
+<section class="content-panel form-panel">
+
+    <div class="page-intro">
+        <h1>
+            Create Operator
+        </h1>
+
+        <p>
+            Enter the information for the new FnH Groceries operator.
+        </p>
+    </div>
+
+    <?php if ($errorMessage !== ''): ?>
+
+        <div class="message message-error">
+            <?= escapeOutput($errorMessage) ?>
+        </div>
+
+    <?php endif; ?>
+
+    <form method="post">
+
+        <input type="hidden" name="form_security_token" value="<?= escapeOutput(getFormSecurityToken()) ?>">
+
+        <div class="form-grid">
+
+            <div class="form-field form-field-full-width">
+                <label for="store_id">
+                    Assigned Store *
+                </label>
+
+                <select id="store_id" name="store_id" required>
+                    <option value="">
+                        Select Store
+                    </option>
+
+                    <?php foreach ($storeRecords as $storeRecord): ?>
+
+                        <option value="<?= (int) $storeRecord['StoreID'] ?>"
+                            <?= (string) $selectedStoreID === (string) $storeRecord['StoreID'] ? 'selected' : '' ?>>
+                            <?= escapeOutput($storeRecord['StoreNumber']) ?>
+                            -
+                            <?= escapeOutput($storeRecord['StoreName']) ?>
+                        </option>
+
+                    <?php endforeach; ?>
+
+                </select>
+            </div>
+
+            <div class="form-field">
+                <label for="username">
+                    Username *
+                </label>
+
+                <input type="text" id="username" name="username" value="<?= escapeOutput($username) ?>" maxlength="50"
+                    required autocomplete="username">
+            </div>
+
+            <div class="form-field">
+                <label for="first_name">
+                    First Name *
+                </label>
+
+                <input type="text" id="first_name" name="first_name" value="<?= escapeOutput($firstName) ?>"
+                    maxlength="60" required>
+            </div>
+
+            <div class="form-field">
+                <label for="middle_initial">
+                    Middle Initial (Optional)
+                </label>
+
+                <input type="text" id="middle_initial" name="middle_initial" value="<?= escapeOutput($middleInitial) ?>"
+                    maxlength="1" pattern="[A-Za-z]" title="Enter one letter or leave this field blank.">
+            </div>
+
+            <div class="form-field">
+                <label for="last_name">
+                    Last Name *
+                </label>
+
+                <input type="text" id="last_name" name="last_name" value="<?= escapeOutput($lastName) ?>" maxlength="60"
+                    required>
+            </div>
+
+            <div class="form-field">
+                <label for="email">
+                    Email *
+                </label>
+
+                <input type="email" id="email" name="email" value="<?= escapeOutput($email) ?>" maxlength="120" required
+                    autocomplete="email">
+            </div>
+
+            <div class="form-field">
+                <label for="phone">
+                    Phone
+                </label>
+
+                <input type="tel" id="phone" name="phone" value="<?= escapeOutput($phone) ?>" maxlength="20"
+                    autocomplete="tel">
+            </div>
+
+            <div class="form-field">
+                <label for="role">
+                    Role *
+                </label>
+
+                <select id="role" name="role" required>
+                    <option value="Operator" <?= $selectedRole === 'Operator' ? 'selected' : '' ?>>
+                        Operator
+                    </option>
+
+                    <option value="Administrator" <?= $selectedRole === 'Administrator' ? 'selected' : '' ?>>
+                        Administrator
+                    </option>
+                </select>
+            </div>
+
+            <div class="form-field">
+                <label for="hire_date">
+                    Hire Date
+                </label>
+
+                <input type="date" id="hire_date" name="hire_date" value="<?= escapeOutput($hireDate) ?>">
+            </div>
+
+            <div class="form-field">
+                <label for="password">
+                    Password *
+                </label>
+
+                <input type="password" id="password" name="password" minlength="8" required autocomplete="new-password">
+
+                <div class="field-help">
+                    Use at least 8 characters with an uppercase letter, lowercase letter, and symbol.
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label for="confirm_password">
+                    Confirm Password *
+                </label>
+
+                <input type="password" id="confirm_password" name="confirm_password" minlength="8" required
+                    autocomplete="new-password">
+            </div>
+
+        </div>
+
+        <div class="form-actions">
+
+            <button type="submit" class="button button-primary">
+                Create Operator
+            </button>
+
+            <a href="list.php" class="button button-secondary">
+                Cancel
+            </a>
+
+        </div>
+
+    </form>
+
+</section>
+
+<?php require __DIR__ . '/../includes/footer.php'; ?>
+
+
+========================================
+FILE PATH: C:\xampp\htdocs\CSC_680\operators\delete.php
+FILENAME: delete.php
+SIZE_BYTES: 7355
+----------------------------------------
+<?php // operators/delete.php
+
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+
+require_once __DIR__ . '/../includes/access_control.php';
+
+requireAdministrator();
+
+$databaseConnection = connectDatabase();
+$errorMessage = '';
+
+$operatorID =
+    filter_input(
+        INPUT_POST,
+        'id',
+        FILTER_VALIDATE_INT
+    );
+
+if (!$operatorID) {
+    http_response_code(400);
+    exit('A valid operator ID is required.');
+}
+
+$submittedSecurityToken =
+    $_POST['form_security_token'] ?? '';
+
+if (
+    !formSecurityTokenIsValid(
+        $submittedSecurityToken
+    )
+) {
+    http_response_code(403);
+    exit('The form expired. Please return to the Operator List and try again.');
+}
+
+$operatorStatement =
+    $databaseConnection->prepare(
+        '
+        SELECT
+            OperatorID,
+            EmployeeNumber,
+            Username,
+            FullName,
+            Email,
+            Role,
+            StoreNumber,
+            StoreName,
+            Active
+        FROM vw_operatorlist
+        WHERE OperatorID = :operatorID
+        LIMIT 1
+        '
+    );
+
+$operatorStatement->execute([
+    ':operatorID' => $operatorID
+]);
+
+$operatorRecord =
+    $operatorStatement->fetch();
+
+if (!$operatorRecord) {
+    http_response_code(404);
+    exit('The selected operator was not found.');
+}
+
+$deleteIsAllowed =
+    (int)$operatorID
+    !==
+    (int)$_SESSION['operator_id']
+    &&
+    (int)$operatorRecord['Active']
+    ===
+    1;
+
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST'
+    &&
+    isset($_POST['confirm_delete'])
+) {
+    if (!$deleteIsAllowed) {
+        $errorMessage =
+            'This operator cannot be deleted.';
+    } else {
+        try {
+            $deleteOperatorStatement =
+                $databaseConnection->prepare(
+                    '
+                    CALL sp_delete_operator(
+                        ?,
+                        ?
+                    )
+                    '
+                );
+
+            $deleteOperatorStatement->execute([
+                (int)$operatorID,
+                (int)$_SESSION['operator_id']
+            ]);
+
+            $deleteOperatorStatement->closeCursor();
+
+            header(
+                'Location: list.php?deleted=1'
+            );
+            exit;
+        } catch (PDOException $exception) {
+            $errorMessage =
+                getSafeDatabaseErrorMessage(
+                    $exception,
+                    'The operator could not be deleted.'
+                );
+        }
+    }
+}
+
+$pageTitle = 'Delete Operator';
+$currentSection = 'operators';
+$currentPage = 'delete';
+
+require __DIR__ . '/../includes/header.php';
+?>
+
+<section class="content-panel delete-panel">
+    <div class="page-intro">
+        <h1>
+            Confirm Delete Operator
+        </h1>
+
+        <p>
+            Review the operator information carefully before continuing.
+        </p>
+    </div>
+
+    <?php if ($errorMessage !== ''): ?>
+        <div class="message message-error">
+            <?= escapeOutput($errorMessage) ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!$deleteIsAllowed): ?>
+        <div class="message message-warning">
+            <?php if (
+                (int)$operatorID
+                ===
+                (int)$_SESSION['operator_id']
+            ): ?>
+                You cannot delete the account that you are currently using.
+            <?php elseif (
+                (int)$operatorRecord['Active']
+                !==
+                1
+            ): ?>
+                This operator is already inactive and cannot be deleted again.
+            <?php else: ?>
+                This operator cannot be deleted.
+            <?php endif; ?>
+        </div>
+
+        <div class="form-actions">
+            <a
+                href="list.php"
+                class="button button-secondary"
+            >
+                Return to Operator List
+            </a>
+        </div>
+    <?php else: ?>
+        <div class="delete-confirmation-question">
+            Are you sure you want to delete this operator?
+        </div>
+
+        <div class="operator-summary">
+            <div class="operator-summary-name">
+                <?= escapeOutput($operatorRecord['FullName']) ?>
+            </div>
+
+            <div class="operator-summary-row">
+                <span class="operator-summary-label">
+                    Employee Number:
+                </span>
+
+                <span>
+                    <?= escapeOutput($operatorRecord['EmployeeNumber']) ?>
+                </span>
+            </div>
+
+            <div class="operator-summary-row">
+                <span class="operator-summary-label">
+                    Username:
+                </span>
+
+                <span>
+                    <?= escapeOutput($operatorRecord['Username']) ?>
+                </span>
+            </div>
+
+            <div class="operator-summary-row">
+                <span class="operator-summary-label">
+                    Email:
+                </span>
+
+                <span>
+                    <?= escapeOutput($operatorRecord['Email']) ?>
+                </span>
+            </div>
+
+            <div class="operator-summary-row">
+                <span class="operator-summary-label">
+                    Store:
+                </span>
+
+                <span>
+                    <?= escapeOutput($operatorRecord['StoreNumber']) ?>
+                    -
+                    <?= escapeOutput($operatorRecord['StoreName']) ?>
+                </span>
+            </div>
+
+            <div class="operator-summary-row">
+                <span class="operator-summary-label">
+                    Role:
+                </span>
+
+                <span>
+                    <?php if ($operatorRecord['Role'] === 'Pending'): ?>
+                        No Access
+                    <?php else: ?>
+                        <?= escapeOutput($operatorRecord['Role']) ?>
+                    <?php endif; ?>
+                </span>
+            </div>
+        </div>
+
+        <div class="message message-warning">
+            This action makes the operator inactive so historical sales information remains connected to the correct employee.
+        </div>
+
+        <form method="post">
+            <input
+                type="hidden"
+                name="form_security_token"
+                value="<?= escapeOutput(getFormSecurityToken()) ?>"
+            >
+
+            <input
+                type="hidden"
+                name="id"
+                value="<?= (int)$operatorID ?>"
+            >
+
+            <div class="form-actions delete-confirmation-actions">
+                <button
+                    type="submit"
+                    name="confirm_delete"
+                    value="1"
+                    class="button button-danger"
+                >
+                    Yes, Delete Operator
+                </button>
+
+                <a
+                    href="list.php"
+                    class="button button-secondary"
+                >
+                    No, Cancel
+                </a>
+            </div>
+        </form>
+    <?php endif; ?>
+</section>
+
+<?php
+require __DIR__ . '/../includes/footer.php';
+?>
+
+
+========================================
+FILE PATH: C:\xampp\htdocs\CSC_680\operators\list.php
+FILENAME: list.php
+SIZE_BYTES: 16385
+----------------------------------------
+<?php // operators/list.php
+
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+
+require_once __DIR__ . '/../includes/access_control.php';
+
+requireAdministrator();
+
+$databaseConnection = connectDatabase();
+
+$roleFilter = $_GET['role'] ?? 'all';
+
+if (
+    !in_array(
+        $roleFilter,
+        [
+            'all',
+            'Administrator',
+            'Operator'
+        ],
+        true
+    )
+) {
+    $roleFilter = 'all';
+}
+
+$showInactive =
+    ($_GET['show_inactive'] ?? '')
+    ===
+    '1';
+
+$showAllRoles =
+    $roleFilter === 'all';
+
+$operatorListStatement =
+    $databaseConnection->prepare(
+        '
+        SELECT
+            OperatorID,
+            EmployeeNumber,
+            Username,
+            FirstName,
+            LastName,
+            FullName,
+            Role,
+            Active,
+            CreatedAt
+        FROM vw_operatorlist
+        WHERE
+            (:showInactive = 1 OR Active = 1)
+            AND
+            (:showAllRoles = 1 OR Role = :roleFilter)
+        ORDER BY
+            EmployeeNumber ASC,
+            Username ASC
+        '
+    );
+
+$operatorListStatement->execute([
+    ':showInactive' => $showInactive ? 1 : 0,
+    ':showAllRoles' => $showAllRoles ? 1 : 0,
+    ':roleFilter' => $roleFilter
+]);
+
+$operatorRecords =
+    $operatorListStatement->fetchAll();
+
+$successMessage = '';
+
+if (isset($_GET['created'])) {
+    $successMessage =
+        'The operator was created successfully.';
+}
+
+if (isset($_GET['updated'])) {
+    $successMessage =
+        'The operator was updated successfully.';
+}
+
+if (isset($_GET['deleted'])) {
+    $successMessage =
+        'The operator was deleted successfully and is now inactive.';
+}
+
+if (isset($_GET['reactivated'])) {
+    $successMessage =
+        'The operator was reactivated successfully.';
+}
+
+$pageTitle = 'Operator List';
+$currentSection = 'operators';
+$currentPage = 'list';
+
+require __DIR__ . '/../includes/header.php';
+?>
+
+<section class="content-panel operator-list-panel">
+    <div class="page-intro operator-list-intro">
+        <div class="operator-list-heading">
+            <h1>
+                Operator List
+            </h1>
+
+            <p>
+                Select an operator to update, delete, or reactivate.
+            </p>
+        </div>
+
+        <form
+            method="get"
+            class="operator-filter-form"
+        >
+            <div class="operator-filter-field">
+                <label for="roleFilter">
+                    Show
+                </label>
+
+                <select
+                    id="roleFilter"
+                    name="role"
+                    onchange="this.form.submit()"
+                >
+                    <option
+                        value="all"
+                        <?= $roleFilter === 'all' ? 'selected' : '' ?>
+                    >
+                        All
+                    </option>
+
+                    <option
+                        value="Administrator"
+                        <?= $roleFilter === 'Administrator' ? 'selected' : '' ?>
+                    >
+                        Admins
+                    </option>
+
+                    <option
+                        value="Operator"
+                        <?= $roleFilter === 'Operator' ? 'selected' : '' ?>
+                    >
+                        Operators
+                    </option>
+                </select>
+            </div>
+
+            <div class="operator-filter-field">
+                <label
+                    for="showInactive"
+                    class="operator-inactive-label"
+                >
+                    <input
+                        type="checkbox"
+                        id="showInactive"
+                        name="show_inactive"
+                        value="1"
+                        <?= $showInactive ? 'checked' : '' ?>
+                        onchange="this.form.submit()"
+                    >
+                    <span>
+                        Inactive
+                    </span>
+                </label>
+            </div>
+        </form>
+    </div>
+
+    <?php if ($successMessage !== ''): ?>
+        <div class="message message-success">
+            <?= escapeOutput($successMessage) ?>
+        </div>
+    <?php endif; ?>
+
+    <form
+        id="operatorSelectionForm"
+        method="post"
+        class="operator-selection-form"
+    >
+        <input
+            type="hidden"
+            name="form_security_token"
+            value="<?= escapeOutput(getFormSecurityToken()) ?>"
+        >
+
+        <?php if (count($operatorRecords) === 0): ?>
+            <div class="operator-table-empty">
+                No operators were found.
+            </div>
+        <?php else: ?>
+            <div
+                class="table-container"
+                tabindex="0"
+                aria-label="Operator list. Scroll horizontally if needed."
+            >
+                <table class="operator-table">
+                    <colgroup>
+                        <col class="operator-column-select">
+                        <col class="operator-column-employee">
+                        <col class="operator-column-username">
+                        <col class="operator-column-name">
+                        <col class="operator-column-created">
+                        <col class="operator-column-status">
+                    </colgroup>
+
+                    <thead>
+                        <tr>
+                            <th class="operator-heading-select">
+                                Select
+                            </th>
+
+                            <th class="operator-heading-employee">
+                                <span>
+                                    Employee
+                                </span>
+
+                                <span class="operator-heading-second-line">
+                                    Number
+                                </span>
+                            </th>
+
+                            <th>
+                                Username
+                            </th>
+
+                            <th>
+                                <span>
+                                    Name
+                                </span>
+
+                                <span class="operator-heading-second-line">
+                                    Last, First, MI
+                                </span>
+                            </th>
+
+                            <th>
+                                Created
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <?php foreach ($operatorRecords as $operatorRecord): ?>
+                            <?php
+                            $isCurrentOperator =
+                                (int)$operatorRecord['OperatorID']
+                                ===
+                                (int)$_SESSION['operator_id'];
+
+                            $isActiveOperator =
+                                (int)$operatorRecord['Active']
+                                ===
+                                1;
+
+                            $radioClass =
+                                'operator-select-radio';
+
+                            if ($isCurrentOperator) {
+                                $radioClass .=
+                                    ' operator-select-radio-protected operator-select-radio-current';
+                            }
+
+                            if (!$isActiveOperator) {
+                                $radioClass .=
+                                    ' operator-select-radio-inactive';
+                            }
+
+                            $createdAtDisplay =
+                                $operatorRecord['CreatedAt']
+                                    ? date(
+                                        'M j, Y',
+                                        strtotime(
+                                            $operatorRecord['CreatedAt']
+                                        )
+                                    )
+                                    : '';
+                            ?>
+
+                            <tr>
+                                <td class="operator-select-cell">
+                                    <label
+                                        class="operator-radio-label"
+                                        for="operator_<?= (int)$operatorRecord['OperatorID'] ?>"
+                                    >
+                                        <input
+                                            type="radio"
+                                            id="operator_<?= (int)$operatorRecord['OperatorID'] ?>"
+                                            name="id"
+                                            value="<?= (int)$operatorRecord['OperatorID'] ?>"
+                                            class="<?= $radioClass ?>"
+                                            data-active="<?= $isActiveOperator ? '1' : '0' ?>"
+                                            data-current="<?= $isCurrentOperator ? '1' : '0' ?>"
+                                            required
+                                        >
+
+                                        <span class="screen-reader-text">
+                                            Select
+                                            <?= escapeOutput($operatorRecord['Username']) ?>
+                                        </span>
+                                    </label>
+                                </td>
+
+                                <td class="operator-employee-cell">
+                                    <?= escapeOutput($operatorRecord['EmployeeNumber']) ?>
+                                </td>
+
+                                <td class="operator-username-cell">
+                                    <?= escapeOutput($operatorRecord['Username']) ?>
+                                </td>
+
+                                <td class="operator-name-cell">
+                                    <?= escapeOutput($operatorRecord['FullName']) ?>
+                                </td>
+
+                                <td class="operator-created-cell">
+                                    <?= escapeOutput($createdAtDisplay) ?>
+                                </td>
+
+                                <td class="operator-status-cell">
+                                    <?php if ($isActiveOperator): ?>
+                                        <span class="status-active">
+                                            Active
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="status-inactive">
+                                            Inactive
+                                        </span>
+                                    <?php endif; ?>
+
+                                    <?php if ($isCurrentOperator): ?>
+                                        <span class="status-context">
+                                            Current account
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="operator-list-count">
+                <?= count($operatorRecords) ?>
+                operator<?= count($operatorRecords) === 1 ? '' : 's' ?> shown.
+            </p>
+        <?php endif; ?>
+    </form>
+
+    <div class="operator-list-help">
+        <h2>
+            Using This List
+        </h2>
+
+        <ul>
+            <li>
+                Select an active operator to update or delete the account.
+            </li>
+
+            <li>
+                Check Inactive to include inactive operators in the list.
+            </li>
+
+            <li>
+                Selecting an inactive operator changes Delete Operator to Reactivate Operator.
+            </li>
+
+            <li>
+                Delete makes an operator inactive so historical sales records remain connected.
+            </li>
+
+            <li>
+                The account you are currently signed in with cannot be deleted.
+            </li>
+
+            <li>
+                The final active Administrator cannot be deleted or demoted.
+            </li>
+        </ul>
+    </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const selectionForm =
+        document.getElementById('operatorSelectionForm');
+    const updateButton =
+        document.getElementById('operatorUpdateButton');
+    const statusButton =
+        document.getElementById('operatorStatusButton');
+    const clearButton =
+        document.getElementById('operatorClearButton');
+
+    if (
+        !selectionForm
+        ||
+        !updateButton
+        ||
+        !statusButton
+        ||
+        !clearButton
+    ) {
+        return;
+    }
+
+    const deleteAddress =
+        '<?= APPLICATION_URL ?>/operators/delete.php';
+    const reactivateAddress =
+        '<?= APPLICATION_URL ?>/operators/reactivate.php';
+
+    function updateOperatorButtons()
+    {
+        const selectedOperator =
+            selectionForm.querySelector(
+                'input[name="id"]:checked'
+            );
+
+        if (!selectedOperator) {
+            updateButton.disabled = true;
+            statusButton.disabled = true;
+            clearButton.disabled = true;
+            statusButton.textContent =
+                'Delete Operator';
+            statusButton.setAttribute(
+                'formaction',
+                deleteAddress
+            );
+            statusButton.classList.remove(
+                'operator-nav-update'
+            );
+            statusButton.classList.add(
+                'operator-nav-delete'
+            );
+            return;
+        }
+
+        updateButton.disabled = false;
+        clearButton.disabled = false;
+
+        const operatorIsActive =
+            selectedOperator.dataset.active === '1';
+        const operatorIsCurrent =
+            selectedOperator.dataset.current === '1';
+
+        if (!operatorIsActive) {
+            statusButton.disabled = false;
+            statusButton.textContent =
+                'Reactivate Operator';
+            statusButton.setAttribute(
+                'formaction',
+                reactivateAddress
+            );
+            statusButton.removeAttribute(
+                'aria-describedby'
+            );
+            statusButton.classList.remove(
+                'operator-nav-delete'
+            );
+            statusButton.classList.add(
+                'operator-nav-update'
+            );
+            return;
+        }
+
+        statusButton.textContent =
+            'Delete Operator';
+        statusButton.setAttribute(
+            'formaction',
+            deleteAddress
+        );
+        statusButton.setAttribute(
+            'aria-describedby',
+            'currentAccountDeleteNote'
+        );
+        statusButton.classList.remove(
+            'operator-nav-update'
+        );
+        statusButton.classList.add(
+            'operator-nav-delete'
+        );
+        statusButton.disabled =
+            operatorIsCurrent;
+    }
+
+    selectionForm
+        .querySelectorAll(
+            'input[name="id"]'
+        )
+        .forEach(function (radioButton) {
+            radioButton.addEventListener(
+                'change',
+                updateOperatorButtons
+            );
+        });
+
+    selectionForm.addEventListener(
+        'reset',
+        function () {
+            window.setTimeout(
+                updateOperatorButtons,
+                0
+            );
+        }
+    );
+
+    updateOperatorButtons();
+});
+</script>
+
+<?php
+require __DIR__ . '/../includes/footer.php';
+?>
+
+
+========================================
+FILE PATH: C:\xampp\htdocs\CSC_680\operators\reactivate.php
+FILENAME: reactivate.php
+SIZE_BYTES: 6753
+----------------------------------------
+<?php // operators/reactivate.php
+
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+
+require_once __DIR__ . '/../includes/access_control.php';
+
+requireAdministrator();
+
+$databaseConnection = connectDatabase();
+$errorMessage = '';
+
+$operatorID =
+    filter_input(
+        INPUT_POST,
+        'id',
+        FILTER_VALIDATE_INT
+    );
+
+if (!$operatorID) {
+    http_response_code(400);
+    exit('A valid operator ID is required.');
+}
+
+$submittedSecurityToken =
+    $_POST['form_security_token'] ?? '';
+
+if (
+    !formSecurityTokenIsValid(
+        $submittedSecurityToken
+    )
+) {
+    http_response_code(403);
+    exit('The form expired. Please return to the Operator List and try again.');
+}
+
+$operatorStatement =
+    $databaseConnection->prepare(
+        '
+        SELECT
+            OperatorID,
+            EmployeeNumber,
+            Username,
+            FullName,
+            Email,
+            Role,
+            StoreNumber,
+            StoreName,
+            Active
+        FROM vw_operatorlist
+        WHERE OperatorID = :operatorID
+        LIMIT 1
+        '
+    );
+
+$operatorStatement->execute([
+    ':operatorID' => $operatorID
+]);
+
+$operatorRecord =
+    $operatorStatement->fetch();
+
+if (!$operatorRecord) {
+    http_response_code(404);
+    exit('The selected operator was not found.');
+}
+
+$reactivateIsAllowed =
+    (int)$operatorRecord['Active']
+    ===
+    0;
+
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST'
+    &&
+    isset($_POST['confirm_reactivate'])
+) {
+    if (!$reactivateIsAllowed) {
+        $errorMessage =
+            'This operator is already active.';
+    } else {
+        try {
+            $reactivateOperatorStatement =
+                $databaseConnection->prepare(
+                    '
+                    CALL sp_reactivate_operator(
+                        ?
+                    )
+                    '
+                );
+
+            $reactivateOperatorStatement->execute([
+                (int)$operatorID
+            ]);
+
+            $reactivateOperatorStatement->closeCursor();
+
+            header(
+                'Location: list.php?reactivated=1&show_inactive=1'
+            );
+            exit;
+        } catch (PDOException $exception) {
+            $errorMessage =
+                getSafeDatabaseErrorMessage(
+                    $exception,
+                    'The operator could not be reactivated.'
+                );
+        }
+    }
+}
+
+$pageTitle = 'Reactivate Operator';
+$currentSection = 'operators';
+$currentPage = 'reactivate';
+
+require __DIR__ . '/../includes/header.php';
+?>
+
+<section class="content-panel delete-panel">
+    <div class="page-intro">
+        <h1>
+            Confirm Reactivate Operator
+        </h1>
+
+        <p>
+            Review the operator information before restoring access.
+        </p>
+    </div>
+
+    <?php if ($errorMessage !== ''): ?>
+        <div class="message message-error">
+            <?= escapeOutput($errorMessage) ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!$reactivateIsAllowed): ?>
+        <div class="message message-warning">
+            This operator is already active.
+        </div>
+
+        <div class="form-actions">
+            <a
+                href="list.php"
+                class="button button-secondary"
+            >
+                Return to Operator List
+            </a>
+        </div>
+    <?php else: ?>
+        <div class="delete-confirmation-question">
+            Are you sure you want to reactivate this operator?
+        </div>
+
+        <div class="operator-summary">
+            <div class="operator-summary-name">
+                <?= escapeOutput($operatorRecord['FullName']) ?>
+            </div>
+
+            <div class="operator-summary-row">
+                <span class="operator-summary-label">
+                    Employee Number:
+                </span>
+
+                <span>
+                    <?= escapeOutput($operatorRecord['EmployeeNumber']) ?>
+                </span>
+            </div>
+
+            <div class="operator-summary-row">
+                <span class="operator-summary-label">
+                    Username:
+                </span>
+
+                <span>
+                    <?= escapeOutput($operatorRecord['Username']) ?>
+                </span>
+            </div>
+
+            <div class="operator-summary-row">
+                <span class="operator-summary-label">
+                    Email:
+                </span>
+
+                <span>
+                    <?= escapeOutput($operatorRecord['Email']) ?>
+                </span>
+            </div>
+
+            <div class="operator-summary-row">
+                <span class="operator-summary-label">
+                    Store:
+                </span>
+
+                <span>
+                    <?= escapeOutput($operatorRecord['StoreNumber']) ?>
+                    -
+                    <?= escapeOutput($operatorRecord['StoreName']) ?>
+                </span>
+            </div>
+
+            <div class="operator-summary-row">
+                <span class="operator-summary-label">
+                    Role:
+                </span>
+
+                <span>
+                    <?php if ($operatorRecord['Role'] === 'Pending'): ?>
+                        No Access
+                    <?php else: ?>
+                        <?= escapeOutput($operatorRecord['Role']) ?>
+                    <?php endif; ?>
+                </span>
+            </div>
+        </div>
+
+        <div class="message message-information">
+            Reactivating restores this account to its existing role and assigned store.
+        </div>
+
+        <form method="post">
+            <input
+                type="hidden"
+                name="form_security_token"
+                value="<?= escapeOutput(getFormSecurityToken()) ?>"
+            >
+
+            <input
+                type="hidden"
+                name="id"
+                value="<?= (int)$operatorID ?>"
+            >
+
+            <div class="form-actions delete-confirmation-actions">
+                <button
+                    type="submit"
+                    name="confirm_reactivate"
+                    value="1"
+                    class="button button-primary"
+                >
+                    Yes, Reactivate Operator
+                </button>
+
+                <a
+                    href="list.php"
+                    class="button button-secondary"
+                >
+                    No, Cancel
+                </a>
+            </div>
+        </form>
+    <?php endif; ?>
+</section>
+
+<?php
+require __DIR__ . '/../includes/footer.php';
+?>
+
+
+========================================
+FILE PATH: C:\xampp\htdocs\CSC_680\operators\update.php
+FILENAME: update.php
+SIZE_BYTES: 12837
+----------------------------------------
+<?php // operators/update.php
+
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+
+require_once __DIR__ . '/../includes/access_control.php';
+
+requireAdministrator();
+
+$databaseConnection = connectDatabase();
+$errorMessage = '';
+
+$operatorID =
+    filter_input(
+        INPUT_POST,
+        'id',
+        FILTER_VALIDATE_INT
+    );
+
+if (!$operatorID) {
+    http_response_code(400);
+    exit('A valid operator ID is required.');
+}
+
+$submittedSecurityToken =
+    $_POST['form_security_token'] ?? '';
+
+if (
+    !formSecurityTokenIsValid(
+        $submittedSecurityToken
+    )
+) {
+    http_response_code(403);
+    exit('The form expired. Please return to the Operator List and try again.');
+}
+
+$operatorStatement =
+    $databaseConnection->prepare(
+        '
+        SELECT *
+        FROM vw_operatorlist
+        WHERE OperatorID = :operatorID
+        LIMIT 1
+        '
+    );
+
+$operatorStatement->execute([
+    ':operatorID' => $operatorID
+]);
+
+$operatorRecord =
+    $operatorStatement->fetch();
+
+if (!$operatorRecord) {
+    http_response_code(404);
+    exit('The selected user was not found.');
+}
+
+$storeListStatement =
+    $databaseConnection->query(
+        '
+        SELECT
+            StoreID,
+            StoreNumber,
+            StoreName
+        FROM vw_storelist
+        WHERE Active = 1
+        ORDER BY StoreNumber
+        '
+    );
+
+$storeRecords =
+    $storeListStatement->fetchAll();
+
+$selectedStoreID =
+    $operatorRecord['StoreID'];
+$employeeNumber =
+    $operatorRecord['EmployeeNumber'];
+$username =
+    $operatorRecord['Username'];
+$firstName =
+    $operatorRecord['FirstName'];
+$middleInitial =
+    $operatorRecord['MiddleInitial'] ?? '';
+$lastName =
+    $operatorRecord['LastName'];
+$email =
+    $operatorRecord['Email'];
+$phone =
+    $operatorRecord['Phone'] ?? '';
+$selectedRole =
+    $operatorRecord['Role'];
+$hireDate =
+    $operatorRecord['HireDate'] ?? '';
+
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST'
+    &&
+    isset($_POST['save_update'])
+) {
+    $selectedStoreID =
+        $_POST['store_id'] ?? '';
+
+    $username =
+        trim(
+            $_POST['username'] ?? ''
+        );
+
+    $firstName =
+        trim(
+            $_POST['first_name'] ?? ''
+        );
+
+    $middleInitial =
+        trim(
+            $_POST['middle_initial'] ?? ''
+        );
+
+    $lastName =
+        trim(
+            $_POST['last_name'] ?? ''
+        );
+
+    $email =
+        trim(
+            $_POST['email'] ?? ''
+        );
+
+    $phone =
+        trim(
+            $_POST['phone'] ?? ''
+        );
+
+    $selectedRole =
+        $_POST['role'] ?? 'Pending';
+
+    $hireDate =
+        $_POST['hire_date'] ?? '';
+
+    $newPassword =
+        $_POST['new_password'] ?? '';
+
+    $confirmedPassword =
+        $_POST['confirm_password'] ?? '';
+
+    if (
+        $selectedStoreID === ''
+        ||
+        $username === ''
+        ||
+        $firstName === ''
+        ||
+        $lastName === ''
+        ||
+        $email === ''
+    ) {
+        $errorMessage =
+            'Complete all required fields.';
+    } elseif (
+        !middleInitialIsValid(
+            $middleInitial
+        )
+    ) {
+        $errorMessage =
+            'Middle initial must be one letter or left blank.';
+    } elseif (
+        !filter_var(
+            $email,
+            FILTER_VALIDATE_EMAIL
+        )
+    ) {
+        $errorMessage =
+            'Enter a valid email address.';
+    } elseif (strlen($phone) > 20) {
+        $errorMessage =
+            'Phone number cannot contain more than 20 characters.';
+    } elseif (
+        $newPassword !== ''
+        &&
+        !passwordMeetsRequirements(
+            $newPassword
+        )
+    ) {
+        $errorMessage =
+            'The new password must contain at least 8 characters, 1 uppercase letter, 1 lowercase letter, and 1 symbol.';
+    } elseif (
+        $newPassword !== ''
+        &&
+        $newPassword !== $confirmedPassword
+    ) {
+        $errorMessage =
+            'The new password and confirmation do not match.';
+    } elseif (
+        !in_array(
+            $selectedRole,
+            [
+                'Pending',
+                'Operator',
+                'Administrator'
+            ],
+            true
+        )
+    ) {
+        $errorMessage =
+            'Select a valid access level.';
+    } else {
+        try {
+            if ($middleInitial !== '') {
+                $middleInitial =
+                    strtoupper(
+                        $middleInitial
+                    );
+            }
+
+            $newPasswordHash = null;
+
+            if ($newPassword !== '') {
+                $newPasswordHash =
+                    password_hash(
+                        $newPassword,
+                        PASSWORD_DEFAULT
+                    );
+            }
+
+            $updateOperatorStatement =
+                $databaseConnection->prepare(
+                    '
+                    CALL sp_update_operator(
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?
+                    )
+                    '
+                );
+
+            $updateOperatorStatement->execute([
+                (int) $operatorID,
+                (int) $selectedStoreID,
+                $username,
+                $newPasswordHash,
+                $firstName,
+                $middleInitial,
+                $lastName,
+                $email,
+                $phone,
+                $selectedRole,
+                $hireDate === ''
+                ? null
+                : $hireDate
+            ]);
+
+            $updateOperatorStatement->closeCursor();
+
+            if (
+                (int) $operatorID
+                ===
+                (int) $_SESSION['operator_id']
+            ) {
+                refreshCurrentOperatorSession();
+
+                if (!operatorIsAdministrator()) {
+                    header(
+                        'Location: '
+                        . APPLICATION_URL
+                        . '/index.php'
+                    );
+                    exit;
+                }
+            }
+
+            header(
+                'Location: list.php?updated=1'
+            );
+            exit;
+        } catch (PDOException $exception) {
+            $errorMessage =
+                getSafeDatabaseErrorMessage(
+                    $exception,
+                    'The user could not be updated.'
+                );
+        }
+    }
+}
+
+$pageTitle = 'Update Operator';
+$currentSection = 'operators';
+$currentPage = 'update';
+
+require __DIR__ . '/../includes/header.php';
+?>
+
+<section class="content-panel form-panel">
+    <div class="page-intro">
+        <h1>
+            Update Operator
+        </h1>
+
+        <p>
+            Update the selected FnH Groceries user and access level.
+        </p>
+    </div>
+
+    <?php if ($errorMessage !== ''): ?>
+        <div class="message message-error">
+            <?= escapeOutput($errorMessage) ?>
+        </div>
+    <?php endif; ?>
+
+    <form method="post">
+        <input type="hidden" name="form_security_token" value="<?= escapeOutput(getFormSecurityToken()) ?>">
+
+        <input type="hidden" name="id" value="<?= (int) $operatorID ?>">
+
+        <div class="form-grid">
+            <div class="form-field">
+                <label for="store_id">
+                    Assigned Store *
+                </label>
+
+                <select id="store_id" name="store_id" required>
+                    <option value="">
+                        Select Store
+                    </option>
+
+                    <?php foreach ($storeRecords as $storeRecord): ?>
+                        <option value="<?= (int) $storeRecord['StoreID'] ?>"
+                            <?= (string) $selectedStoreID === (string) $storeRecord['StoreID'] ? 'selected' : '' ?>>
+                            <?= escapeOutput($storeRecord['StoreNumber']) ?>
+                            -
+                            <?= escapeOutput($storeRecord['StoreName']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="form-field">
+                <label>
+                    Employee Number
+                </label>
+
+                <div class="read-only-value">
+                    <?= escapeOutput($employeeNumber) ?>
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label for="username">
+                    Username *
+                </label>
+
+                <input type="text" id="username" name="username" value="<?= escapeOutput($username) ?>" maxlength="50"
+                    required>
+            </div>
+
+            <div class="form-field">
+                <label for="role">
+                    Access *
+                </label>
+
+                <select id="role" name="role" required>
+                    <option value="Pending" <?= $selectedRole === 'Pending' ? 'selected' : '' ?>>
+                        No Access
+                    </option>
+
+                    <option value="Operator" <?= $selectedRole === 'Operator' ? 'selected' : '' ?>>
+                        Operator
+                    </option>
+
+                    <option value="Administrator" <?= $selectedRole === 'Administrator' ? 'selected' : '' ?>>
+                        Administrator
+                    </option>
+                </select>
+            </div>
+
+            <div class="form-field">
+                <label for="first_name">
+                    First Name *
+                </label>
+
+                <input type="text" id="first_name" name="first_name" value="<?= escapeOutput($firstName) ?>"
+                    maxlength="60" required>
+            </div>
+
+            <div class="form-field">
+                <label for="middle_initial">
+                    Middle Initial (Optional)
+                </label>
+
+                <input type="text" id="middle_initial" name="middle_initial" value="<?= escapeOutput($middleInitial) ?>"
+                    maxlength="1" pattern="[A-Za-z]">
+            </div>
+
+            <div class="form-field">
+                <label for="last_name">
+                    Last Name *
+                </label>
+
+                <input type="text" id="last_name" name="last_name" value="<?= escapeOutput($lastName) ?>" maxlength="60"
+                    required>
+            </div>
+
+            <div class="form-field">
+                <label for="email">
+                    Email *
+                </label>
+
+                <input type="email" id="email" name="email" value="<?= escapeOutput($email) ?>" maxlength="120"
+                    required>
+            </div>
+
+            <div class="form-field">
+                <label for="phone">
+                    Phone
+                </label>
+
+                <input type="tel" id="phone" name="phone" value="<?= escapeOutput($phone) ?>" maxlength="20">
+            </div>
+
+            <div class="form-field">
+                <label for="hire_date">
+                    Hire Date
+                </label>
+
+                <input type="date" id="hire_date" name="hire_date" value="<?= escapeOutput($hireDate) ?>">
+            </div>
+
+            <div class="form-field">
+                <label for="new_password">
+                    New Password
+                </label>
+
+                <input type="password" id="new_password" name="new_password" minlength="8" autocomplete="new-password">
+
+                <div class="field-help">
+                    Leave blank to keep the current password.
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label for="confirm_password">
+                    Confirm New Password
+                </label>
+
+                <input type="password" id="confirm_password" name="confirm_password" minlength="8"
+                    autocomplete="new-password">
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" name="save_update" value="1" class="button button-primary">
+                Save Changes
+            </button>
+
+            <a href="list.php" class="button button-secondary">
+                Cancel
+            </a>
+        </div>
+    </form>
+</section>
+
+<?php
+require __DIR__ . '/../includes/footer.php';
+?>
+
+
+========================================
+FILE PATH: C:\xampp\htdocs\CSC_680\README.txt
+FILENAME: README.txt
+SIZE_BYTES: 4530
+----------------------------------------
+FnH Groceries - CSC680 Assignment 1
+Brian Phillips
+SI# 040878958
+
+WEBSITES
+
+Live website on Alwaysdata:
+https://csc680-fnhgroceries.alwaysdata.net/CSC_680/index.php
+
+GitHub source:
+https://github.com/Brainiacly/fnhgrocery
+
+A copy of the complete project is also included in the submitted ZIP file.
+
+
+HOSTED VERSION
+
+The online version is hosted on alwaysdata and is connected to a MySQL/MariaDB database hosted 
+there. The database login information is stored in the hosting environment and is not included 
+in the project files. Demo login information is displayed on the website login page.
+
+MAIN PROJECT FILES
+
+index.php
+account.php
+logout.php
+
+operators/create.php
+operators/list.php
+operators/update.php
+operators/delete.php
+operators/reactivate.php
+
+includes/access_control.php
+includes/header.php
+includes/nav.php
+includes/footer.php
+
+config/database.php
+
+config/sql/01_create_tables.sql
+config/sql/02_seed_data.sql
+config/sql/03_views_and_procedures.sql
+
+assets/css/styles.css
+assets/css/layout.css
+assets/css/index.css
+assets/css/operators.css
+
+assets/images/image1.png through image7.png
+
+SCREENSHOTS
+
+A small set of screenshots is included in:
+documentation/screenshots/
+
+01_database_schema.png
+ER diagram reverse engineered in MySQL Workbench from the completed database, showing the tables and relationships.
+
+02_view_operator_list.png
+Query and results from vw_operatorlist showing operator information used by the administration pages.
+
+03_view_inventory.png
+Query and results from vw_storeinventorydetail showing store, product, department, category, and inventory information.
+
+04_view_receipt_summary.png
+Query and results from vw_receiptsummary showing summarized sales receipt information.
+
+05_home_page.png
+Public FnH Groceries home and login page.
+
+06_operator_list.png
+Administrator Operator List page showing the operator-management interface.
+
+07_delete_operator.png
+Delete Operator confirmation page.
+
+08_delete_operator_success.png
+Operator List showing that the selected operator was successfully made inactive.
+
+DATABASE SETUP
+
+Run the sql files in numeric order: 
+Folder: config/sql 
+
+    01_create_tables.sql
+    02_seed_data.sql
+    03_views_and_procedures.sql
+
+The hosted Alwaysdata database is named:
+csc680-fnhgroceries_fnh_groceries
+
+The local XAMPP database is named:
+fnh_groceries
+
+JAVASCRIPT USE
+JavaScript is used only on the Operator List page for small interface actions.
+The All, Admins, and Operators dropdown submits the filter when the selection changes. The Inactive checkbox also submits the filter when it is changed. Without this small amount of JavaScript, an additional Apply or Show button would be needed.
+JavaScript also watches the operator selection radio buttons. When an operator is selected, the appropriate buttons on the left side are enabled. If an inactive operator is selected, the Delete Operator button changes to Reactivate Operator and uses the reactivation page instead.
+The JavaScript is only being used to make the Operator List easier and faster to use, especially on a touch screen. Login security, permissions, validation, and all database changes are still handled by PHP and the database procedures.
+
+ADDITIONAL FUNCTIONALITY
+Deleting an operator does not physically remove the employee from the database. The operator is marked inactive instead. This keeps older receipt and sales information connected to the correct employee.
+An administrator can display inactive operators and reactivate an account when needed.
+The system also prevents the currently logged-in administrator from deleting their own account and prevents the final active administrator from being deleted or changed to a lower access level.
+
+RESPONSIVE AND TOUCH-SCREEN DESIGN
+The site uses responsive CSS so the same pages adjust to smaller and larger screens. The main layout changes between compact, tablet, and desktop sizes. The header images and title resize, the navigation changes with the available width, and wide tables can scroll instead of forcing the entire page wider than the screen.
+Buttons and navigation links have generous touch areas and also support keyboard focus. The website does not depend on hover-only actions. Checkboxes and radio buttons use clickable labels so the user can select them by touching the control or its label.
+
+SUBMISSION
+
+The submitted ZIP file contains the project source files and SQL files needed to rebuild the database.
+
+

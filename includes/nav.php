@@ -154,6 +154,7 @@ $navigationClass =
                 </div>
 
                 <div>
+                    <br>
                     Username: TestAlice
                 </div>
 
