@@ -140,7 +140,9 @@ $navigationClass =
                 </div>
 
                 <strong>
+                    <br>
                     Demo Operator Credentials
+                    
                 </strong>
 
                 <div>
