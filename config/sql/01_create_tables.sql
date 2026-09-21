@@ -1,5 +1,5 @@
 -- FnH Groceries table creation
--- Run first in the empty alwaysdata database
+-- Run first in an empty database
 -- Order protects all foreign key dependencies
 
 -- Stores FnH store locations

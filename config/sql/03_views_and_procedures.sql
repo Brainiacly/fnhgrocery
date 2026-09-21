@@ -22,7 +22,7 @@ WHERE `o`.`Active` = 1 and `s`.`Active` = 1;
 
 -- Returns operator details for administration
 -- Tables: operator, store
--- PHP: operators/list.php, operators/update.php, operators/delete.php
+-- PHP: operators/list.php, operators/update.php, operators/delete.php, operators/reactivate.php
 CREATE VIEW `vw_operatorlist` AS
 SELECT `o`.`OperatorID` AS `OperatorID`,`o`.`StoreID` AS `StoreID`,`s`.`StoreNumber` AS `StoreNumber`,`s`.`StoreName` AS `StoreName`,`o`.`EmployeeNumber` AS `EmployeeNumber`,`o`.`Username` AS `Username`,`o`.`FirstName` AS `FirstName`,`o`.`MiddleInitial` AS `MiddleInitial`,`o`.`LastName` AS `LastName`,concat(`o`.`LastName`,', ',`o`.`FirstName`,case when `o`.`MiddleInitial` is null or trim(`o`.`MiddleInitial`) = '' then '' else concat(', ',ucase(`o`.`MiddleInitial`),'.') end) AS `FullName`,`o`.`Email` AS `Email`,`o`.`Phone` AS `Phone`,`o`.`Role` AS `Role`,`o`.`HireDate` AS `HireDate`,`o`.`Active` AS `Active`,`o`.`CreatedAt` AS `CreatedAt` 
 FROM (`operator` `o` 
@@ -430,12 +430,46 @@ BEGIN
 END //
 DELIMITER ;
 
+-- Reactivates an inactive operator
+-- Depends on table: operator
+-- PHP: operators/reactivate.php
+DELIMITER //
+CREATE PROCEDURE `sp_reactivate_operator`(
+    IN pOperatorID INT
+)
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM `operator`
+        WHERE OperatorID = pOperatorID
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Operator does not exist';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM `operator`
+        WHERE OperatorID = pOperatorID
+          AND Active = 1
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Operator is already active';
+    END IF;
+
+    UPDATE `operator`
+    SET Active = 1
+    WHERE OperatorID = pOperatorID;
+END //
+DELIMITER ;
+
 -- Current PHP dependency summary
 -- vw_operatorlogin: index.php, includes/access_control.php, account.php
 -- vw_storelist: account.php, operators/create.php, operators/update.php
--- vw_operatorlist: operators/list.php, operators/update.php, operators/delete.php
+-- vw_operatorlist: operators/list.php, operators/update.php, operators/delete.php, operators/reactivate.php
 -- sp_create_operator: operators/create.php
 -- sp_update_operator: operators/update.php
 -- sp_update_own_account: account.php
 -- sp_delete_operator: operators/delete.php
+-- sp_reactivate_operator: operators/reactivate.php
 -- Other views currently support database reporting and later POS features
