@@ -6,47 +6,47 @@
 */
 
 .operator-nav-actions {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .operator-nav-button {
-    width: 100%;
-    min-height: var(--minimum-touch-size);
-    padding: 0.5rem 0.375rem;
-    font-size: 0.875rem;
-    line-height: 1.2;
+  width: 100%;
+  min-height: var(--minimum-touch-size);
+  padding: 0.5rem 0.375rem;
+  font-size: 0.875rem;
+  line-height: 1.2;
 }
 
 .operator-nav-create {
-    background: var(--shared-blue-color);
-    color: white;
-    border: 0.0625rem solid var(--theme-primary-dark-color);
+  background: var(--shared-blue-color);
+  color: white;
+  border: 0.0625rem solid var(--theme-primary-dark-color);
 }
 
 .operator-nav-update,
 .operator-nav-delete,
 .operator-nav-clear {
-    background: var(--disabled-background-color);
-    color: var(--disabled-text-color);
-    border: 0.0625rem solid var(--disabled-border-color);
+  background: var(--disabled-background-color);
+  color: var(--disabled-text-color);
+  border: 0.0625rem solid var(--disabled-border-color);
 }
 
 .operator-nav-button:disabled {
-    opacity: 0.72;
-    cursor: not-allowed;
+  opacity: 0.72;
+  cursor: not-allowed;
 }
 
 .operator-nav-update:not(:disabled),
 .operator-nav-delete:not(:disabled),
 .operator-nav-clear:not(:disabled) {
-    background: var(--shared-blue-color);
-    color: white;
-    border-color: var(--theme-primary-dark-color);
-    opacity: 1;
-    cursor: pointer;
+  background: var(--shared-blue-color);
+  color: white;
+  border-color: var(--theme-primary-dark-color);
+  opacity: 1;
+  cursor: pointer;
 }
 
 .operator-nav-create:hover,
@@ -57,373 +57,369 @@
 .operator-nav-delete:not(:disabled):focus-visible,
 .operator-nav-clear:not(:disabled):hover,
 .operator-nav-clear:not(:disabled):focus-visible {
-    background: var(--theme-orange-color);
-    color: var(--theme-black-color);
-    outline: 0.1875rem solid var(--theme-light-green-color);
-    outline-offset: 0.0625rem;
+  background: var(--theme-orange-color);
+  color: var(--theme-black-color);
+  outline: 0.1875rem solid var(--theme-light-green-color);
+  outline-offset: 0.0625rem;
 }
 
 .operator-delete-current-note {
-    display: none;
-    padding: 0.25rem 0.125rem;
-    color: #c9d2d9;
-    font-size: 0.6875rem;
-    line-height: 1.3;
-    text-align: center;
+  display: none;
+  padding: 0.25rem 0.125rem;
+  color: #c9d2d9;
+  font-size: 0.6875rem;
+  line-height: 1.3;
+  text-align: center;
 }
 
 .site-layout:has(.operator-select-radio-current:checked)
-.operator-delete-current-note {
-    display: block;
+  .operator-delete-current-note {
+  display: block;
 }
 
 .content-panel.operator-list-panel {
-    width: 100%;
-    max-width: none;
+  width: 100%;
+  max-width: none;
 }
 
 .operator-list-panel .page-intro {
-    margin-bottom: 0.5rem;
-    padding-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
 }
 
 .operator-list-intro {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .operator-list-heading,
 .operator-list-heading h1,
 .operator-list-heading p {
-    text-align: left;
+  text-align: left;
 }
 
 .operator-selection-form {
-    width: 100%;
-    margin: 0;
+  width: 100%;
+  margin: 0;
 }
 
 .operator-filter-form {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.75rem;
-    margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
 }
 
 .operator-filter-field {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .operator-filter-field label {
-    margin: 0;
-    color: var(--theme-primary-dark-color);
-    font-weight: bold;
+  margin: 0;
+  color: var(--theme-primary-dark-color);
+  font-weight: bold;
 }
 
 .operator-filter-field select {
-    width: 6.5rem;
-    min-width: 6.5rem;
-    max-width: 6.5rem;
-    height: 2.25rem;
-    min-height: 2.25rem;
-    padding: 0.25rem 0.5rem;
-    font-size: 1rem;
-    line-height: 1.2;
+  width: 6.5rem;
+  min-width: 6.5rem;
+  max-width: 6.5rem;
+  height: var(--minimum-touch-size);
+  min-height: var(--minimum-touch-size);
+  padding: 0.25rem 0.5rem;
+  font-size: 1rem;
+  line-height: 1.2;
 }
 
 .operator-inactive-label {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    white-space: nowrap;
-    cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
 .operator-filter-field input[type="checkbox"] {
-    width: 1.125rem;
-    height: 1.125rem;
-    min-width: 1.125rem;
-    min-height: 1.125rem;
-    margin: 0;
-    padding: 0;
-    flex: 0 0 1.125rem;
-    cursor: pointer;
-    accent-color: var(--shared-blue-color);
+  width: 1.125rem;
+  height: 1.125rem;
+  min-width: 1.125rem;
+  min-height: 1.125rem;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 1.125rem;
+  cursor: pointer;
+  accent-color: var(--shared-blue-color);
 }
 
 .table-container {
-    width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-    border-radius: var(--standard-border-radius);
-    scrollbar-gutter: stable;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: var(--standard-border-radius);
+  scrollbar-gutter: stable;
 }
 
 .table-container:focus-visible {
-    outline: 0.1875rem solid var(--theme-orange-color);
-    outline-offset: 0.125rem;
+  outline: 0.1875rem solid var(--theme-orange-color);
+  outline-offset: 0.125rem;
 }
 
 .operator-table {
-    width: 100%;
-    min-width: 44rem;
-    table-layout: fixed;
-    border-collapse: separate;
-    border-spacing: 0;
-    background: var(--theme-primary-light-color);
+  width: 100%;
+  min-width: 44rem;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--theme-primary-light-color);
 }
 
 .operator-column-select {
-    width: 8%;
+  width: 8%;
 }
 
 .operator-column-employee {
-    width: 12%;
+  width: 12%;
 }
 
 .operator-column-username {
-    width: 25%;
+  width: 25%;
 }
 
 .operator-column-name {
-    width: 25%;
+  width: 25%;
 }
 
 .operator-column-created {
-    width: 16%;
+  width: 16%;
 }
 
 .operator-column-status {
-    width: 14%;
+  width: 14%;
 }
 
 .operator-table th {
-    padding: 0.5rem;
-    border: 0.0625rem solid var(--shared-blue-color);
-    background: var(--shared-blue-color);
-    color: white;
-    text-align: left;
-    vertical-align: middle;
-    font-size: 0.875rem;
-    font-weight: bold;
-    line-height: 1.2;
+  padding: 0.5rem;
+  border: 0.0625rem solid var(--shared-blue-color);
+  background: var(--shared-blue-color);
+  color: white;
+  text-align: left;
+  vertical-align: middle;
+  font-size: 0.875rem;
+  font-weight: bold;
+  line-height: 1.2;
 }
 
 .operator-table td {
-    padding: 0.3125rem 0.5rem;
-    border: 0.0625rem solid var(--shared-blue-color);
-    background: var(--theme-primary-light-color);
-    color: var(--main-text-color);
-    vertical-align: middle;
-    font-size: 0.875rem;
-    line-height: 1.2;
-    overflow-wrap: anywhere;
+  padding: 0.3125rem 0.5rem;
+  border: 0.0625rem solid var(--shared-blue-color);
+  background: var(--theme-primary-light-color);
+  color: var(--main-text-color);
+  vertical-align: middle;
+  font-size: 0.875rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .operator-table thead tr th:first-child {
-    border-top-left-radius: var(--standard-border-radius);
+  border-top-left-radius: var(--standard-border-radius);
 }
 
 .operator-table thead tr th:last-child {
-    border-top-right-radius: var(--standard-border-radius);
+  border-top-right-radius: var(--standard-border-radius);
 }
 
 .operator-table tbody tr:last-child td:first-child {
-    border-bottom-left-radius: var(--standard-border-radius);
+  border-bottom-left-radius: var(--standard-border-radius);
 }
 
 .operator-table tbody tr:last-child td:last-child {
-    border-bottom-right-radius: var(--standard-border-radius);
+  border-bottom-right-radius: var(--standard-border-radius);
 }
 
 .operator-table tbody tr:has(.operator-select-radio:checked) td {
-    background: var(--theme-light-green-color);
+  background: var(--theme-light-green-color);
 }
 
 .operator-heading-select,
 .operator-select-cell,
 .operator-heading-employee,
 .operator-employee-cell {
-    text-align: center;
+  text-align: center;
 }
 
 .operator-heading-employee span,
 .operator-heading-second-line {
-    display: block;
-    margin: 0;
-    font-size: inherit;
-    font-weight: inherit;
-    line-height: inherit;
+  display: block;
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
 }
 
 .operator-created-cell {
-    white-space: nowrap;
+  white-space: nowrap;
 }
 
 .operator-radio-label {
-    width: 100%;
-    min-height: 2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
+  width: 100%;
+  min-height: var(--minimum--touch-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
 .operator-select-radio {
-    width: 1.125rem;
-    height: 1.125rem;
-    min-width: 1.125rem;
-    min-height: 1.125rem;
-    margin: 0;
-    padding: 0;
-    cursor: pointer;
-    accent-color: var(--shared-blue-color);
+  width: 1.125rem;
+  height: 1.125rem;
+  min-width: 1.125rem;
+  min-height: 1.125rem;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  accent-color: var(--shared-blue-color);
 }
 
 .operator-select-radio:focus-visible {
-    outline: 0.1875rem solid var(--theme-orange-color);
-    outline-offset: 0.1875rem;
+  outline: 0.1875rem solid var(--theme-orange-color);
+  outline-offset: 0.1875rem;
 }
 
 .status-active,
 .status-inactive {
-    display: block;
-    font-weight: bold;
+  display: block;
+  font-weight: bold;
 }
 
 .status-active {
-    color: var(--success-color);
+  color: var(--success-color);
 }
 
 .status-inactive {
-    color: var(--secondary-text-color);
+  color: var(--secondary-text-color);
 }
 
 .status-context {
-    display: block;
-    margin-top: 0.125rem;
-    color: var(--secondary-text-color);
-    font-size: 0.6875rem;
-    font-weight: normal;
-    line-height: 1.2;
+  display: block;
+  margin-top: 0.125rem;
+  color: var(--secondary-text-color);
+  font-size: 0.6875rem;
+  font-weight: normal;
+  line-height: 1.2;
 }
 
 .operator-table-empty {
-    padding: 1.5rem;
-    background: var(--theme-primary-light-color);
-    color: var(--secondary-text-color);
-    text-align: center;
-    border: 0.0625rem solid var(--shared-blue-color);
-    border-radius: var(--standard-border-radius);
+  padding: 1.5rem;
+  background: var(--theme-primary-light-color);
+  color: var(--secondary-text-color);
+  text-align: center;
+  border: 0.0625rem solid var(--shared-blue-color);
+  border-radius: var(--standard-border-radius);
 }
 
 .operator-list-count {
-    margin: 0.5rem 0 0;
-    color: var(--secondary-text-color);
-    font-size: 0.875rem;
+  margin: 0.5rem 0 0;
+  color: var(--secondary-text-color);
+  font-size: 0.875rem;
 }
 
 .operator-list-help {
-    margin-top: 1.5rem;
+  margin-top: 1.5rem;
 }
 
 .operator-list-help h2 {
-    margin-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
 .operator-list-help ul {
-    margin: 0;
-    padding-left: 1.5rem;
+  margin: 0;
+  padding-left: 1.5rem;
 }
 
 .operator-list-help li {
-    margin-bottom: 0.5rem;
-}
-
-.form-panel {
-    max-width: 56.25rem;
+  margin-bottom: 0.5rem;
 }
 
 .delete-panel {
-    max-width: 43.75rem;
+  max-width: 43.75rem;
 }
 
 .delete-confirmation-question {
-    margin: 1.125rem 0;
-    color: var(--danger-color);
-    font-size: 1.25rem;
-    font-weight: bold;
-    line-height: 1.3;
-    text-align: center;
+  margin: 1.125rem 0;
+  color: var(--danger-color);
+  font-size: 1.25rem;
+  font-weight: bold;
+  line-height: 1.3;
+  text-align: center;
 }
 
 .operator-summary {
-    display: flex;
-    flex-direction: column;
-    gap: 0.625rem;
-    margin: 1rem 0;
-    padding: 1.25rem;
-    border: 0.125rem solid var(--shared-blue-color);
-    border-radius: var(--standard-border-radius);
-    background: var(--theme-primary-light-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin: 1rem 0;
+  padding: 1.25rem;
+  border: 0.125rem solid var(--shared-blue-color);
+  border-radius: var(--standard-border-radius);
+  background: var(--theme-primary-light-color);
 }
 
 .operator-summary-name {
-    padding-bottom: 0.625rem;
-    border-bottom: 0.0625rem solid var(--shared-blue-color);
-    color: var(--theme-primary-dark-color);
-    font-size: 1.25rem;
-    font-weight: bold;
-    text-align: center;
+  padding-bottom: 0.625rem;
+  border-bottom: 0.0625rem solid var(--shared-blue-color);
+  color: var(--theme-primary-dark-color);
+  font-size: 1.25rem;
+  font-weight: bold;
+  text-align: center;
 }
 
 .operator-summary-row {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.125rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.125rem;
 }
 
 .operator-summary-label {
-    color: var(--theme-primary-dark-color);
-    font-weight: bold;
+  color: var(--theme-primary-dark-color);
+  font-weight: bold;
 }
 
 .delete-confirmation-actions {
-    justify-content: center;
+  justify-content: center;
 }
 
 @media (min-width: 40rem) {
-    .form-panel .form-actions {
-        justify-content: center;
-    }
+  .form-panel .form-actions {
+    justify-content: center;
+  }
 
-    .operator-summary-row {
-        grid-template-columns: 9.375rem minmax(0, 1fr);
-        gap: 0.75rem;
-    }
+  .operator-summary-row {
+    grid-template-columns: 9.375rem minmax(0, 1fr);
+    gap: 0.75rem;
+  }
 
-    .delete-confirmation-actions .button {
-        min-width: 11.875rem;
-    }
+  .delete-confirmation-actions .button {
+    min-width: 11.875rem;
+  }
 }
 
 @media (min-width: 64rem) {
-    .operator-nav-button {
-        font-size: 1rem;
-    }
+  .operator-nav-button {
+    font-size: 1rem;
+  }
 
-    .operator-table th,
-    .operator-table td {
-        font-size: 1rem;
-    }
+  .operator-table th,
+  .operator-table td {
+    font-size: 1rem;
+  }
 
-    .operator-list-count {
-        font-size: 0.9375rem;
-    }
+  .operator-list-count {
+    font-size: 0.9375rem;
+  }
 }
