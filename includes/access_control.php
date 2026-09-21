@@ -1,5 +1,10 @@
 <?php // includes/access_control.php
 
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+
 require_once __DIR__ . '/../config/database.php';
 
 

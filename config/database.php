@@ -1,5 +1,10 @@
 <?php // config/database.php
 
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+
 define('APPLICATION_NAME', 'FnH Groceries');
 define('APPLICATION_URL', '/CSC_680');
 

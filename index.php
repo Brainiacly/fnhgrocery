@@ -1,5 +1,10 @@
 <?php // index.php
 
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+
 require_once __DIR__ . '/includes/access_control.php';
 
 $loginErrorMessage = '';

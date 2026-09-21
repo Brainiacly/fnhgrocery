@@ -1,4 +1,10 @@
 <?php // operators/reactivate.php
+
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+
 require_once __DIR__ . '/../includes/access_control.php';
 
 requireAdministrator();
@@ -209,7 +215,7 @@ require __DIR__ . '/../includes/header.php';
             </div>
         </div>
 
-        <div class="message message-info">
+        <div class="message message-information">
             Reactivating restores this account to its existing role and assigned store.
         </div>
 

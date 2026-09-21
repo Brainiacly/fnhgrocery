@@ -1,5 +1,10 @@
 <?php // operators/create.php
 
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+
 require_once __DIR__ . '/../includes/access_control.php';
 
 requireAdministrator();

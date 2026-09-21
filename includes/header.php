@@ -1,5 +1,10 @@
 <?php // includes/header.php
 
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+
 require_once __DIR__ . '/access_control.php';
 
 $pageTitle = $pageTitle ?? APPLICATION_NAME;

@@ -1,5 +1,10 @@
 <?php // account.php
 
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+
 require_once __DIR__ . '/includes/access_control.php';
 
 requireOperatorLogin();
@@ -117,6 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errorMessage = 'Middle initial must be one letter or left blank.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errorMessage = 'Enter a valid email address.';
+    } elseif (strlen($phone) > 20) {
+        $errorMessage = 'Phone number cannot contain more than 20 characters.';
     } elseif (
         $isChangingPassword
         &&

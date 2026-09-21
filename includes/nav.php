@@ -1,4 +1,9 @@
 <?php // includes/nav.php
+
+/**
+ * Brian Phillips
+ * CSC 680
+ */
 if (!isset($currentSection)) {
     $currentSection = '';
 }

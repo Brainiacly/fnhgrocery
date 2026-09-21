@@ -1,4 +1,10 @@
 <?php // includes/footer.php
+
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+
 ?>
 
     </main>
