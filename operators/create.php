@@ -77,6 +77,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errorMessage = 'Middle initial must be one letter or left blank.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errorMessage = 'Enter a valid email address.';
+    } elseif (strlen($phone) > 20) {
+    $errorMessage = 'Phone number cannot contain more than 20 characters.';   
     } elseif (!passwordMeetsRequirements($enteredPassword)) {
         $errorMessage =
             'The password must contain at least 8 characters, 1 uppercase letter, 1 lowercase letter, and 1 symbol.';

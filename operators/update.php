@@ -173,6 +173,9 @@ if (
     ) {
         $errorMessage =
             'Enter a valid email address.';
+    } elseif (strlen($phone) > 20) {
+        $errorMessage =
+            'Phone number cannot contain more than 20 characters.';
     } elseif (
         $newPassword !== ''
         &&
@@ -241,8 +244,8 @@ if (
                 );
 
             $updateOperatorStatement->execute([
-                (int)$operatorID,
-                (int)$selectedStoreID,
+                (int) $operatorID,
+                (int) $selectedStoreID,
                 $username,
                 $newPasswordHash,
                 $firstName,
@@ -252,16 +255,16 @@ if (
                 $phone,
                 $selectedRole,
                 $hireDate === ''
-                    ? null
-                    : $hireDate
+                ? null
+                : $hireDate
             ]);
 
             $updateOperatorStatement->closeCursor();
 
             if (
-                (int)$operatorID
+                (int) $operatorID
                 ===
-                (int)$_SESSION['operator_id']
+                (int) $_SESSION['operator_id']
             ) {
                 refreshCurrentOperatorSession();
 
@@ -314,17 +317,9 @@ require __DIR__ . '/../includes/header.php';
     <?php endif; ?>
 
     <form method="post">
-        <input
-            type="hidden"
-            name="form_security_token"
-            value="<?= escapeOutput(getFormSecurityToken()) ?>"
-        >
+        <input type="hidden" name="form_security_token" value="<?= escapeOutput(getFormSecurityToken()) ?>">
 
-        <input
-            type="hidden"
-            name="id"
-            value="<?= (int)$operatorID ?>"
-        >
+        <input type="hidden" name="id" value="<?= (int) $operatorID ?>">
 
         <div class="form-grid">
             <div class="form-field">
@@ -332,20 +327,14 @@ require __DIR__ . '/../includes/header.php';
                     Assigned Store *
                 </label>
 
-                <select
-                    id="store_id"
-                    name="store_id"
-                    required
-                >
+                <select id="store_id" name="store_id" required>
                     <option value="">
                         Select Store
                     </option>
 
                     <?php foreach ($storeRecords as $storeRecord): ?>
-                        <option
-                            value="<?= (int)$storeRecord['StoreID'] ?>"
-                            <?= (string)$selectedStoreID === (string)$storeRecord['StoreID'] ? 'selected' : '' ?>
-                        >
+                        <option value="<?= (int) $storeRecord['StoreID'] ?>"
+                            <?= (string) $selectedStoreID === (string) $storeRecord['StoreID'] ? 'selected' : '' ?>>
                             <?= escapeOutput($storeRecord['StoreNumber']) ?>
                             -
                             <?= escapeOutput($storeRecord['StoreName']) ?>
@@ -369,14 +358,8 @@ require __DIR__ . '/../includes/header.php';
                     Username *
                 </label>
 
-                <input
-                    type="text"
-                    id="username"
-                    name="username"
-                    value="<?= escapeOutput($username) ?>"
-                    maxlength="50"
-                    required
-                >
+                <input type="text" id="username" name="username" value="<?= escapeOutput($username) ?>" maxlength="50"
+                    required>
             </div>
 
             <div class="form-field">
@@ -384,29 +367,16 @@ require __DIR__ . '/../includes/header.php';
                     Access *
                 </label>
 
-                <select
-                    id="role"
-                    name="role"
-                    required
-                >
-                    <option
-                        value="Pending"
-                        <?= $selectedRole === 'Pending' ? 'selected' : '' ?>
-                    >
+                <select id="role" name="role" required>
+                    <option value="Pending" <?= $selectedRole === 'Pending' ? 'selected' : '' ?>>
                         No Access
                     </option>
 
-                    <option
-                        value="Operator"
-                        <?= $selectedRole === 'Operator' ? 'selected' : '' ?>
-                    >
+                    <option value="Operator" <?= $selectedRole === 'Operator' ? 'selected' : '' ?>>
                         Operator
                     </option>
 
-                    <option
-                        value="Administrator"
-                        <?= $selectedRole === 'Administrator' ? 'selected' : '' ?>
-                    >
+                    <option value="Administrator" <?= $selectedRole === 'Administrator' ? 'selected' : '' ?>>
                         Administrator
                     </option>
                 </select>
@@ -417,14 +387,8 @@ require __DIR__ . '/../includes/header.php';
                     First Name *
                 </label>
 
-                <input
-                    type="text"
-                    id="first_name"
-                    name="first_name"
-                    value="<?= escapeOutput($firstName) ?>"
-                    maxlength="60"
-                    required
-                >
+                <input type="text" id="first_name" name="first_name" value="<?= escapeOutput($firstName) ?>"
+                    maxlength="60" required>
             </div>
 
             <div class="form-field">
@@ -432,14 +396,8 @@ require __DIR__ . '/../includes/header.php';
                     Middle Initial (Optional)
                 </label>
 
-                <input
-                    type="text"
-                    id="middle_initial"
-                    name="middle_initial"
-                    value="<?= escapeOutput($middleInitial) ?>"
-                    maxlength="1"
-                    pattern="[A-Za-z]"
-                >
+                <input type="text" id="middle_initial" name="middle_initial" value="<?= escapeOutput($middleInitial) ?>"
+                    maxlength="1" pattern="[A-Za-z]">
             </div>
 
             <div class="form-field">
@@ -447,14 +405,8 @@ require __DIR__ . '/../includes/header.php';
                     Last Name *
                 </label>
 
-                <input
-                    type="text"
-                    id="last_name"
-                    name="last_name"
-                    value="<?= escapeOutput($lastName) ?>"
-                    maxlength="60"
-                    required
-                >
+                <input type="text" id="last_name" name="last_name" value="<?= escapeOutput($lastName) ?>" maxlength="60"
+                    required>
             </div>
 
             <div class="form-field">
@@ -462,14 +414,8 @@ require __DIR__ . '/../includes/header.php';
                     Email *
                 </label>
 
-                <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value="<?= escapeOutput($email) ?>"
-                    maxlength="120"
-                    required
-                >
+                <input type="email" id="email" name="email" value="<?= escapeOutput($email) ?>" maxlength="120"
+                    required>
             </div>
 
             <div class="form-field">
@@ -477,13 +423,7 @@ require __DIR__ . '/../includes/header.php';
                     Phone
                 </label>
 
-                <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value="<?= escapeOutput($phone) ?>"
-                    maxlength="20"
-                >
+                <input type="tel" id="phone" name="phone" value="<?= escapeOutput($phone) ?>" maxlength="20">
             </div>
 
             <div class="form-field">
@@ -491,12 +431,7 @@ require __DIR__ . '/../includes/header.php';
                     Hire Date
                 </label>
 
-                <input
-                    type="date"
-                    id="hire_date"
-                    name="hire_date"
-                    value="<?= escapeOutput($hireDate) ?>"
-                >
+                <input type="date" id="hire_date" name="hire_date" value="<?= escapeOutput($hireDate) ?>">
             </div>
 
             <div class="form-field">
@@ -504,13 +439,7 @@ require __DIR__ . '/../includes/header.php';
                     New Password
                 </label>
 
-                <input
-                    type="password"
-                    id="new_password"
-                    name="new_password"
-                    minlength="8"
-                    autocomplete="new-password"
-                >
+                <input type="password" id="new_password" name="new_password" minlength="8" autocomplete="new-password">
 
                 <div class="field-help">
                     Leave blank to keep the current password.
@@ -522,30 +451,17 @@ require __DIR__ . '/../includes/header.php';
                     Confirm New Password
                 </label>
 
-                <input
-                    type="password"
-                    id="confirm_password"
-                    name="confirm_password"
-                    minlength="8"
-                    autocomplete="new-password"
-                >
+                <input type="password" id="confirm_password" name="confirm_password" minlength="8"
+                    autocomplete="new-password">
             </div>
         </div>
 
         <div class="form-actions">
-            <button
-                type="submit"
-                name="save_update"
-                value="1"
-                class="button button-primary"
-            >
+            <button type="submit" name="save_update" value="1" class="button button-primary">
                 Save Changes
             </button>
 
-            <a
-                href="list.php"
-                class="button button-secondary"
-            >
+            <a href="list.php" class="button button-secondary">
                 Cancel
             </a>
         </div>
