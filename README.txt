@@ -37,10 +37,6 @@ includes/footer.php
 
 config/database.php
 
-config/sql/01_create_tables.sql
-config/sql/02_seed_data.sql
-config/sql/03_views_and_procedures.sql
-
 assets/css/styles.css
 assets/css/layout.css
 assets/css/index.css
