@@ -1,6 +1,5 @@
 FnH Groceries - CSC680 Assignment 1
 Brian Phillips
-SI# 040878958
 
 WEBSITES
 
