@@ -1,0 +1,145 @@
+/* assets/css/inventory.css */
+
+/*
+  Brian Phillips
+  CSC 680
+*/
+
+/* Store inventory page */
+
+.inventory-panel {
+    overflow: hidden;
+}
+
+
+/* Total inventory */
+
+.inventory-total {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 0.375rem;
+
+    margin-bottom: 1.25rem;
+
+    padding: 1rem;
+
+    border:
+        0.125rem solid
+        var(--shared-blue-color);
+
+    border-radius:
+        var(--standard-border-radius);
+
+    background:
+        var(--theme-primary-light-color);
+
+    text-align: center;
+}
+
+
+.inventory-total-label {
+    color:
+        var(--theme-primary-dark-color);
+
+    font-size: 1rem;
+
+    font-weight: bold;
+}
+
+
+.inventory-total-value {
+    color:
+        var(--shared-blue-color);
+
+    font-size:
+        clamp(
+            1.75rem,
+            6vw,
+            2.75rem
+        );
+}
+
+
+/* Inventory table */
+
+.inventory-table-container {
+    width: 100%;
+
+    overflow-x: auto;
+}
+
+
+.inventory-table {
+    width: 100%;
+
+    min-width: 50rem;
+
+    border-collapse: collapse;
+}
+
+
+.inventory-table th,
+.inventory-table td {
+    padding:
+        0.75rem;
+
+    border:
+        0.0625rem solid
+        var(--standard-border-color);
+
+    text-align: left;
+
+    vertical-align: middle;
+}
+
+
+.inventory-table th {
+    background:
+        var(--theme-primary-dark-color);
+
+    color: white;
+}
+
+
+.inventory-table tbody tr:nth-child(even) {
+    background:
+        var(--page-background-light-color);
+}
+
+
+.inventory-out-of-stock {
+    background:
+        var(--danger-background-color)
+        !important;
+}
+
+
+.inventory-status {
+    display: block;
+
+    margin-top: 0.25rem;
+
+    color:
+        var(--danger-color);
+
+    font-size: 0.8125rem;
+
+    font-weight: bold;
+}
+
+
+/* Tablet */
+
+@media (min-width: 48rem) {
+
+    .inventory-total {
+        flex-direction: row;
+
+        gap: 1.5rem;
+    }
+}

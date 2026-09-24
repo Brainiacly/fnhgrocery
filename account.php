@@ -49,23 +49,6 @@ if (!$accountRecord) {
     exit;
 }
 
-
-// Load active stores
-$storeListStatement = $databaseConnection->query(
-    '
-    SELECT
-        StoreID,
-        StoreNumber,
-        StoreName
-    FROM vw_storelist
-    WHERE Active = 1
-    ORDER BY StoreNumber
-    '
-);
-
-$storeRecords = $storeListStatement->fetchAll();
-
-$selectedStoreID = $accountRecord['StoreID'];
 $username = $accountRecord['Username'];
 $firstName = $accountRecord['FirstName'];
 $middleInitial = (string)$accountRecord['MiddleInitial'];
@@ -82,7 +65,6 @@ if (isset($_GET['updated'])) {
 
 // Process account changes
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $selectedStoreID = $_POST['store_id'] ?? '';
     $username = trim($_POST['username'] ?? '');
     $firstName = trim($_POST['first_name'] ?? '');
     $middleInitial = trim($_POST['middle_initial'] ?? '');
@@ -105,8 +87,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!formSecurityTokenIsValid($submittedSecurityToken)) {
         $errorMessage = 'The form expired. Please try again.';
     } elseif (
-        $selectedStoreID === ''
-        ||
         $username === ''
         ||
         $firstName === ''
@@ -152,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         !passwordMeetsRequirements($newPassword)
     ) {
         $errorMessage =
-            'The new password must contain at least 8 characters, 1 uppercase letter, 1 lowercase letter, and 1 symbol.';
+            passwordRequirementText();
     } elseif (
         $isChangingPassword
         &&
@@ -180,7 +160,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ?,
                     ?,
                     ?,
-                    ?,
                     ?
                 )
                 '
@@ -188,7 +167,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $updateAccountStatement->execute([
                 (int)$_SESSION['operator_id'],
-                (int)$selectedStoreID,
                 $username,
                 $firstName,
                 $middleInitial,
@@ -235,7 +213,7 @@ require __DIR__ . '/includes/header.php';
         </h1>
 
         <p>
-            Update your account, assigned store, contact details, or password.
+            Update your account, contact details, or password.
         </p>
     </div>
 
@@ -296,35 +274,18 @@ require __DIR__ . '/includes/header.php';
             </div>
 
             <div class="form-field">
-                <label for="store_id">
-                    Assigned Store *
+                <label>
+                    Assigned Store
                 </label>
 
-                <select
-                    id="store_id"
-                    name="store_id"
-                    required
-                >
-                    <option value="">
-                        Select Store
-                    </option>
-
-                    <?php foreach ($storeRecords as $storeRecord): ?>
-
-                        <option
-                            value="<?= (int)$storeRecord['StoreID'] ?>"
-                            <?= (string)$selectedStoreID === (string)$storeRecord['StoreID'] ? 'selected' : '' ?>
-                        >
-                            <?= escapeOutput($storeRecord['StoreNumber']) ?>
-                            -
-                            <?= escapeOutput($storeRecord['StoreName']) ?>
-                        </option>
-
-                    <?php endforeach; ?>
-                </select>
+                <div class="read-only-value">
+                    <?= escapeOutput($accountRecord['StoreNumber']) ?>
+                    -
+                    <?= escapeOutput($accountRecord['StoreName']) ?>
+                </div>
 
                 <div class="field-help">
-                    Changing your assigned store affects future work only. Existing receipts keep their original store.
+                    Store assignments are managed by an administrator.
                 </div>
             </div>
 
@@ -455,7 +416,7 @@ require __DIR__ . '/includes/header.php';
                 >
 
                 <div class="field-help">
-                    Leave blank to keep your current password.
+                    Leave blank to keep your current password. <?= escapeOutput(passwordRequirementText()) ?>
                 </div>
             </div>
 

@@ -11,12 +11,9 @@ https://github.com/Brainiacly/fnhgrocery
 
 A copy of the complete project is also included in the submitted ZIP file.
 
-
 HOSTED VERSION
 
-The online version is hosted on alwaysdata and is connected to a MySQL/MariaDB database hosted 
-there. The database login information is stored in the hosting environment and is not included 
-in the project files. Demo login information is displayed on the website login page.
+The online version is hosted on alwaysdata and is connected to a MySQL/MariaDB database hosted there. The database login information is stored in the hosting environment and is not included in the project files. Demo login information is displayed on the website login page.
 
 MAIN PROJECT FILES
 
@@ -25,7 +22,7 @@ account.php
 logout.php
 
 operators/create.php
-operators/list.php
+operators/operator_list.php
 operators/update.php
 operators/delete.php
 operators/reactivate.php
@@ -46,7 +43,7 @@ assets/images/image1.png through image7.png
 
 SCREENSHOTS
 
-A small set of screenshots is included in:
+A small set of Assignment 1 screenshots is included in:
 documentation/screenshots/
 
 01_database_schema.png
@@ -75,34 +72,46 @@ Operator List showing that the selected operator was successfully made inactive.
 
 DATABASE SETUP
 
-Run the sql files in numeric order: 
-Folder: documentation/sql 
+For Assignment 1 by itself, run these files in order from documentation/sql:
 
-    01_create_tables.sql
-    02_seed_data.sql
-    03_views_and_procedures.sql
+1. W1 01_create_tables.sql
+2. W1 02_seed_data.sql
+3. W1 03_views_and_procedures.sql
 
-The hosted Alwaysdata database is named:
-csc680-fnhgroceries_fnh_groceries
+W1 01_create_tables.sql creates the local fnh_groceries database if it does not already exist and selects it before creating the tables. The remaining SQL files also select fnh_groceries so they can be run as separate scripts in XAMPP/MySQL Workbench.
 
 The local XAMPP database is named:
 fnh_groceries
 
+The hosted Alwaysdata database is named:
+csc680-fnhgroceries_fnh_groceries
+
+The hosted database is created by the hosting provider. The hosted copy therefore uses that existing database name rather than creating the local fnh_groceries database.
+
 JAVASCRIPT USE
-JavaScript is used only on the Operator List page for small interface actions.
+
+JavaScript is used on the Operator List page for small interface actions.
+
 The All, Admins, and Operators dropdown submits the filter when the selection changes. The Inactive checkbox also submits the filter when it is changed. Without this small amount of JavaScript, an additional Apply or Show button would be needed.
+
 JavaScript also watches the operator selection radio buttons. When an operator is selected, the appropriate buttons on the left side are enabled. If an inactive operator is selected, the Delete Operator button changes to Reactivate Operator and uses the reactivation page instead.
-The JavaScript is only being used to make the Operator List easier and faster to use, especially on a touch screen. Login security, permissions, validation, and all database changes are still handled by PHP and the database procedures.
+
+The JavaScript is only used to make the Operator List easier and faster to use, especially on a touch screen. Login security, permissions, validation, and database changes are handled by PHP and the database procedures.
 
 ADDITIONAL FUNCTIONALITY
+
 Deleting an operator does not physically remove the employee from the database. The operator is marked inactive instead. This keeps older receipt and sales information connected to the correct employee.
+
 An administrator can display inactive operators and reactivate an account when needed.
-The system also prevents the currently logged-in administrator from deleting their own account and prevents the final active administrator from being deleted or changed to a lower access level.
+
+The system prevents the currently logged-in administrator from deleting their own account and prevents the final active administrator from being deleted or changed to a lower access level.
 
 RESPONSIVE AND TOUCH-SCREEN DESIGN
+
 The site uses responsive CSS so the same pages adjust to smaller and larger screens. The main layout changes between compact, tablet, and desktop sizes. The header images and title resize, the navigation changes with the available width, and wide tables can scroll instead of forcing the entire page wider than the screen.
+
 Buttons and navigation links have generous touch areas and also support keyboard focus. The website does not depend on hover-only actions. Checkboxes and radio buttons use clickable labels so the user can select them by touching the control or its label.
 
 SUBMISSION
 
-The submitted ZIP file contains the project source files and SQL files needed to rebuild the database.
+The submitted ZIP file contains the project source files and SQL files needed to rebuild the Assignment 1 database.

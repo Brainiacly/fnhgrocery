@@ -1,0 +1,432 @@
+/* assets/css/sales.css */
+
+/*
+  Brian Phillips
+  CSC 680
+*/
+
+/* POS page */
+
+.sales-panel,
+.checkout-panel,
+.sale-complete-panel {
+    overflow: hidden;
+}
+
+/* Register selection and open-session confirmation */
+
+.sale-start-panel,
+.sale-resume-panel {
+    max-width: 34rem;
+    margin: 0 auto;
+    padding: 1rem;
+    border: 0.0625rem solid var(--standard-border-color);
+    border-radius: var(--standard-border-radius);
+    background: var(--page-background-light-color);
+}
+
+.sale-start-panel h2,
+.sale-resume-panel h2 {
+    margin: 0 0 1rem;
+    color: var(--theme-primary-dark-color);
+    text-align: center;
+}
+
+.sale-resume-panel p {
+    margin: 0 0 1rem;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.sale-resume-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.sale-resume-actions .button {
+    width: 100%;
+}
+
+/* Compact sale information */
+
+.sale-information {
+    display: grid;
+    grid-template-columns: minmax(0, 2.2fr) minmax(5rem, 0.55fr) minmax(9rem, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 0.625rem;
+    padding: 0.625rem 0.75rem;
+    border: 0.0625rem solid var(--shared-blue-color);
+    border-radius: var(--standard-border-radius);
+    background: var(--theme-primary-light-color);
+}
+
+.sale-information > div {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.sale-information span {
+    flex: 0 0 auto;
+    font-size: 0.8125rem;
+}
+
+.sale-information strong {
+    min-width: 0;
+    font-size: 0.875rem;
+    white-space: nowrap;
+}
+
+.sale-information-transaction strong {
+    overflow: visible;
+}
+
+/* Barcode entry */
+
+.sale-scan-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 8rem auto;
+    align-items: end;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem;
+    border: 0.0625rem solid var(--standard-border-color);
+    border-radius: var(--standard-border-radius);
+    background: var(--page-background-light-color);
+}
+
+/* Main POS workspace */
+
+.sale-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+}
+
+.sale-product-area,
+.sale-receipt-area {
+    min-width: 0;
+    padding: 0.75rem;
+    border: 0.0625rem solid var(--standard-border-color);
+    border-radius: var(--standard-border-radius);
+    background: var(--page-background-light-color);
+}
+
+.sale-product-area h2,
+.sale-receipt-area h2 {
+    margin: 0 0 0.625rem;
+    color: var(--theme-primary-dark-color);
+    font-size: 1.05rem;
+    text-align: center;
+}
+
+/* Touchscreen product buttons */
+
+.sale-product-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.625rem;
+}
+
+.sale-product-form {
+    margin: 0;
+}
+
+.sale-product-button {
+    width: 100%;
+    min-height: 7rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.75rem;
+    border: 0.125rem solid var(--shared-blue-color);
+    border-radius: var(--standard-border-radius);
+    background: var(--panel-background-color);
+    color: var(--main-text-color);
+    cursor: pointer;
+    text-align: center;
+}
+
+.sale-product-button strong {
+    color: var(--theme-primary-dark-color);
+    font-size: 1rem;
+}
+
+.sale-product-button span {
+    font-size: 0.8125rem;
+}
+
+.sale-product-button:hover,
+.sale-product-button:focus-visible {
+    border-color: var(--theme-orange-dark-color);
+    background: var(--theme-light-green-color);
+    outline: 0.1875rem solid var(--theme-light-green-color);
+    outline-offset: 0.0625rem;
+}
+
+.sale-product-button:disabled {
+    border-color: var(--disabled-border-color);
+    background: var(--disabled-background-color);
+    color: var(--disabled-text-color);
+    cursor: not-allowed;
+    opacity: 0.75;
+}
+
+.sale-product-button:disabled strong {
+    color: var(--disabled-text-color);
+}
+
+/* Current receipt */
+
+.sale-empty {
+    padding: 1rem;
+    border: 0.0625rem dashed var(--standard-border-color);
+    border-radius: var(--standard-border-radius);
+    color: var(--secondary-text-color);
+    text-align: center;
+}
+
+.sale-receipt-table-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.sale-receipt-table {
+    width: 100%;
+    min-width: 29rem;
+    border-collapse: collapse;
+}
+
+.sale-receipt-table th,
+.sale-receipt-table td {
+    padding: 0.5rem;
+    border: 0.0625rem solid var(--standard-border-color);
+    text-align: left;
+    vertical-align: middle;
+}
+
+.sale-receipt-table th {
+    background: var(--theme-primary-dark-color);
+    color: white;
+}
+
+.sale-receipt-table tbody tr:nth-child(even) {
+    background: var(--panel-background-color);
+}
+
+.sale-remove-button {
+    min-width: 7rem;
+}
+
+/* Running subtotal */
+
+.sale-subtotal {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    border-top: 0.1875rem solid var(--shared-blue-color);
+    font-size: 1.05rem;
+}
+
+.sale-subtotal strong {
+    font-size: 1.25rem;
+}
+
+/* Sale actions */
+
+.sale-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.sale-actions form {
+    margin: 0;
+}
+
+.sale-actions .button {
+    width: 100%;
+}
+
+/* Checkout */
+
+.checkout-transaction-number {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    border: 0.0625rem solid var(--standard-border-color);
+    border-radius: var(--standard-border-radius);
+    background: var(--page-background-light-color);
+}
+
+.checkout-totals {
+    max-width: 32rem;
+    margin: 1.25rem 0 1.25rem auto;
+    border: 0.0625rem solid var(--standard-border-color);
+    border-radius: var(--standard-border-radius);
+    overflow: hidden;
+}
+
+.checkout-total-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+}
+
+.checkout-total-row + .checkout-total-row {
+    border-top: 0.0625rem solid var(--standard-border-color);
+}
+
+.checkout-grand-total {
+    background: var(--theme-primary-dark-color);
+    color: white;
+    font-size: 1.25rem;
+}
+
+.checkout-change {
+    background: var(--success-background-color);
+    color: var(--success-color);
+    font-size: 1.125rem;
+}
+
+.checkout-payment-form,
+.checkout-cancel-form {
+    max-width: 32rem;
+    margin: 0 0 0 auto;
+}
+
+.checkout-cancel-form {
+    margin-top: 0.75rem;
+}
+
+.checkout-cancel-form .button {
+    width: 100%;
+}
+
+.checkout-leave-dialog {
+    width: min(34rem, calc(100% - 2rem));
+    padding: 1.25rem;
+    border: 0.125rem solid var(--shared-blue-color);
+    border-radius: var(--standard-border-radius);
+    background: var(--page-background-light-color);
+    color: var(--main-text-color);
+}
+
+.checkout-leave-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.60);
+}
+
+.checkout-leave-dialog h2 {
+    margin: 0 0 0.75rem;
+    color: var(--theme-primary-dark-color);
+    text-align: center;
+}
+
+.checkout-leave-dialog p {
+    margin: 0 0 1rem;
+    text-align: center;
+}
+
+.checkout-leave-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.checkout-leave-actions .button {
+    width: 100%;
+}
+
+/* Completed sale */
+
+.sale-complete-summary {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.sale-complete-summary > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.75rem;
+    border: 0.0625rem solid var(--standard-border-color);
+    border-radius: var(--standard-border-radius);
+    background: var(--page-background-light-color);
+}
+
+.sale-complete-summary span {
+    color: var(--secondary-text-color);
+    font-size: 0.8125rem;
+}
+
+/* Narrow screens */
+
+@media (max-width: 47.99rem) {
+    .sale-information {
+        grid-template-columns: 1fr;
+    }
+
+    .sale-information > div {
+        justify-content: space-between;
+    }
+
+    .sale-scan-form {
+        grid-template-columns: 1fr;
+    }
+
+    .sale-quantity-field {
+        width: 100%;
+    }
+}
+
+/* Tablet */
+
+@media (min-width: 48rem) {
+    .sale-product-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .sale-actions,
+    .sale-resume-actions {
+        flex-direction: row;
+    }
+
+    .sale-actions > *,
+    .sale-actions form,
+    .sale-resume-actions .button {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    .sale-actions form .button {
+        width: 100%;
+        height: 100%;
+    }
+
+    .sale-complete-summary {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+/* Desktop */
+
+@media (min-width: 64rem) {
+    .sale-workspace {
+        grid-template-columns: minmax(22rem, 1fr) minmax(27rem, 1.05fr);
+    }
+
+    .sale-product-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}

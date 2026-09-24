@@ -98,7 +98,7 @@ if (
             $reactivateOperatorStatement->closeCursor();
 
             header(
-                'Location: list.php?reactivated=1&show_inactive=1'
+                'Location: operator_list.php?reactivated=1&show_inactive=1'
             );
             exit;
         } catch (PDOException $exception) {
@@ -142,7 +142,7 @@ require __DIR__ . '/../includes/header.php';
 
         <div class="form-actions">
             <a
-                href="list.php"
+                href="operator_list.php"
                 class="button button-secondary"
             >
                 Return to Operator List
@@ -243,7 +243,7 @@ require __DIR__ . '/../includes/header.php';
                 </button>
 
                 <a
-                    href="list.php"
+                    href="operator_list.php"
                     class="button button-secondary"
                 >
                     No, Cancel

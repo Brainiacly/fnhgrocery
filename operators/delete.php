@@ -67,6 +67,30 @@ if (!$operatorRecord) {
     exit('The selected operator was not found.');
 }
 
+$openSaleStatement =
+    $databaseConnection->prepare(
+        '
+        SELECT
+            sr.ReceiptID,
+            sr.TransactionNumber,
+            r.RegisterNumber
+        FROM salesreceipt sr
+        JOIN register r
+            ON r.RegisterID = sr.RegisterID
+           AND r.StoreID = sr.StoreID
+        WHERE sr.OperatorID = :operatorID
+          AND sr.Status = \'Open\'
+        LIMIT 1
+        '
+    );
+
+$openSaleStatement->execute([
+    ':operatorID' => $operatorID
+]);
+
+$openSaleRecord =
+    $openSaleStatement->fetch();
+
 $deleteIsAllowed =
     (int)$operatorID
     !==
@@ -84,6 +108,13 @@ if (
     if (!$deleteIsAllowed) {
         $errorMessage =
             'This operator cannot be deleted.';
+    } elseif (
+        $openSaleRecord
+        &&
+        ($_POST['confirm_open_sale_cancel'] ?? '') !== '1'
+    ) {
+        $errorMessage =
+            'Confirm that the open sale may be cancelled before deleting this operator.';
     } else {
         try {
             $deleteOperatorStatement =
@@ -104,7 +135,7 @@ if (
             $deleteOperatorStatement->closeCursor();
 
             header(
-                'Location: list.php?deleted=1'
+                'Location: operator_list.php?deleted=1'
             );
             exit;
         } catch (PDOException $exception) {
@@ -162,7 +193,7 @@ require __DIR__ . '/../includes/header.php';
 
         <div class="form-actions">
             <a
-                href="list.php"
+                href="operator_list.php"
                 class="button button-secondary"
             >
                 Return to Operator List
@@ -235,9 +266,19 @@ require __DIR__ . '/../includes/header.php';
             </div>
         </div>
 
-        <div class="message message-warning">
-            This action makes the operator inactive so historical sales information remains connected to the correct employee.
-        </div>
+        <?php if ($openSaleRecord): ?>
+            <div class="message message-warning">
+                <strong>Open Sale Warning:</strong>
+                This operator currently has an open sale on Register
+                <?= escapeOutput($openSaleRecord['RegisterNumber']) ?>.
+                Deleting this operator will cancel that sale, restore its merchandise to inventory,
+                release the register, and record the administrator action in the transaction journal.
+            </div>
+        <?php else: ?>
+            <div class="message message-warning">
+                This action makes the operator inactive so historical sales information remains connected to the correct employee.
+            </div>
+        <?php endif; ?>
 
         <form method="post">
             <input
@@ -252,6 +293,20 @@ require __DIR__ . '/../includes/header.php';
                 value="<?= (int)$operatorID ?>"
             >
 
+            <?php if ($openSaleRecord): ?>
+                <div class="form-field">
+                    <label>
+                        <input
+                            type="checkbox"
+                            name="confirm_open_sale_cancel"
+                            value="1"
+                            required
+                        >
+                        I understand that the open sale will be cancelled.
+                    </label>
+                </div>
+            <?php endif; ?>
+
             <div class="form-actions delete-confirmation-actions">
                 <button
                     type="submit"
@@ -259,11 +314,15 @@ require __DIR__ . '/../includes/header.php';
                     value="1"
                     class="button button-danger"
                 >
-                    Yes, Delete Operator
+                    <?php if ($openSaleRecord): ?>
+                        Yes, Cancel Sale and Delete Operator
+                    <?php else: ?>
+                        Yes, Delete Operator
+                    <?php endif; ?>
                 </button>
 
                 <a
-                    href="list.php"
+                    href="operator_list.php"
                     class="button button-secondary"
                 >
                     No, Cancel

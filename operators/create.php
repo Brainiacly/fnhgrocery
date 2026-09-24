@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errorMessage = 'Phone number cannot contain more than 20 characters.';
     } elseif (!passwordMeetsRequirements($enteredPassword)) {
         $errorMessage =
-            'The password must contain at least 8 characters, 1 uppercase letter, 1 lowercase letter, and 1 symbol.';
+            passwordRequirementText();
     } elseif ($enteredPassword !== $confirmedPassword) {
         $errorMessage = 'The password and confirmation do not match.';
     } elseif (
@@ -138,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $createOperatorStatement->closeCursor();
 
-            header('Location: list.php?created=1');
+            header('Location: operator_list.php?created=1');
             exit;
         } catch (PDOException $exception) {
             $errorMessage = getSafeDatabaseErrorMessage(
@@ -292,7 +292,7 @@ require __DIR__ . '/../includes/header.php';
                 <input type="password" id="password" name="password" minlength="8" required autocomplete="new-password">
 
                 <div class="field-help">
-                    Use at least 8 characters with an uppercase letter, lowercase letter, and symbol.
+                    <?= escapeOutput(passwordRequirementText()) ?>
                 </div>
             </div>
 
@@ -313,7 +313,7 @@ require __DIR__ . '/../includes/header.php';
                 Create Operator
             </button>
 
-            <a href="list.php" class="button button-secondary">
+            <a href="operator_list.php" class="button button-secondary">
                 Cancel
             </a>
 

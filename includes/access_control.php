@@ -7,14 +7,11 @@
 
 require_once __DIR__ . '/../config/database.php';
 
-
-// This starts the session used to remember the logged-in user.
-if (session_status() === PHP_SESSION_NONE) {
+if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
-
-// This safely prepares text before displaying it in HTML.
+// Escape output
 function escapeOutput($value)
 {
     return htmlspecialchars(
@@ -24,232 +21,186 @@ function escapeOutput($value)
     );
 }
 
-
-// This clears all information belonging to the logged-in user.
-function clearOperatorLoginSession()
-{
-    unset(
-        $_SESSION['operator_id'],
-        $_SESSION['store_id'],
-        $_SESSION['store_number'],
-        $_SESSION['store_name'],
-        $_SESSION['employee_number'],
-        $_SESSION['username'],
-        $_SESSION['first_name'],
-        $_SESSION['middle_initial'],
-        $_SESSION['last_name'],
-        $_SESSION['role']
-    );
-}
-
-
-// This checks whether a user is currently logged in.
+// Check login
 function operatorIsLoggedIn()
 {
-    return isset(
-        $_SESSION['operator_id']
-    );
+    return isset($_SESSION['operator_id']);
 }
 
-
-// This checks whether the logged-in user is an administrator.
-function operatorIsAdministrator()
-{
-    return
-        operatorIsLoggedIn()
-        &&
-        isset($_SESSION['role'])
-        &&
-        $_SESSION['role'] === 'Administrator';
-}
-
-
-// This checks whether the logged-in user has been granted system access.
+// Check assigned access
 function operatorHasAssignedAccess()
 {
+    return operatorIsLoggedIn()
+        && in_array(
+            $_SESSION['role'] ?? '',
+            ['Administrator', 'Operator'],
+            true
+        );
+}
+
+// Check administrator
+function operatorIsAdministrator()
+{
+    return operatorIsLoggedIn()
+        && ($_SESSION['role'] ?? '') === 'Administrator';
+}
+
+// Require login
+function requireOperatorLogin()
+{
     if (!operatorIsLoggedIn()) {
-        return false;
+        header('Location: ' . APPLICATION_URL . '/index.php');
+        exit;
+    }
+}
+
+// Require assigned access
+function requireAssignedAccess()
+{
+    requireOperatorLogin();
+
+    if (!operatorHasAssignedAccess()) {
+        header('Location: ' . APPLICATION_URL . '/index.php');
+        exit;
+    }
+}
+
+// Require administrator
+function requireAdministrator()
+{
+    requireAssignedAccess();
+
+    if (!operatorIsAdministrator()) {
+        http_response_code(403);
+        exit('Administrator access is required');
+    }
+}
+
+// Create form security token
+function getFormSecurityToken()
+{
+    if (empty($_SESSION['form_security_token'])) {
+        $_SESSION['form_security_token'] =
+            bin2hex(random_bytes(32));
     }
 
-
-    $currentRole =
-        $_SESSION['role'] ?? '';
-
-
-    return in_array(
-        $currentRole,
-        [
-            'Administrator',
-            'Operator'
-        ],
-        true
-    );
+    return $_SESSION['form_security_token'];
 }
 
-
-// This checks whether the logged-in account is still waiting for access.
-function operatorIsPending()
+// Validate form security token
+function formSecurityTokenIsValid($submittedToken)
 {
-    return
-        operatorIsLoggedIn()
-        &&
-        isset($_SESSION['role'])
-        &&
-        $_SESSION['role'] === 'Pending';
+    return isset($_SESSION['form_security_token'])
+        && is_string($submittedToken)
+        && hash_equals(
+            $_SESSION['form_security_token'],
+            $submittedToken
+        );
 }
 
+// Check password requirements
+function passwordMeetsRequirements($password)
+{
+    return preg_match(
+        '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{8,}$/',
+        $password
+    ) === 1;
+}
 
-// This creates the name displayed beside Logged in as.
+// Password requirement text
+function passwordRequirementText()
+{
+    return 'Minimum 8 characters with at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 symbol';
+}
+
+// Check middle initial
+function middleInitialIsValid($middleInitial)
+{
+    return $middleInitial === ''
+        || preg_match('/^[A-Za-z]$/', $middleInitial) === 1;
+}
+
+// Get logged-in operator display name
 function getLoggedInOperatorDisplayName()
 {
-    $firstName =
-        trim(
-            (string)(
-                $_SESSION['first_name']
-                ??
-                ''
-            )
-        );
+    $firstName = trim((string)($_SESSION['first_name'] ?? ''));
+    $middleInitial = trim((string)($_SESSION['middle_initial'] ?? ''));
+    $lastName = trim((string)($_SESSION['last_name'] ?? ''));
 
-    $middleInitial =
-        trim(
-            (string)(
-                $_SESSION['middle_initial']
-                ??
-                ''
-            )
-        );
-
-    $lastName =
-        trim(
-            (string)(
-                $_SESSION['last_name']
-                ??
-                ''
-            )
-        );
-
-
-    $displayName = '';
-
+    $nameParts = [];
 
     if ($firstName !== '') {
-
-        $displayName =
-            $firstName;
+        $nameParts[] = $firstName;
     }
-
 
     if ($middleInitial !== '') {
-
-        if ($displayName !== '') {
-            $displayName .= ' ';
-        }
-
-        $displayName .=
-            strtoupper($middleInitial)
-            . '.';
+        $nameParts[] = strtoupper($middleInitial) . '.';
     }
-
 
     if ($lastName !== '') {
-
-        if ($displayName !== '') {
-            $displayName .= ' ';
-        }
-
-        $displayName .=
-            $lastName;
+        $nameParts[] = $lastName;
     }
 
-
-    // The username is used if a complete name is not available.
-    if ($displayName === '') {
-
-        $displayName =
-            trim(
-                (string)(
-                    $_SESSION['username']
-                    ??
-                    ''
-                )
-            );
+    if ($nameParts) {
+        return implode(' ', $nameParts);
     }
 
+    $username = trim((string)($_SESSION['username'] ?? ''));
 
-    if ($displayName === '') {
-
-        $displayName =
-            'User';
-    }
-
-
-    return $displayName;
+    return $username !== '' ? $username : 'User';
 }
 
-
-// This refreshes the current user's session information from the database.
+// Refresh current session
 function refreshCurrentOperatorSession()
 {
     if (!operatorIsLoggedIn()) {
         return;
     }
 
-
     try {
+        $databaseConnection = connectDatabase();
 
-        $databaseConnection =
-            connectDatabase();
+        $statement = $databaseConnection->prepare(
+            '
+            SELECT
+                OperatorID,
+                StoreID,
+                StoreNumber,
+                StoreName,
+                EmployeeNumber,
+                Username,
+                FirstName,
+                MiddleInitial,
+                LastName,
+                Email,
+                Phone,
+                Role,
+                Active
+            FROM vw_operatorlogin
+            WHERE OperatorID = :operatorID
+            LIMIT 1
+            '
+        );
 
-
-        $operatorStatement =
-            $databaseConnection->prepare(
-                '
-                SELECT
-                    OperatorID,
-                    StoreID,
-                    StoreNumber,
-                    StoreName,
-                    EmployeeNumber,
-                    Username,
-                    FirstName,
-                    MiddleInitial,
-                    LastName,
-                    Role
-                FROM vw_operatorlogin
-                WHERE OperatorID = :operatorID
-                LIMIT 1
-                '
-            );
-
-
-        $operatorStatement->execute([
-            ':operatorID' =>
-                $_SESSION['operator_id']
+        $statement->execute([
+            ':operatorID' => $_SESSION['operator_id']
         ]);
 
+        $operatorRecord = $statement->fetch();
 
-        $operatorRecord =
-            $operatorStatement->fetch();
-
-
-        /*
-           If the account or store is no longer active,
-           the current login is removed.
-        */
-        if (!$operatorRecord) {
-
-            clearOperatorLoginSession();
-
+        if (!$operatorRecord || (int)$operatorRecord['Active'] !== 1) {
+            $_SESSION = [];
+            session_destroy();
             return;
         }
 
-
         $_SESSION['operator_id'] =
-            $operatorRecord['OperatorID'];
+            (int)$operatorRecord['OperatorID'];
 
         $_SESSION['store_id'] =
-            $operatorRecord['StoreID'];
+            $operatorRecord['StoreID'] === null
+                ? null
+                : (int)$operatorRecord['StoreID'];
 
         $_SESSION['store_number'] =
             $operatorRecord['StoreNumber'];
@@ -272,142 +223,18 @@ function refreshCurrentOperatorSession()
         $_SESSION['last_name'] =
             $operatorRecord['LastName'];
 
+        $_SESSION['email'] =
+            $operatorRecord['Email'];
+
+        $_SESSION['phone'] =
+            $operatorRecord['Phone'];
+
         $_SESSION['role'] =
             $operatorRecord['Role'];
 
     } catch (PDOException $exception) {
-
-        error_log(
-            $exception->getMessage()
-        );
-
-        clearOperatorLoginSession();
+        error_log($exception->getMessage());
     }
 }
 
-
-// This prevents logged-out visitors from accessing protected pages.
-function requireOperatorLogin()
-{
-    if (!operatorIsLoggedIn()) {
-
-        header(
-            'Location: '
-            . APPLICATION_URL
-            . '/index.php'
-        );
-
-        exit;
-    }
-}
-
-
-// This prevents Pending users from accessing normal operator pages.
-function requireAssignedAccess()
-{
-    requireOperatorLogin();
-
-
-    if (!operatorHasAssignedAccess()) {
-
-        header(
-            'Location: '
-            . APPLICATION_URL
-            . '/index.php'
-        );
-
-        exit;
-    }
-}
-
-
-// This prevents Operators and Pending users from accessing administrator pages.
-function requireAdministrator()
-{
-    requireOperatorLogin();
-
-
-    if (!operatorIsAdministrator()) {
-
-        header(
-            'Location: '
-            . APPLICATION_URL
-            . '/index.php'
-        );
-
-        exit;
-    }
-}
-
-
-// This creates a security token for forms that change information.
-function getFormSecurityToken()
-{
-    if (
-        empty(
-            $_SESSION['form_security_token']
-        )
-    ) {
-
-        $_SESSION['form_security_token'] =
-            bin2hex(
-                random_bytes(32)
-            );
-    }
-
-
-    return
-        $_SESSION['form_security_token'];
-}
-
-
-// This verifies that a submitted form belongs to the current session.
-function formSecurityTokenIsValid($submittedToken)
-{
-    return
-        isset(
-            $_SESSION['form_security_token']
-        )
-        &&
-        is_string(
-            $submittedToken
-        )
-        &&
-        hash_equals(
-            $_SESSION['form_security_token'],
-            $submittedToken
-        );
-}
-
-
-// This checks the password requirements used by the website.
-function passwordMeetsRequirements($password)
-{
-    $passwordPattern =
-        '/^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9\s]).{8,}$/';
-
-
-    return preg_match(
-        $passwordPattern,
-        $password
-    ) === 1;
-}
-
-
-// This permits one alphabetic middle initial or a blank value.
-function middleInitialIsValid($middleInitial)
-{
-    if ($middleInitial === '') {
-        return true;
-    }
-
-
-    return preg_match(
-        '/^[A-Za-z]$/',
-        $middleInitial
-    ) === 1;
-}
-
-
-// This keeps an existing login synchronized with the database.
 refreshCurrentOperatorSession();

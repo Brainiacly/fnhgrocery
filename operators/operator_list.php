@@ -1,4 +1,4 @@
-<?php // operators/list.php
+<?php // operators/operator_list.php
 
 /**
  * Brian Phillips

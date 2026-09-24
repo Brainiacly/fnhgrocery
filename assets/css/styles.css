@@ -356,14 +356,6 @@ select:focus {
 /* Form help */
 
 .field-help,
-.password-requirements {
-    color:
-        var(--secondary-text-color);
-
-    font-size: 0.8125rem;
-
-    line-height: 1.4;
-}
 
 
 /* Buttons */
