@@ -14,13 +14,13 @@ $operatorID = (int) ($_SESSION['operator_id'] ?? 0);
 
 $receiptID =
     isset($_GET['receipt'])
-        ? (int) $_GET['receipt']
-        : (int) ($_POST['receipt_id'] ?? 0);
+    ? (int) $_GET['receipt']
+    : (int) ($_POST['receipt_id'] ?? 0);
 
 $selectedRegisterID =
     isset($_GET['register'])
-        ? (int) $_GET['register']
-        : (int) ($_POST['register_id'] ?? 0);
+    ? (int) $_GET['register']
+    : (int) ($_POST['register_id'] ?? 0);
 
 $errorMessage = '';
 $successMessage = '';
@@ -170,8 +170,8 @@ try {
 
             } elseif (
                 empty(
-                    $selectedRegister['OpenReceiptID']
-                )
+                $selectedRegister['OpenReceiptID']
+            )
             ) {
                 $errorMessage =
                     'The selected register does not have an open session.';
@@ -234,8 +234,8 @@ try {
 
             } elseif (
                 !empty(
-                    $selectedRegister['OpenReceiptID']
-                )
+                $selectedRegister['OpenReceiptID']
+            )
             ) {
 
                 if (
@@ -958,11 +958,7 @@ require __DIR__ . '/../includes/header.php';
 
             <form method="post">
 
-                <input
-                    type="hidden"
-                    name="form_security_token"
-                    value="<?= escapeOutput(getFormSecurityToken()) ?>"
-                >
+                <input type="hidden" name="form_security_token" value="<?= escapeOutput(getFormSecurityToken()) ?>">
 
                 <div class="form-field">
 
@@ -970,11 +966,7 @@ require __DIR__ . '/../includes/header.php';
                         Checkout Station
                     </label>
 
-                    <select
-                        id="register_id"
-                        name="register_id"
-                        required
-                    >
+                    <select id="register_id" name="register_id" required>
 
                         <option value="">
                             Choose a checkout station
@@ -1004,19 +996,16 @@ require __DIR__ . '/../includes/header.php';
 
                             ?>
 
-                            <option
-                                value="<?= (int) $registerRecord['RegisterID'] ?>"
-                                data-open-receipt-id="<?= $openReceiptID ?>"
-                                data-open-operator-id="<?= $openOperatorID ?>"
+                            <option value="<?= (int) $registerRecord['RegisterID'] ?>"
+                                data-open-receipt-id="<?= $openReceiptID ?>" data-open-operator-id="<?= $openOperatorID ?>"
                                 <?=
                                     $selectedRegisterID
                                     ===
                                     (int) $registerRecord['RegisterID']
-                                        ? 'selected'
-                                        : ''
-                                ?>
-                                <?= $inUseByOtherOperator && !operatorIsAdministrator() ? 'disabled' : '' ?>
-                            >
+                                    ? 'selected'
+                                    : ''
+                                    ?>
+                                <?= $inUseByOtherOperator && !operatorIsAdministrator() ? 'disabled' : '' ?>>
 
                                 Register #<?= escapeOutput($registerRecord['RegisterNumber']) ?>
 
@@ -1046,24 +1035,13 @@ require __DIR__ . '/../includes/header.php';
 
                 <div class="form-actions sale-register-actions">
 
-                    <button
-                        type="submit"
-                        id="openSelectedRegisterButton"
-                        name="select_register"
-                        value="1"
-                        class="button button-primary"
-                    >
+                    <button type="submit" id="openSelectedRegisterButton" name="select_register" value="1"
+                        class="button button-primary">
                         Open Register
                     </button>
-                    <button
-                        type="submit"
-                        id="closeSelectedRegisterButton"
-                        name="close_selected_register"
-                        value="1"
-                        class="button button-danger"
-                        hidden
-                        onclick="return window.confirm('Close this register? Any open transaction will be cancelled and its items will be returned to inventory.');"
-                    >
+                    <button type="submit" id="closeSelectedRegisterButton" name="close_selected_register" value="1"
+                        class="button button-danger" hidden
+                        onclick="return window.confirm('Close this register? Any open transaction will be cancelled and its items will be returned to inventory.');">
                         Close Register
                     </button>
 
@@ -1111,29 +1089,13 @@ require __DIR__ . '/../includes/header.php';
 
             <section class="sale-product-area">
 
-<form
-                    method="post"
-                    class="sale-scan-form"
-                >
+                <form method="post" class="sale-scan-form">
 
-                    <input
-                        type="hidden"
-                        name="form_security_token"
-                        value="<?= escapeOutput(getFormSecurityToken()) ?>"
-                    >
+                    <input type="hidden" name="form_security_token" value="<?= escapeOutput(getFormSecurityToken()) ?>">
 
-                    <input
-                        type="hidden"
-                        name="receipt_id"
-                        value="<?= (int) $receiptID ?>"
-                    >
+                    <input type="hidden" name="receipt_id" value="<?= (int) $receiptID ?>">
 
-                    <input
-                        type="hidden"
-                        id="scanner_product_id"
-                        name="product_id"
-                        value="0"
-                    >
+                    <input type="hidden" id="scanner_product_id" name="product_id" value="0">
 
                     <?php if ($errorMessage !== ''): ?>
                         <div class="message message-error sale-scan-message">
@@ -1153,46 +1115,23 @@ require __DIR__ . '/../includes/header.php';
                             Barcode / Product Code
                         </label>
 
-                        <input
-                            type="text"
-                            id="product_code"
-                            name="product_code"
-                            value=""
-                            maxlength="20"
-                            autocomplete="off"
-                            autofocus
-                        >
+                        <input type="text" id="product_code" name="product_code" value="" maxlength="20" autocomplete="off"
+                            autofocus>
 
                     </div>
 
                     <div class="form-field sale-quantity-field">
 
-                        <label
-                            for="quantity"
-                            id="sale_quantity_label"
-                        >
+                        <label for="quantity" id="sale_quantity_label">
                             Quantity
                         </label>
 
-                        <input
-                            type="number"
-                            id="quantity"
-                            name="quantity"
-                            value="1"
-                            min="0.001"
-                            step="0.001"
-                            inputmode="decimal"
-                            required
-                        >
+                        <input type="number" id="quantity" name="quantity" value="1" min="0.001" step="0.001"
+                            inputmode="decimal" required>
 
                     </div>
 
-                    <button
-                        type="submit"
-                        name="add_product"
-                        value="1"
-                        class="button button-primary"
-                    >
+                    <button type="submit" name="add_product" value="1" class="button button-primary">
                         Add Product
                     </button>
 
@@ -1206,34 +1145,15 @@ require __DIR__ . '/../includes/header.php';
 
                     <?php foreach ($productRecords as $productRecord): ?>
 
-                        <form
-                            method="post"
-                            class="sale-product-form"
-                        >
+                        <form method="post" class="sale-product-form">
 
-                            <input
-                                type="hidden"
-                                name="form_security_token"
-                                value="<?= escapeOutput(getFormSecurityToken()) ?>"
-                            >
+                            <input type="hidden" name="form_security_token" value="<?= escapeOutput(getFormSecurityToken()) ?>">
 
-                            <input
-                                type="hidden"
-                                name="receipt_id"
-                                value="<?= (int) $receiptID ?>"
-                            >
+                            <input type="hidden" name="receipt_id" value="<?= (int) $receiptID ?>">
 
-                            <input
-                                type="hidden"
-                                name="product_id"
-                                value="<?= (int) $productRecord['ProductID'] ?>"
-                            >
+                            <input type="hidden" name="product_id" value="<?= (int) $productRecord['ProductID'] ?>">
 
-                            <input
-                                type="hidden"
-                                name="quantity"
-                                value="1"
-                            >
+                            <input type="hidden" name="quantity" value="1">
 
                             <?php
 
@@ -1244,21 +1164,18 @@ require __DIR__ . '/../includes/header.php';
 
                             $productCodeForButton =
                                 trim((string) $productRecord['UPC']) !== ''
-                                    ? $productRecord['UPC']
-                                    : $productRecord['PLUCode'];
+                                ? $productRecord['UPC']
+                                : $productRecord['PLUCode'];
 
                             ?>
 
-                            <button
-                                type="<?= $productIsWeighted ? 'button' : 'submit' ?>"
+                            <button type="<?= $productIsWeighted ? 'button' : 'submit' ?>"
                                 name="<?= $productIsWeighted ? '' : 'add_product' ?>"
                                 value="<?= $productIsWeighted ? '' : '1' ?>"
                                 class="sale-product-button<?= $productIsWeighted ? ' sale-weighted-product-button' : '' ?>"
                                 data-product-id="<?= (int) $productRecord['ProductID'] ?>"
                                 data-product-code="<?= escapeOutput($productCodeForButton) ?>"
-                                data-unit-type="<?= escapeOutput($productRecord['UnitType']) ?>"
-                                <?= (float) $productRecord['StockQuantity'] <= 0 ? 'disabled' : '' ?>
-                            >
+                                data-unit-type="<?= escapeOutput($productRecord['UnitType']) ?>" <?= (float) $productRecord['StockQuantity'] <= 0 ? 'disabled' : '' ?>>
 
                                 <strong>
                                     <?= escapeOutput(
@@ -1373,14 +1290,14 @@ require __DIR__ . '/../includes/header.php';
 
                                             <?= escapeOutput(
                                                 $saleItem['UnitType'] === 'Each'
-                                                    ? number_format(
-                                                        (float) $saleItem['Quantity'],
-                                                        0
-                                                    )
-                                                    : number_format(
-                                                        (float) $saleItem['Quantity'],
-                                                        3
-                                                    )
+                                                ? number_format(
+                                                    (float) $saleItem['Quantity'],
+                                                    0
+                                                )
+                                                : number_format(
+                                                    (float) $saleItem['Quantity'],
+                                                    3
+                                                )
                                             ) ?>
 
                                         </td>
@@ -1411,35 +1328,21 @@ require __DIR__ . '/../includes/header.php';
 
                                             <form method="post">
 
-                                                <input
-                                                    type="hidden"
-                                                    name="form_security_token"
-                                                    value="<?= escapeOutput(getFormSecurityToken()) ?>"
-                                                >
+                                                <input type="hidden" name="form_security_token"
+                                                    value="<?= escapeOutput(getFormSecurityToken()) ?>">
 
-                                                <input
-                                                    type="hidden"
-                                                    name="receipt_id"
-                                                    value="<?= (int) $receiptID ?>"
-                                                >
+                                                <input type="hidden" name="receipt_id" value="<?= (int) $receiptID ?>">
 
-                                                <input
-                                                    type="hidden"
-                                                    name="receipt_line_id"
-                                                    value="<?= (int) $saleItem['ReceiptLineID'] ?>"
-                                                >
+                                                <input type="hidden" name="receipt_line_id"
+                                                    value="<?= (int) $saleItem['ReceiptLineID'] ?>">
 
-                                                <button
-                                                    type="submit"
-                                                    name="remove_product"
-                                                    value="1"
-                                                    class="button button-secondary sale-remove-button"
-                                                >
+                                                <button type="submit" name="remove_product" value="1"
+                                                    class="button button-secondary sale-remove-button">
                                                     <?=
                                                         (float) $saleItem['Quantity'] > 1
-                                                            ? 'Remove 1'
-                                                            : 'Remove Item'
-                                                    ?>
+                                                        ? 'Remove 1'
+                                                        : 'Remove Item'
+                                                        ?>
                                                 </button>
 
                                             </form>
@@ -1479,11 +1382,8 @@ require __DIR__ . '/../includes/header.php';
 
                     <?php if (!empty($saleItems)): ?>
 
-                        <a
-                            href="<?= APPLICATION_URL ?>/sales/checkout.php?receipt=<?= (int) $receiptID ?>"
-                            class="button button-primary"
-                            data-sale-safe="true"
-                        >
+                        <a href="<?= APPLICATION_URL ?>/sales/checkout.php?receipt=<?= (int) $receiptID ?>"
+                            class="button button-primary" data-sale-safe="true">
                             Checkout
                         </a>
 
@@ -1491,42 +1391,18 @@ require __DIR__ . '/../includes/header.php';
 
                     <?php if (!empty($saleItems)): ?>
 
-                        <form
-                            method="post"
-                            id="cancelCurrentSaleForm"
-                        >
+                        <form method="post" id="cancelCurrentSaleForm">
 
-                            <input
-                                type="hidden"
-                                name="form_security_token"
-                                value="<?= escapeOutput(getFormSecurityToken()) ?>"
-                            >
+                            <input type="hidden" name="form_security_token" value="<?= escapeOutput(getFormSecurityToken()) ?>">
 
-                            <input
-                                type="hidden"
-                                name="receipt_id"
-                                value="<?= (int) $receiptID ?>"
-                            >
+                            <input type="hidden" name="receipt_id" value="<?= (int) $receiptID ?>">
 
-                            <input
-                                type="hidden"
-                                name="register_id"
-                                value="<?= (int) $saleRecord['RegisterID'] ?>"
-                            >
+                            <input type="hidden" name="register_id" value="<?= (int) $saleRecord['RegisterID'] ?>">
 
-                            <input
-                                type="hidden"
-                                name="cancel_sale"
-                                value="1"
-                            >
+                            <input type="hidden" name="cancel_sale" value="1">
 
-                            <button
-                                type="submit"
-                                name="cancel_sale"
-                                value="1"
-                                class="button button-danger"
-                                onclick="return window.confirm('Cancel this sale? All scanned items will be returned to inventory.');"
-                            >
+                            <button type="submit" name="cancel_sale" value="1" class="button button-danger"
+                                onclick="return window.confirm('Cancel this sale? All scanned items will be returned to inventory.');">
                                 Cancel Sale
                             </button>
 
@@ -1534,43 +1410,18 @@ require __DIR__ . '/../includes/header.php';
 
                     <?php endif; ?>
 
-                    <form
-                        method="post"
-                        id="closeCurrentRegisterForm"
-                    >
+                    <form method="post" id="closeCurrentRegisterForm">
 
-                        <input
-                            type="hidden"
-                            name="form_security_token"
-                            value="<?= escapeOutput(getFormSecurityToken()) ?>"
-                        >
+                        <input type="hidden" name="form_security_token" value="<?= escapeOutput(getFormSecurityToken()) ?>">
 
-                        <input
-                            type="hidden"
-                            name="receipt_id"
-                            value="<?= (int) $receiptID ?>"
-                        >
+                        <input type="hidden" name="receipt_id" value="<?= (int) $receiptID ?>">
 
-                        <input
-                            type="hidden"
-                            id="sale_close_destination"
-                            name="close_destination"
-                            value=""
-                        >
+                        <input type="hidden" id="sale_close_destination" name="close_destination" value="">
 
-                        <input
-                            type="hidden"
-                            name="close_register"
-                            value="1"
-                        >
+                        <input type="hidden" name="close_register" value="1">
 
-                        <button
-                            type="submit"
-                            name="close_register"
-                            value="1"
-                            class="button button-secondary"
-                            onclick="return window.confirm('Close this register? The current transaction will be cancelled and all scanned items will be returned to inventory.');"
-                        >
+                        <button type="submit" name="close_register" value="1" class="button button-secondary"
+                            onclick="return window.confirm('Close this register? The current transaction will be cancelled and all scanned items will be returned to inventory.');">
                             Close Register
                         </button>
 
@@ -1582,10 +1433,7 @@ require __DIR__ . '/../includes/header.php';
 
         </div>
 
-        <dialog
-            id="saleLeaveDialog"
-            class="checkout-leave-dialog"
-        >
+        <dialog id="saleLeaveDialog" class="checkout-leave-dialog">
 
             <h2>
                 Leave Current Transaction?
@@ -1597,27 +1445,15 @@ require __DIR__ . '/../includes/header.php';
 
             <div class="checkout-leave-actions">
 
-                <button
-                    type="button"
-                    id="saleStayButton"
-                    class="button button-secondary"
-                >
+                <button type="button" id="saleStayButton" class="button button-secondary">
                     Stay on Transaction
                 </button>
 
-                <button
-                    type="button"
-                    id="saleSaveButton"
-                    class="button button-primary"
-                >
+                <button type="button" id="saleSaveButton" class="button button-primary">
                     Save Transaction and Leave
                 </button>
 
-                <button
-                    type="button"
-                    id="saleCloseButton"
-                    class="button button-danger"
-                >
+                <button type="button" id="saleCloseButton" class="button button-danger">
                     Close Register and Leave
                 </button>
 
@@ -1663,7 +1499,7 @@ require __DIR__ . '/../includes/header.php';
 
                 const selectedOption =
                     registerSelect.options[
-                        registerSelect.selectedIndex
+                    registerSelect.selectedIndex
                     ];
 
                 const openReceiptID =
@@ -1692,24 +1528,68 @@ require __DIR__ . '/../includes/header.php';
 
                 if (openButton) {
 
-                    openButton.disabled =
+                    const administratorViewingOtherOperator =
                         registerIsOpen
                         &&
-                        !belongsToCurrentOperator;
+                        !belongsToCurrentOperator
+                        &&
+                        currentOperatorIsAdministrator;
+
+                    if (administratorViewingOtherOperator) {
+
+                        openButton.disabled = false;
+
+                        openButton.name =
+                            'close_selected_register';
+
+                        openButton.textContent =
+                            'Close Register';
+
+                        openButton.classList.remove(
+                            'button-primary'
+                        );
+
+                        openButton.classList.add(
+                            'button-danger'
+                        );
+
+                        openButton.onclick =
+                            function () {
+                                return window.confirm(
+                                    'Close this register? The other operator\\'s open transaction will be cancelled and its items will be returned to inventory.'
+                                );
+                            };
+
+                    } else {
+
+                        openButton.disabled = false;
+
+                        openButton.name =
+                            'select_register';
+
+                        openButton.textContent =
+                            'Open Register';
+
+                        openButton.classList.remove(
+                            'button-danger'
+                        );
+
+                        openButton.classList.add(
+                            'button-primary'
+                        );
+
+                        openButton.onclick = null;
+                    }
                 }
 
                 if (closeButton) {
-                    const canCloseSelectedRegister =
-                        registerIsOpen
-                        &&
-                        (
-                            belongsToCurrentOperator
-                            ||
-                            currentOperatorIsAdministrator
-                        );
 
                     closeButton.hidden =
-                        !canCloseSelectedRegister;
+                        !(
+                            registerIsOpen
+                            &&
+                            belongsToCurrentOperator
+                        );
                 }
             }
 
