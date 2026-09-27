@@ -1526,72 +1526,50 @@ require __DIR__ . '/../includes/header.php';
                     &&
                     openOperatorID === currentOperatorID;
 
+                const hasSelectedRegister =
+                    registerSelect.value !== '';
+
+                const administratorViewingOtherOperator =
+                    hasSelectedRegister
+                    &&
+                    registerIsOpen
+                    &&
+                    !belongsToCurrentOperator
+                    &&
+                    currentOperatorIsAdministrator;
+
                 if (openButton) {
+                    openButton.hidden =
+                        administratorViewingOtherOperator;
 
-                    const administratorViewingOtherOperator =
-                        registerIsOpen
-                        &&
-                        !belongsToCurrentOperator
-                        &&
-                        currentOperatorIsAdministrator;
-
-                    if (administratorViewingOtherOperator) {
-
-                        openButton.disabled = false;
-
-                        openButton.name =
-                            'close_selected_register';
-
-                        openButton.textContent =
-                            'Close Register';
-
-                        openButton.classList.remove(
-                            'button-primary'
+                    openButton.disabled =
+                        !hasSelectedRegister
+                        ||
+                        (
+                            registerIsOpen
+                            &&
+                            !belongsToCurrentOperator
                         );
-
-                        openButton.classList.add(
-                            'button-danger'
-                        );
-
-                        openButton.onclick =
-                            function () {
-                                return window.confirm(
-                                    'Close this register? The other operator\\'s open transaction will be cancelled and its items will be returned to inventory.'
-                                );
-                            };
-
-                    } else {
-
-                        openButton.disabled = false;
-
-                        openButton.name =
-                            'select_register';
-
-                        openButton.textContent =
-                            'Open Register';
-
-                        openButton.classList.remove(
-                            'button-danger'
-                        );
-
-                        openButton.classList.add(
-                            'button-primary'
-                        );
-
-                        openButton.onclick = null;
-                    }
                 }
 
                 if (closeButton) {
+                    const ownerCanClose =
+                        hasSelectedRegister
+                        &&
+                        registerIsOpen
+                        &&
+                        belongsToCurrentOperator;
+
+                    const administratorCanClose =
+                        administratorViewingOtherOperator;
 
                     closeButton.hidden =
                         !(
-                            registerIsOpen
-                            &&
-                            belongsToCurrentOperator
+                            ownerCanClose
+                            ||
+                            administratorCanClose
                         );
                 }
-            }
 
             if (registerSelect) {
 

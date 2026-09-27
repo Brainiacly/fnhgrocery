@@ -41,13 +41,28 @@
 .sale-resume-actions,
 .sale-register-actions {
     display: flex;
-    flex-direction: column;
     gap: 0.75rem;
 }
 
-.sale-resume-actions .button,
-.sale-register-actions .button {
+.sale-resume-actions {
+    flex-direction: column;
+}
+
+.sale-register-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+}
+
+.sale-resume-actions .button {
     width: 100%;
+}
+
+.sale-register-actions .button {
+    width: auto;
+    min-width: 10rem;
+    flex: 0 0 auto;
 }
 
 /* Compact sale information */
@@ -457,15 +472,13 @@
     }
 
     .sale-actions,
-    .sale-resume-actions,
-    .sale-register-actions {
+    .sale-resume-actions {
         flex-direction: row;
     }
 
     .sale-actions > *,
     .sale-actions form,
-    .sale-resume-actions .button,
-    .sale-register-actions .button {
+    .sale-resume-actions .button {
         flex: 1 1 0;
         min-width: 0;
     }
