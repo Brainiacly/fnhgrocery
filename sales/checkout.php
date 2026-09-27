@@ -10,15 +10,15 @@ require_once __DIR__ . '/../includes/access_control.php';
 requireAssignedAccess();
 
 $storeID =
-    (int)($_SESSION['store_id'] ?? 0);
+    (int) ($_SESSION['store_id'] ?? 0);
 
 $operatorID =
-    (int)($_SESSION['operator_id'] ?? 0);
+    (int) ($_SESSION['operator_id'] ?? 0);
 
 $receiptID =
     isset($_GET['receipt'])
-        ? (int)$_GET['receipt']
-        : (int)($_POST['receipt_id'] ?? 0);
+    ? (int) $_GET['receipt']
+    : (int) ($_POST['receipt_id'] ?? 0);
 
 $errorMessage = '';
 
@@ -138,10 +138,10 @@ try {
 
 
     $subtotal =
-        (float)$saleRecord['SubtotalAmount'];
+        (float) $saleRecord['SubtotalAmount'];
 
     $receiptDiscount =
-        (float)$saleRecord['ReceiptDiscountAmount'];
+        (float) $saleRecord['ReceiptDiscountAmount'];
 
     $netSubtotal =
         round(
@@ -157,18 +157,18 @@ try {
 
     foreach ($saleItems as $saleItem) {
 
-        if ((int)$saleItem['Taxable'] === 1) {
+        if ((int) $saleItem['Taxable'] === 1) {
 
             $grossTaxableSubtotal +=
-                (float)$saleItem['LineTotal'];
+                (float) $saleItem['LineTotal'];
         }
     }
 
 
     $taxableRatio =
         $subtotal > 0
-            ? $grossTaxableSubtotal / $subtotal
-            : 0.00;
+        ? $grossTaxableSubtotal / $subtotal
+        : 0.00;
 
     $taxableDiscount =
         round(
@@ -230,38 +230,6 @@ try {
 
         } else {
 
-            $cancelDestination =
-                trim(
-                    $_POST['cancel_destination']
-                    ?? ''
-                );
-
-            $safeCancelDestination =
-                APPLICATION_URL
-                . '/sales/new.php';
-
-            if (
-                $cancelDestination !== ''
-                &&
-                str_starts_with(
-                    $cancelDestination,
-                    APPLICATION_URL . '/'
-                )
-                &&
-                !str_contains(
-                    $cancelDestination,
-                    "\r"
-                )
-                &&
-                !str_contains(
-                    $cancelDestination,
-                    "\n"
-                )
-            ) {
-                $safeCancelDestination =
-                    $cancelDestination;
-            }
-
             try {
 
                 $cancelStatement =
@@ -285,51 +253,41 @@ try {
                 $cancelStatement->closeCursor();
 
 
-                if ($cancelDestination !== '') {
-
-                    header(
-                        'Location: '
-                        . $safeCancelDestination
+                $startStatement =
+                    $databaseConnection->prepare(
+                        '
+                        CALL sp_start_sale(
+                            :storeID,
+                            :registerID,
+                            :operatorID
+                        )
+                        '
                     );
 
-                } else {
+                $startStatement->execute([
+                    ':storeID' =>
+                        $storeID,
 
-                    $startStatement =
-                        $databaseConnection->prepare(
-                            '
-                            CALL sp_start_sale(
-                                :storeID,
-                                :registerID,
-                                :operatorID
-                            )
-                            '
-                        );
+                    ':registerID' =>
+                        (int) $saleRecord['RegisterID'],
 
-                    $startStatement->execute([
-                        ':storeID' =>
-                            $storeID,
+                    ':operatorID' =>
+                        $operatorID
+                ]);
 
-                        ':registerID' =>
-                            (int)$saleRecord['RegisterID'],
+                $newSale =
+                    $startStatement->fetch();
 
-                        ':operatorID' =>
-                            $operatorID
-                    ]);
-
-                    $newSale =
-                        $startStatement->fetch();
-
-                    $startStatement->closeCursor();
+                $startStatement->closeCursor();
 
 
-                    header(
-                        'Location: '
-                        . APPLICATION_URL
-                        . '/sales/new.php?receipt='
-                        . (int)$newSale['ReceiptID']
-                        . '&cancelled=1'
-                    );
-                }
+                header(
+                    'Location: '
+                    . APPLICATION_URL
+                    . '/sales/new.php?receipt='
+                    . (int) $newSale['ReceiptID']
+                    . '&cancelled=1'
+                );
 
                 exit;
 
@@ -339,6 +297,103 @@ try {
                     getSafeDatabaseErrorMessage(
                         $exception,
                         'The sale could not be cancelled.'
+                    );
+            }
+        }
+    }
+
+
+    if (
+        $_SERVER['REQUEST_METHOD'] === 'POST'
+        &&
+        isset($_POST['close_register'])
+    ) {
+
+        $submittedSecurityToken =
+            $_POST['form_security_token']
+            ?? '';
+
+
+        if (
+            !formSecurityTokenIsValid(
+                $submittedSecurityToken
+            )
+        ) {
+
+            $errorMessage =
+                'The form expired. Please try again.';
+
+        } else {
+
+            $closeDestination =
+                trim(
+                    $_POST['close_destination']
+                    ?? ''
+                );
+
+            $safeCloseDestination =
+                APPLICATION_URL
+                . '/sales/new.php?closed=1';
+
+            if (
+                $closeDestination !== ''
+                &&
+                str_starts_with(
+                    $closeDestination,
+                    APPLICATION_URL . '/'
+                )
+                &&
+                !str_contains(
+                    $closeDestination,
+                    "\r"
+                )
+                &&
+                !str_contains(
+                    $closeDestination,
+                    "\n"
+                )
+            ) {
+
+                $safeCloseDestination =
+                    $closeDestination;
+            }
+
+            try {
+
+                $closeStatement =
+                    $databaseConnection->prepare(
+                        '
+                        CALL sp_void_sale(
+                            :receiptID,
+                            :operatorID
+                        )
+                        '
+                    );
+
+                $closeStatement->execute([
+                    ':receiptID' =>
+                        $receiptID,
+
+                    ':operatorID' =>
+                        $operatorID
+                ]);
+
+                $closeStatement->closeCursor();
+
+
+                header(
+                    'Location: '
+                    . $safeCloseDestination
+                );
+
+                exit;
+
+            } catch (PDOException $exception) {
+
+                $errorMessage =
+                    getSafeDatabaseErrorMessage(
+                        $exception,
+                        'The register could not be closed.'
                     );
             }
         }
@@ -516,28 +571,28 @@ require __DIR__ . '/../includes/header.php';
                         <td>
                             <?= escapeOutput(
                                 $saleItem['UnitType'] === 'Each'
-                                    ? number_format(
-                                        (float)$saleItem['Quantity'],
-                                        0
-                                    )
-                                    : number_format(
-                                        (float)$saleItem['Quantity'],
-                                        3
-                                    )
+                                ? number_format(
+                                    (float) $saleItem['Quantity'],
+                                    0
+                                )
+                                : number_format(
+                                    (float) $saleItem['Quantity'],
+                                    3
+                                )
                             ) ?>
                         </td>
 
                         <td>
                             $<?= escapeOutput(
                                 number_format(
-                                    (float)$saleItem['UnitPrice'],
+                                    (float) $saleItem['UnitPrice'],
                                     2
                                 )
                             ) ?>
                         </td>
 
                         <td>
-                            <?= (int)$saleItem['Taxable'] === 1
+                            <?= (int) $saleItem['Taxable'] === 1
                                 ? 'Taxable'
                                 : 'No Tax'
                             ?>
@@ -546,7 +601,7 @@ require __DIR__ . '/../includes/header.php';
                         <td>
                             $<?= escapeOutput(
                                 number_format(
-                                    (float)$saleItem['LineTotal'],
+                                    (float) $saleItem['LineTotal'],
                                     2
                                 )
                             ) ?>
@@ -694,7 +749,7 @@ require __DIR__ . '/../includes/header.php';
         <input
             type="hidden"
             name="receipt_id"
-            value="<?= (int)$receiptID ?>"
+            value="<?= (int) $receiptID ?>"
         >
 
 
@@ -737,7 +792,7 @@ require __DIR__ . '/../includes/header.php';
 
 
             <a
-                href="<?= APPLICATION_URL ?>/sales/new.php?receipt=<?= (int)$receiptID ?>"
+                href="<?= APPLICATION_URL ?>/sales/new.php?receipt=<?= (int) $receiptID ?>"
                 class="button button-secondary"
                 data-checkout-safe="true"
             >
@@ -764,14 +819,7 @@ require __DIR__ . '/../includes/header.php';
         <input
             type="hidden"
             name="receipt_id"
-            value="<?= (int)$receiptID ?>"
-        >
-
-        <input
-            type="hidden"
-            id="cancel_destination"
-            name="cancel_destination"
-            value=""
+            value="<?= (int) $receiptID ?>"
         >
 
         <input
@@ -786,9 +834,44 @@ require __DIR__ . '/../includes/header.php';
             name="cancel_sale"
             value="1"
             class="button button-danger"
+            onclick="return window.confirm('Cancel this sale? All scanned items will be returned to inventory.');"
         >
             Cancel Sale
         </button>
+
+    </form>
+
+
+    <form
+        method="post"
+        id="closeCheckoutRegisterForm"
+        hidden
+    >
+
+        <input
+            type="hidden"
+            name="form_security_token"
+            value="<?= escapeOutput(getFormSecurityToken()) ?>"
+        >
+
+        <input
+            type="hidden"
+            name="receipt_id"
+            value="<?= (int) $receiptID ?>"
+        >
+
+        <input
+            type="hidden"
+            id="checkout_close_destination"
+            name="close_destination"
+            value=""
+        >
+
+        <input
+            type="hidden"
+            name="close_register"
+            value="1"
+        >
 
     </form>
 
@@ -803,7 +886,7 @@ require __DIR__ . '/../includes/header.php';
         </h2>
 
         <p>
-            This sale has not been paid. Choose what should happen.
+            This transaction has not been paid. Choose what should happen before leaving this screen.
         </p>
 
 
@@ -822,15 +905,15 @@ require __DIR__ . '/../includes/header.php';
                 id="checkoutSaveButton"
                 class="button button-primary"
             >
-                Save Sale and Leave
+                Save Transaction and Leave
             </button>
 
             <button
                 type="button"
-                id="checkoutCancelButton"
+                id="checkoutCloseButton"
                 class="button button-danger"
             >
-                Cancel Sale and Leave
+                Close Register and Leave
             </button>
 
         </div>
@@ -853,9 +936,14 @@ require __DIR__ . '/../includes/header.php';
             'cancelCheckoutSaleForm'
         );
 
-    const cancelDestinationInput =
+    const closeRegisterForm =
         document.getElementById(
-            'cancel_destination'
+            'closeCheckoutRegisterForm'
+        );
+
+    const closeDestinationInput =
+        document.getElementById(
+            'checkout_close_destination'
         );
 
     const paymentForm =
@@ -873,9 +961,9 @@ require __DIR__ . '/../includes/header.php';
             'checkoutSaveButton'
         );
 
-    const cancelButton =
+    const closeButton =
         document.getElementById(
-            'checkoutCancelButton'
+            'checkoutCloseButton'
         );
 
     let pendingDestination = '';
@@ -917,6 +1005,7 @@ require __DIR__ . '/../includes/header.php';
                 ||
                 destination.startsWith('mailto:')
             ) {
+
                 return;
             }
 
@@ -934,6 +1023,8 @@ require __DIR__ . '/../includes/header.php';
         'click',
         function () {
 
+            pendingDestination = '';
+
             leaveDialog.close();
         }
     );
@@ -942,6 +1033,13 @@ require __DIR__ . '/../includes/header.php';
     saveButton.addEventListener(
         'click',
         function () {
+
+            if (pendingDestination === '') {
+
+                leaveDialog.close();
+
+                return;
+            }
 
             allowCheckoutLeave = true;
 
@@ -953,16 +1051,32 @@ require __DIR__ . '/../includes/header.php';
     );
 
 
-    cancelButton.addEventListener(
+    closeButton.addEventListener(
         'click',
         function () {
 
+            if (pendingDestination === '') {
+
+                leaveDialog.close();
+
+                return;
+            }
+
+            const confirmed =
+                window.confirm(
+                    'Close this register? The current transaction will be cancelled and all scanned items will be returned to inventory.'
+                );
+
+            if (!confirmed) {
+                return;
+            }
+
             allowCheckoutLeave = true;
 
-            cancelDestinationInput.value =
+            closeDestinationInput.value =
                 pendingDestination;
 
-            cancelSaleForm.requestSubmit();
+            closeRegisterForm.requestSubmit();
         }
     );
 
@@ -977,6 +1091,15 @@ require __DIR__ . '/../includes/header.php';
 
 
     cancelSaleForm.addEventListener(
+        'submit',
+        function () {
+
+            allowCheckoutLeave = true;
+        }
+    );
+
+
+    closeRegisterForm.addEventListener(
         'submit',
         function () {
 

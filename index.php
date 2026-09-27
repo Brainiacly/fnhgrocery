@@ -396,16 +396,16 @@ require __DIR__ . '/includes/header.php';
             <div class="home-menu-grid">
 
                 <a
-                    href="<?= APPLICATION_URL ?>/sales/new.php"
+                    href="<?= escapeOutput($saleNavigationHref) ?>"
                     class="home-menu-card"
                 >
 
                     <strong>
-                        New Sale
+                        <?= escapeOutput($saleNavigationLabel) ?>
                     </strong>
 
                     <span>
-                        Ring up groceries and begin a new customer transaction.
+                        <?= escapeOutput($saleNavigationDescription) ?>
                     </span>
 
                 </a>

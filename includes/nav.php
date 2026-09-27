@@ -57,6 +57,114 @@ $onSalesPage =
 
 $onInventoryPage =
     $currentSection === 'inventory';
+
+
+// Set the sales navigation action for the current operator
+$saleNavigationHref =
+    APPLICATION_URL . '/sales/new.php';
+
+$saleNavigationLabel =
+    'New Sale';
+
+$saleNavigationDescription =
+    'Ring up groceries and begin a new customer transaction.';
+
+
+if (
+    operatorIsLoggedIn()
+    &&
+    operatorHasAssignedAccess()
+) {
+
+    try {
+
+        $saleNavigationConnection =
+            connectDatabase();
+
+        $saleNavigationStatement =
+            $saleNavigationConnection->prepare(
+                '
+                SELECT
+                    sr.ReceiptID,
+                    COUNT(srl.ReceiptLineID)
+                        AS ItemLineCount
+                FROM salesreceipt sr
+                LEFT JOIN salesreceiptline srl
+                    ON srl.ReceiptID =
+                        sr.ReceiptID
+                WHERE sr.StoreID =
+                    :storeID
+                  AND sr.OperatorID =
+                    :operatorID
+                  AND sr.Status =
+                    \'Open\'
+                GROUP BY
+                    sr.ReceiptID,
+                    sr.TransactionDateTime
+                ORDER BY
+                    sr.TransactionDateTime DESC,
+                    sr.ReceiptID DESC
+                LIMIT 1
+                '
+            );
+
+        $saleNavigationStatement->execute([
+            ':storeID' =>
+                (int) ($_SESSION['store_id'] ?? 0),
+
+            ':operatorID' =>
+                (int) ($_SESSION['operator_id'] ?? 0)
+        ]);
+
+        $saleNavigationRecord =
+            $saleNavigationStatement->fetch();
+
+
+        if ($saleNavigationRecord) {
+
+            $saleNavigationHref =
+                APPLICATION_URL
+                . '/sales/new.php?receipt='
+                . (int) $saleNavigationRecord['ReceiptID'];
+
+
+            if (
+                (int) $saleNavigationRecord['ItemLineCount']
+                >
+                0
+            ) {
+
+                $saleNavigationLabel =
+                    'Continue Sale';
+
+                $saleNavigationDescription =
+                    'Return to your open transaction and continue ringing up groceries.';
+
+            } else {
+
+                $saleNavigationLabel =
+                    'Return to Checkout';
+
+                $saleNavigationDescription =
+                    'Return to your open register session.';
+            }
+        }
+
+    } catch (PDOException $exception) {
+
+        error_log(
+            $exception->getMessage()
+        );
+    }
+}
+
+
+$showSaleNavigationLink =
+    !(
+        $onSalesPage
+        &&
+        $currentPage === 'new'
+    );
 ?>
 
 
@@ -293,12 +401,16 @@ $onInventoryPage =
                 </div>
 
 
-                <a
-                    href="<?= APPLICATION_URL ?>/sales/new.php"
-                    class="navigation-link"
-                >
-                    New Sale
-                </a>
+                <?php if ($showSaleNavigationLink): ?>
+
+                    <a
+                        href="<?= escapeOutput($saleNavigationHref) ?>"
+                        class="navigation-link"
+                    >
+                        <?= escapeOutput($saleNavigationLabel) ?>
+                    </a>
+
+                <?php endif; ?>
 
 
                 <a
@@ -336,12 +448,16 @@ $onInventoryPage =
                 </a>
 
 
-                <a
-                    href="<?= APPLICATION_URL ?>/sales/new.php"
-                    class="navigation-link"
-                >
-                    New Sale
-                </a>
+                <?php if ($showSaleNavigationLink): ?>
+
+                    <a
+                        href="<?= escapeOutput($saleNavigationHref) ?>"
+                        class="navigation-link"
+                    >
+                        <?= escapeOutput($saleNavigationLabel) ?>
+                    </a>
+
+                <?php endif; ?>
 
 
                 <a
@@ -379,12 +495,16 @@ $onInventoryPage =
                 </a>
 
 
-                <a
-                    href="<?= APPLICATION_URL ?>/sales/new.php"
-                    class="navigation-link"
-                >
-                    New Sale
-                </a>
+                <?php if ($showSaleNavigationLink): ?>
+
+                    <a
+                        href="<?= escapeOutput($saleNavigationHref) ?>"
+                        class="navigation-link"
+                    >
+                        <?= escapeOutput($saleNavigationLabel) ?>
+                    </a>
+
+                <?php endif; ?>
 
 
                 <a
@@ -418,12 +538,16 @@ $onInventoryPage =
                 <?php endif; ?>
 
 
-                <a
-                    href="<?= APPLICATION_URL ?>/sales/new.php"
-                    class="navigation-link"
-                >
-                    New Sale
-                </a>
+                <?php if ($showSaleNavigationLink): ?>
+
+                    <a
+                        href="<?= escapeOutput($saleNavigationHref) ?>"
+                        class="navigation-link"
+                    >
+                        <?= escapeOutput($saleNavigationLabel) ?>
+                    </a>
+
+                <?php endif; ?>
 
 
                 <a
@@ -463,12 +587,16 @@ $onInventoryPage =
 
                 <?php if ($currentPage !== 'new'): ?>
 
-                    <a
-                        href="<?= APPLICATION_URL ?>/sales/new.php"
-                        class="navigation-link"
-                    >
-                        New Sale
-                    </a>
+                    <?php if ($showSaleNavigationLink): ?>
+
+                        <a
+                            href="<?= escapeOutput($saleNavigationHref) ?>"
+                            class="navigation-link"
+                        >
+                            <?= escapeOutput($saleNavigationLabel) ?>
+                        </a>
+
+                    <?php endif; ?>
 
                 <?php endif; ?>
 
@@ -508,12 +636,16 @@ $onInventoryPage =
                 </a>
 
 
-                <a
-                    href="<?= APPLICATION_URL ?>/sales/new.php"
-                    class="navigation-link"
-                >
-                    New Sale
-                </a>
+                <?php if ($showSaleNavigationLink): ?>
+
+                    <a
+                        href="<?= escapeOutput($saleNavigationHref) ?>"
+                        class="navigation-link"
+                    >
+                        <?= escapeOutput($saleNavigationLabel) ?>
+                    </a>
+
+                <?php endif; ?>
 
 
                 <?php if ($currentPage !== 'list'): ?>
@@ -559,12 +691,16 @@ $onInventoryPage =
                 <?php endif; ?>
 
 
-                <a
-                    href="<?= APPLICATION_URL ?>/sales/new.php"
-                    class="navigation-link"
-                >
-                    New Sale
-                </a>
+                <?php if ($showSaleNavigationLink): ?>
+
+                    <a
+                        href="<?= escapeOutput($saleNavigationHref) ?>"
+                        class="navigation-link"
+                    >
+                        <?= escapeOutput($saleNavigationLabel) ?>
+                    </a>
+
+                <?php endif; ?>
 
 
                 <a

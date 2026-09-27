@@ -115,6 +115,13 @@ button {
 }
 
 
+/* Hidden controls */
+
+[hidden] {
+    display: none !important;
+}
+
+
 /* Screen reader text */
 
 .screen-reader-text {
@@ -243,6 +250,16 @@ button {
     font-size: 0.9375rem;
 
     line-height: 1.4;
+}
+
+
+/* Internal page titles are displayed in the site header */
+
+.inventory-panel > .page-intro h1,
+.operator-list-panel .page-intro h1,
+.form-panel > .page-intro h1,
+.delete-panel > .page-intro h1 {
+    display: none;
 }
 
 

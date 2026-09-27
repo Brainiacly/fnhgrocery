@@ -38,13 +38,15 @@
     text-align: center;
 }
 
-.sale-resume-actions {
+.sale-resume-actions,
+.sale-register-actions {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
 }
 
-.sale-resume-actions .button {
+.sale-resume-actions .button,
+.sale-register-actions .button {
     width: 100%;
 }
 
@@ -52,7 +54,7 @@
 
 .sale-information {
     display: grid;
-    grid-template-columns: minmax(0, 2.2fr) minmax(5rem, 0.55fr) minmax(9rem, 1fr);
+    grid-template-columns: minmax(0, 2fr) minmax(10rem, 1fr);
     gap: 0.5rem;
     margin-bottom: 0.625rem;
     padding: 0.625rem 0.75rem;
@@ -86,15 +88,48 @@
 /* Barcode entry */
 
 .sale-scan-form {
+    width: 100%;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 8rem auto;
+    grid-template-columns: minmax(0, 1fr) 4.5rem auto;
     align-items: end;
     gap: 0.75rem;
-    margin-bottom: 0.75rem;
+    margin: 0 0 0.75rem;
     padding: 0.75rem;
     border: 0.0625rem solid var(--standard-border-color);
     border-radius: var(--standard-border-radius);
-    background: var(--page-background-light-color);
+    background: var(--panel-background-color);
+}
+
+.sale-barcode-field {
+    min-width: 0;
+    width: 100%;
+}
+
+.sale-barcode-field label {
+    white-space: nowrap;
+}
+
+.sale-barcode-field input {
+    width: 100%;
+}
+
+.sale-quantity-field {
+    width: 4.5rem;
+}
+
+.sale-scan-message {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+}
+
+.sale-quantity-field input {
+    width: 100%;
+}
+
+.sale-scan-form .button {
+    width: auto;
+    white-space: nowrap;
 }
 
 /* Main POS workspace */
@@ -127,16 +162,19 @@
 .sale-product-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
     gap: 0.625rem;
 }
 
 .sale-product-form {
+    height: 100%;
     margin: 0;
 }
 
 .sale-product-button {
     width: 100%;
-    min-height: 7rem;
+    height: 100%;
+    min-height: 10rem;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -160,6 +198,14 @@
     font-size: 0.8125rem;
 }
 
+.sale-product-code {
+    min-height: 1rem;
+    color: var(--secondary-text-color);
+    font-size: 0.75rem !important;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+}
+
 .sale-product-button:hover,
 .sale-product-button:focus-visible {
     border-color: var(--theme-orange-dark-color);
@@ -178,6 +224,14 @@
 
 .sale-product-button:disabled strong {
     color: var(--disabled-text-color);
+}
+
+.sale-weighted-product-button::after {
+    content: "Enter Weight";
+    margin-top: 0.125rem;
+    color: var(--theme-primary-dark-color);
+    font-size: 0.75rem;
+    font-weight: bold;
 }
 
 /* Current receipt */
@@ -219,6 +273,7 @@
 }
 
 .sale-remove-button {
+    width: 100%;
     min-width: 7rem;
 }
 
@@ -388,6 +443,10 @@
     .sale-quantity-field {
         width: 100%;
     }
+
+    .sale-scan-form .button {
+        width: 100%;
+    }
 }
 
 /* Tablet */
@@ -398,13 +457,15 @@
     }
 
     .sale-actions,
-    .sale-resume-actions {
+    .sale-resume-actions,
+    .sale-register-actions {
         flex-direction: row;
     }
 
     .sale-actions > *,
     .sale-actions form,
-    .sale-resume-actions .button {
+    .sale-resume-actions .button,
+    .sale-register-actions .button {
         flex: 1 1 0;
         min-width: 0;
     }

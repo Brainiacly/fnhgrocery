@@ -15,7 +15,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 function escapeOutput($value)
 {
     return htmlspecialchars(
-        (string)$value,
+        (string) $value,
         ENT_QUOTES,
         'UTF-8'
     );
@@ -120,12 +120,21 @@ function middleInitialIsValid($middleInitial)
         || preg_match('/^[A-Za-z]$/', $middleInitial) === 1;
 }
 
+
+// Check optional phone number
+function phoneNumberIsValid($phone)
+{
+    return $phone === ''
+        || preg_match('/^[0-9]{10}$/', $phone) === 1;
+}
+
+
 // Get logged-in operator display name
 function getLoggedInOperatorDisplayName()
 {
-    $firstName = trim((string)($_SESSION['first_name'] ?? ''));
-    $middleInitial = trim((string)($_SESSION['middle_initial'] ?? ''));
-    $lastName = trim((string)($_SESSION['last_name'] ?? ''));
+    $firstName = trim((string) ($_SESSION['first_name'] ?? ''));
+    $middleInitial = trim((string) ($_SESSION['middle_initial'] ?? ''));
+    $lastName = trim((string) ($_SESSION['last_name'] ?? ''));
 
     $nameParts = [];
 
@@ -145,7 +154,7 @@ function getLoggedInOperatorDisplayName()
         return implode(' ', $nameParts);
     }
 
-    $username = trim((string)($_SESSION['username'] ?? ''));
+    $username = trim((string) ($_SESSION['username'] ?? ''));
 
     return $username !== '' ? $username : 'User';
 }
@@ -188,19 +197,19 @@ function refreshCurrentOperatorSession()
 
         $operatorRecord = $statement->fetch();
 
-        if (!$operatorRecord || (int)$operatorRecord['Active'] !== 1) {
+        if (!$operatorRecord || (int) $operatorRecord['Active'] !== 1) {
             $_SESSION = [];
             session_destroy();
             return;
         }
 
         $_SESSION['operator_id'] =
-            (int)$operatorRecord['OperatorID'];
+            (int) $operatorRecord['OperatorID'];
 
         $_SESSION['store_id'] =
             $operatorRecord['StoreID'] === null
-                ? null
-                : (int)$operatorRecord['StoreID'];
+            ? null
+            : (int) $operatorRecord['StoreID'];
 
         $_SESSION['store_number'] =
             $operatorRecord['StoreNumber'];

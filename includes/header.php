@@ -91,7 +91,7 @@ if (
     &&
     $currentPage === 'new'
 ) {
-    $headerPageTitle = 'Ring Up New Sale';
+    $headerPageTitle = $pageTitle;
 }
 
 if (

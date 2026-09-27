@@ -77,8 +77,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errorMessage = 'Middle initial must be one letter or left blank.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errorMessage = 'Enter a valid email address.';
-    } elseif (strlen($phone) > 20) {
-        $errorMessage = 'Phone number cannot contain more than 20 characters.';
+    } elseif (!phoneNumberIsValid($phone)) {
+        $errorMessage = 'Phone number must contain exactly 10 digits or be left blank.';
     } elseif (!passwordMeetsRequirements($enteredPassword)) {
         $errorMessage =
             passwordRequirementText();
@@ -194,8 +194,7 @@ require __DIR__ . '/../includes/header.php';
 
                     <?php foreach ($storeRecords as $storeRecord): ?>
 
-                        <option value="<?= (int) $storeRecord['StoreID'] ?>"
-                            <?= (string) $selectedStoreID === (string) $storeRecord['StoreID'] ? 'selected' : '' ?>>
+                        <option value="<?= (int) $storeRecord['StoreID'] ?>" <?= (string) $selectedStoreID === (string) $storeRecord['StoreID'] ? 'selected' : '' ?>>
                             <?= escapeOutput($storeRecord['StoreNumber']) ?>
                             -
                             <?= escapeOutput($storeRecord['StoreName']) ?>
@@ -256,8 +255,9 @@ require __DIR__ . '/../includes/header.php';
                     Phone
                 </label>
 
-                <input type="tel" id="phone" name="phone" value="<?= escapeOutput($phone) ?>" maxlength="20"
-                    autocomplete="tel">
+                <input type="tel" id="phone" name="phone" value="<?= escapeOutput($phone) ?>" minlength="10"
+                    maxlength="10" pattern="[0-9]{10}" inputmode="numeric"
+                    title="Enter exactly 10 digits with no spaces or punctuation." autocomplete="tel">
             </div>
 
             <div class="form-field">
