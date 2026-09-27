@@ -946,15 +946,15 @@ require __DIR__ . '/../includes/header.php';
 
         <?php endif; ?>
 
-        <?php if ($successMessage !== ''): ?>
-
-            <div class="message message-success">
-                <?= escapeOutput($successMessage) ?>
-            </div>
-
-        <?php endif; ?>
-
         <section class="sale-start-panel">
+
+            <?php if ($successMessage !== ''): ?>
+
+                <div class="message message-success">
+                    <?= escapeOutput($successMessage) ?>
+                </div>
+
+            <?php endif; ?>
 
             <form method="post">
 
