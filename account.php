@@ -252,29 +252,26 @@ require __DIR__ . '/includes/header.php';
             <div class="form-field">
                 <label for="username">
                     Username *
+                    <span class="field-label-note">
+                        - Must be unique
+                    </span>
                 </label>
 
                 <input type="text" id="username" name="username" value="<?= escapeOutput($username) ?>" maxlength="50"
                     required autocomplete="username">
-
-                <div class="field-help">
-                    Username must be unique.
-                </div>
             </div>
-
             <div class="form-field">
                 <label>
                     Assigned Store
+                    <span class="field-label-note">
+                        - Managed by admin
+                    </span>
                 </label>
 
                 <div class="read-only-value">
                     <?= escapeOutput($accountRecord['StoreNumber']) ?>
                     -
                     <?= escapeOutput($accountRecord['StoreName']) ?>
-                </div>
-
-                <div class="field-help">
-                    Store assignments are managed by an administrator.
                 </div>
             </div>
 
