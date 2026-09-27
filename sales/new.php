@@ -1570,6 +1570,7 @@ require __DIR__ . '/../includes/header.php';
                             administratorCanClose
                         );
                 }
+            }
 
             if (registerSelect) {
 
