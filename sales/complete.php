@@ -138,17 +138,13 @@ require __DIR__ . '/../includes/header.php';
 
 <section class="content-panel sale-complete-panel">
 
-    <div class="page-intro">
+<div class="page-intro">
 
-        <h1>
-            Sale Complete
-        </h1>
+    <p>
+        The transaction has been recorded.
+    </p>
 
-        <p>
-            The transaction has been recorded.
-        </p>
-
-    </div>
+</div>
 
 
     <?php if ($errorMessage !== ''): ?>
