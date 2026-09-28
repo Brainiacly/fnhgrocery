@@ -1,7 +1,6 @@
 -- FnH Groceries
 -- Database and Table Creation
 
-CREATE DATABASE IF NOT EXISTS csc680-fnhgroceries_fnh_groceries;
 USE `csc680-fnhgroceries_fnh_groceries`;
 
 -- Drop existing tables in reverse foreign-key order

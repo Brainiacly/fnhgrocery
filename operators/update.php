@@ -132,6 +132,9 @@ $selectedRole =
 $hireDate =
     $operatorRecord['HireDate'] ?? '';
 
+$openSaleCancellationConfirmed =
+    false;
+
 
 if (
     $_SERVER['REQUEST_METHOD'] === 'POST'

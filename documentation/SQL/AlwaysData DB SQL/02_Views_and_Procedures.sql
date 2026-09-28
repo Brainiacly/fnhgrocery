@@ -1,8 +1,6 @@
 -- FnH Groceries
 -- Views and Procedures
-
 USE `csc680-fnhgroceries_fnh_groceries`;
-
 -- Drop views in reverse dependency order
 DROP VIEW IF EXISTS vw_operatoractivity;
 DROP VIEW IF EXISTS vw_dailysalessummary;
@@ -21,77 +19,660 @@ DROP VIEW IF EXISTS vw_pos_products;
 DROP VIEW IF EXISTS vw_operatorlist;
 DROP VIEW IF EXISTS vw_operatorlogin;
 DROP VIEW IF EXISTS vw_storelist;
-
 -- Create views in dependency order
-
 -- vw_storelist
 CREATE VIEW vw_storelist AS
-select store.StoreID AS StoreID,store.StoreNumber AS StoreNumber,store.StoreName AS StoreName,store.AddressLine1 AS AddressLine1,store.AddressLine2 AS AddressLine2,store.City AS City,store.StateCode AS StateCode,store.PostalCode AS PostalCode,store.Phone AS Phone,store.Active AS Active from store;
-
+SELECT
+	store.StoreID AS StoreID,
+	store.StoreNumber AS StoreNumber,
+	store.StoreName AS StoreName,
+	store.AddressLine1 AS AddressLine1,
+	store.AddressLine2 AS AddressLine2,
+	store.City AS City,
+	store.StateCode AS StateCode,
+	store.PostalCode AS PostalCode,
+	store.Phone AS Phone,
+	store.Active AS Active
+FROM store;
 -- vw_operatorlogin
 CREATE VIEW vw_operatorlogin AS
-select o.OperatorID AS OperatorID,o.StoreID AS StoreID,s.StoreNumber AS StoreNumber,s.StoreName AS StoreName,o.EmployeeNumber AS EmployeeNumber,o.Username AS Username,o.PasswordHash AS PasswordHash,o.FirstName AS FirstName,o.MiddleInitial AS MiddleInitial,o.LastName AS LastName,o.Email AS Email,o.Phone AS Phone,o.Role AS Role from (operator o join store s on(s.StoreID = o.StoreID)) where o.Active = 1 and s.Active = 1;
-
+SELECT
+	o.OperatorID AS OperatorID,
+	o.StoreID AS StoreID,
+	s.StoreNumber AS StoreNumber,
+	s.StoreName AS StoreName,
+	o.EmployeeNumber AS EmployeeNumber,
+	o.Username AS Username,
+	o.PasswordHash AS PasswordHash,
+	o.FirstName AS FirstName,
+	o.MiddleInitial AS MiddleInitial,
+	o.LastName AS LastName,
+	o.Email AS Email,
+	o.Phone AS Phone,
+	o.Role AS Role
+FROM operator o
+JOIN store s
+	ON s.StoreID = o.StoreID
+WHERE o.Active = 1
+AND s.Active = 1;
 -- vw_operatorlist
 CREATE VIEW vw_operatorlist AS
-select o.OperatorID AS OperatorID,o.StoreID AS StoreID,s.StoreNumber AS StoreNumber,s.StoreName AS StoreName,o.EmployeeNumber AS EmployeeNumber,o.Username AS Username,o.FirstName AS FirstName,o.MiddleInitial AS MiddleInitial,o.LastName AS LastName,concat(o.LastName,', ',o.FirstName,case when o.MiddleInitial is null or trim(o.MiddleInitial) = '' then '' else concat(', ',ucase(o.MiddleInitial),'.') end) AS FullName,o.Email AS Email,o.Phone AS Phone,o.Role AS Role,o.HireDate AS HireDate,o.Active AS Active,o.CreatedAt AS CreatedAt from (operator o join store s on(s.StoreID = o.StoreID));
-
+SELECT
+	o.OperatorID AS OperatorID,
+	o.StoreID AS StoreID,
+	s.StoreNumber AS StoreNumber,
+	s.StoreName AS StoreName,
+	o.EmployeeNumber AS EmployeeNumber,
+	o.Username AS Username,
+	o.FirstName AS FirstName,
+	o.MiddleInitial AS MiddleInitial,
+	o.LastName AS LastName,
+	CONCAT(
+		o.LastName,
+		', ',
+		o.FirstName,
+		CASE
+			WHEN o.MiddleInitial IS NULL
+				OR TRIM(o.MiddleInitial) = ''
+			THEN ''
+			ELSE CONCAT(
+				', ',
+				UCASE(o.MiddleInitial),
+				'.'
+			)
+		END
+	) AS FullName,
+	o.Email AS Email,
+	o.Phone AS Phone,
+	o.Role AS Role,
+	o.HireDate AS HireDate,
+	o.Active AS Active,
+	o.CreatedAt AS CreatedAt
+FROM operator o
+JOIN store s
+	ON s.StoreID = o.StoreID;
 -- vw_pos_products
 CREATE VIEW vw_pos_products AS
-select si.StoreID AS StoreID,p.ProductID AS ProductID,p.DepartmentID AS DepartmentID,d.DepartmentName AS DepartmentName,p.UPC AS UPC,p.PLUCode AS PLUCode,p.ProductName AS ProductName,p.UnitType AS UnitType,p.RetailPrice AS RetailPrice,p.Taxable AS Taxable,si.StockQuantity AS StockQuantity from ((product p join department d on(d.DepartmentID = p.DepartmentID)) join storeinventory si on(si.ProductID = p.ProductID)) where p.Active = 1;
-
+SELECT
+	si.StoreID AS StoreID,
+	p.ProductID AS ProductID,
+	p.DepartmentID AS DepartmentID,
+	d.DepartmentName AS DepartmentName,
+	p.UPC AS UPC,
+	p.PLUCode AS PLUCode,
+	p.ProductName AS ProductName,
+	p.UnitType AS UnitType,
+	p.RetailPrice AS RetailPrice,
+	p.Taxable AS Taxable,
+	si.StockQuantity AS StockQuantity
+FROM product p
+JOIN department d
+	ON d.DepartmentID = p.DepartmentID
+JOIN storeinventory si
+	ON si.ProductID = p.ProductID
+WHERE p.Active = 1;
 -- vw_store_stock
 CREATE VIEW vw_store_stock AS
-select s.StoreID AS StoreID,s.StoreNumber AS StoreNumber,s.StoreName AS StoreName,d.DepartmentID AS DepartmentID,d.DepartmentName AS DepartmentName,p.ProductID AS ProductID,p.UPC AS UPC,p.PLUCode AS PLUCode,p.ProductName AS ProductName,p.UnitType AS UnitType,p.RetailPrice AS RetailPrice,p.Taxable AS Taxable,si.StockQuantity AS StockQuantity,si.Aisle AS Aisle,si.SectionName AS SectionName,si.ShelfLocation AS ShelfLocation from (((storeinventory si join store s on(s.StoreID = si.StoreID)) join product p on(p.ProductID = si.ProductID)) join department d on(d.DepartmentID = p.DepartmentID)) where s.Active = 1 and p.Active = 1;
-
+SELECT
+	s.StoreID AS StoreID,
+	s.StoreNumber AS StoreNumber,
+	s.StoreName AS StoreName,
+	d.DepartmentID AS DepartmentID,
+	d.DepartmentName AS DepartmentName,
+	p.ProductID AS ProductID,
+	p.UPC AS UPC,
+	p.PLUCode AS PLUCode,
+	p.ProductName AS ProductName,
+	p.UnitType AS UnitType,
+	p.RetailPrice AS RetailPrice,
+	p.Taxable AS Taxable,
+	si.StockQuantity AS StockQuantity,
+	si.Aisle AS Aisle,
+	si.SectionName AS SectionName,
+	si.ShelfLocation AS ShelfLocation
+FROM storeinventory si
+JOIN store s
+	ON s.StoreID = si.StoreID
+JOIN product p
+	ON p.ProductID = si.ProductID
+JOIN department d
+	ON d.DepartmentID = p.DepartmentID
+WHERE s.Active = 1
+AND p.Active = 1;
 -- vw_store_stock_total
 CREATE VIEW vw_store_stock_total AS
-select s.StoreID AS StoreID,s.StoreNumber AS StoreNumber,s.StoreName AS StoreName,coalesce(sum(si.StockQuantity),0) AS TotalStockQuantity from (store s left join storeinventory si on(si.StoreID = s.StoreID)) where s.Active = 1 group by s.StoreID,s.StoreNumber,s.StoreName;
-
+SELECT
+	s.StoreID AS StoreID,
+	s.StoreNumber AS StoreNumber,
+	s.StoreName AS StoreName,
+	COALESCE(
+		SUM(
+			si.StockQuantity
+		),
+		0
+	) AS TotalStockQuantity
+FROM store s
+LEFT JOIN storeinventory si
+	ON si.StoreID = s.StoreID
+WHERE s.Active = 1
+GROUP BY
+	s.StoreID,
+	s.StoreNumber,
+	s.StoreName;
 -- vw_storeinventorydetail
 CREATE VIEW vw_storeinventorydetail AS
-select s.StoreID AS StoreID,s.StoreNumber AS StoreNumber,s.StoreName AS StoreName,p.ProductID AS ProductID,p.ProductName AS ProductName,p.UPC AS UPC,p.PLUCode AS PLUCode,p.UnitType AS UnitType,p.UnitCost AS UnitCost,p.RetailPrice AS RetailPrice,si.StockQuantity AS StockQuantity,si.Aisle AS Aisle,si.SectionName AS SectionName,si.ShelfLocation AS ShelfLocation,si.LastCountedAt AS LastCountedAt,d.DepartmentName AS DepartmentName,c.CategoryName AS CategoryName,p.Active AS Active from ((((storeinventory si join store s on(s.StoreID = si.StoreID)) join product p on(p.ProductID = si.ProductID)) join department d on(d.DepartmentID = p.DepartmentID)) join category c on(c.CategoryID = d.CategoryID));
-
+SELECT
+	s.StoreID AS StoreID,
+	s.StoreNumber AS StoreNumber,
+	s.StoreName AS StoreName,
+	p.ProductID AS ProductID,
+	p.ProductName AS ProductName,
+	p.UPC AS UPC,
+	p.PLUCode AS PLUCode,
+	p.UnitType AS UnitType,
+	p.UnitCost AS UnitCost,
+	p.RetailPrice AS RetailPrice,
+	si.StockQuantity AS StockQuantity,
+	si.Aisle AS Aisle,
+	si.SectionName AS SectionName,
+	si.ShelfLocation AS ShelfLocation,
+	si.LastCountedAt AS LastCountedAt,
+	d.DepartmentName AS DepartmentName,
+	c.CategoryName AS CategoryName,
+	p.Active AS Active
+FROM storeinventory si
+JOIN store s
+	ON s.StoreID = si.StoreID
+JOIN product p
+	ON p.ProductID = si.ProductID
+JOIN department d
+	ON d.DepartmentID = p.DepartmentID
+JOIN category c
+	ON c.CategoryID = d.CategoryID;
 -- vw_productinventory
 CREATE VIEW vw_productinventory AS
-select p.ProductID AS ProductID,p.ProductName AS ProductName,p.UPC AS UPC,p.PLUCode AS PLUCode,p.UnitType AS UnitType,p.UnitCost AS UnitCost,p.RetailPrice AS RetailPrice,coalesce(sum(si.StockQuantity),0) AS TotalStockQuantity,count(distinct si.StoreID) AS StoreCount,d.DepartmentID AS DepartmentID,d.DepartmentName AS DepartmentName,c.CategoryID AS CategoryID,c.CategoryName AS CategoryName,p.Active AS Active from (((product p join department d on(d.DepartmentID = p.DepartmentID)) join category c on(c.CategoryID = d.CategoryID)) left join storeinventory si on(si.ProductID = p.ProductID)) group by p.ProductID,p.ProductName,p.UPC,p.PLUCode,p.UnitType,p.UnitCost,p.RetailPrice,d.DepartmentID,d.DepartmentName,c.CategoryID,c.CategoryName,p.Active;
-
+SELECT
+	p.ProductID AS ProductID,
+	p.ProductName AS ProductName,
+	p.UPC AS UPC,
+	p.PLUCode AS PLUCode,
+	p.UnitType AS UnitType,
+	p.UnitCost AS UnitCost,
+	p.RetailPrice AS RetailPrice,
+	COALESCE(
+		SUM(
+			si.StockQuantity
+		),
+		0
+	) AS TotalStockQuantity,
+	COUNT(
+		DISTINCT si.StoreID
+	) AS StoreCount,
+	d.DepartmentID AS DepartmentID,
+	d.DepartmentName AS DepartmentName,
+	c.CategoryID AS CategoryID,
+	c.CategoryName AS CategoryName,
+	p.Active AS Active
+FROM product p
+JOIN department d
+	ON d.DepartmentID = p.DepartmentID
+JOIN category c
+	ON c.CategoryID = d.CategoryID
+LEFT JOIN storeinventory si
+	ON si.ProductID = p.ProductID
+GROUP BY
+	p.ProductID,
+	p.ProductName,
+	p.UPC,
+	p.PLUCode,
+	p.UnitType,
+	p.UnitCost,
+	p.RetailPrice,
+	d.DepartmentID,
+	d.DepartmentName,
+	c.CategoryID,
+	c.CategoryName,
+	p.Active;
 -- vw_departmentproducts
 CREATE VIEW vw_departmentproducts AS
-select d.DepartmentID AS DepartmentID,d.DepartmentName AS DepartmentName,c.CategoryName AS CategoryName,count(p.ProductID) AS ProductCount,min(p.RetailPrice) AS LowestPrice,max(p.RetailPrice) AS HighestPrice,coalesce(sum(inv.TotalStockQuantity),0) AS TotalStock from (((department d join category c on(c.CategoryID = d.CategoryID)) left join product p on(p.DepartmentID = d.DepartmentID and p.Active = 1)) left join (select storeinventory.ProductID AS ProductID,sum(storeinventory.StockQuantity) AS TotalStockQuantity from storeinventory group by storeinventory.ProductID) inv on(inv.ProductID = p.ProductID)) group by d.DepartmentID,d.DepartmentName,c.CategoryName;
-
+SELECT
+	d.DepartmentID AS DepartmentID,
+	d.DepartmentName AS DepartmentName,
+	c.CategoryName AS CategoryName,
+	COUNT(
+		p.ProductID
+	) AS ProductCount,
+	MIN(
+		p.RetailPrice
+	) AS LowestPrice,
+	MAX(
+		p.RetailPrice
+	) AS HighestPrice,
+	COALESCE(
+		SUM(
+			inv.TotalStockQuantity
+		),
+		0
+	) AS TotalStock
+FROM department d
+JOIN category c
+	ON c.CategoryID = d.CategoryID
+LEFT JOIN product p
+	ON p.DepartmentID = d.DepartmentID
+	AND p.Active = 1
+LEFT JOIN (
+	SELECT
+		storeinventory.ProductID AS ProductID,
+		SUM(
+			storeinventory.StockQuantity
+		) AS TotalStockQuantity
+	FROM storeinventory
+	GROUP BY
+		storeinventory.ProductID
+) inv
+	ON inv.ProductID = p.ProductID
+GROUP BY
+	d.DepartmentID,
+	d.DepartmentName,
+	c.CategoryName;
 -- vw_sale_detail
 CREATE VIEW vw_sale_detail AS
-select sr.ReceiptID AS ReceiptID,sr.TransactionNumber AS TransactionNumber,sr.StoreID AS StoreID,sr.RegisterID AS RegisterID,sr.OperatorID AS OperatorID,sr.CustomerID AS CustomerID,sr.TransactionDateTime AS TransactionDateTime,sr.CheckoutDateTime AS CheckoutDateTime,sr.Status AS Status,srl.ReceiptLineID AS ReceiptLineID,srl.LineNumber AS LineNumber,p.ProductID AS ProductID,p.UPC AS UPC,p.PLUCode AS PLUCode,srl.ProductNameAtSale AS ProductName,srl.UnitTypeAtSale AS UnitType,srl.TaxableAtSale AS Taxable,srl.Quantity AS Quantity,srl.UnitPrice AS UnitPrice,srl.LineDiscountAmount AS LineDiscountAmount,round(srl.Quantity * srl.UnitPrice - srl.LineDiscountAmount,2) AS LineTotal from ((salesreceipt sr join salesreceiptline srl on(srl.ReceiptID = sr.ReceiptID)) join product p on(p.ProductID = srl.ProductID));
-
+SELECT
+	sr.ReceiptID AS ReceiptID,
+	sr.TransactionNumber AS TransactionNumber,
+	sr.StoreID AS StoreID,
+	sr.RegisterID AS RegisterID,
+	sr.OperatorID AS OperatorID,
+	sr.CustomerID AS CustomerID,
+	sr.TransactionDateTime AS TransactionDateTime,
+	sr.CheckoutDateTime AS CheckoutDateTime,
+	sr.Status AS Status,
+	srl.ReceiptLineID AS ReceiptLineID,
+	srl.LineNumber AS LineNumber,
+	p.ProductID AS ProductID,
+	p.UPC AS UPC,
+	p.PLUCode AS PLUCode,
+	srl.ProductNameAtSale AS ProductName,
+	srl.UnitTypeAtSale AS UnitType,
+	srl.TaxableAtSale AS Taxable,
+	srl.Quantity AS Quantity,
+	srl.UnitPrice AS UnitPrice,
+	srl.LineDiscountAmount AS LineDiscountAmount,
+	ROUND(
+		srl.Quantity * srl.UnitPrice
+		- srl.LineDiscountAmount,
+		2
+	) AS LineTotal
+FROM salesreceipt sr
+JOIN salesreceiptline srl
+	ON srl.ReceiptID = sr.ReceiptID
+JOIN product p
+	ON p.ProductID = srl.ProductID;
 -- vw_sale_summary
 CREATE VIEW vw_sale_summary AS
-select sr.ReceiptID AS ReceiptID,sr.TransactionNumber AS TransactionNumber,sr.StoreID AS StoreID,sr.RegisterID AS RegisterID,sr.OperatorID AS OperatorID,sr.CustomerID AS CustomerID,sr.TransactionDateTime AS TransactionDateTime,sr.CheckoutDateTime AS CheckoutDateTime,sr.Status AS Status,sr.ReceiptDiscountAmount AS ReceiptDiscountAmount,sr.SubtotalAmount AS SubtotalAmount,sr.TaxableSubtotalAmount AS TaxableSubtotalAmount,sr.TaxAmount AS TaxAmount,sr.TotalAmount AS TotalAmount,sr.PaymentMethod AS PaymentMethod,sr.AmountTendered AS AmountTendered,sr.ChangeDue AS ChangeDue,count(srl.ReceiptLineID) AS LineCount,coalesce(sum(srl.Quantity),0) AS ItemQuantity from (salesreceipt sr left join salesreceiptline srl on(srl.ReceiptID = sr.ReceiptID)) group by sr.ReceiptID,sr.TransactionNumber,sr.StoreID,sr.RegisterID,sr.OperatorID,sr.CustomerID,sr.TransactionDateTime,sr.CheckoutDateTime,sr.Status,sr.ReceiptDiscountAmount,sr.SubtotalAmount,sr.TaxableSubtotalAmount,sr.TaxAmount,sr.TotalAmount,sr.PaymentMethod,sr.AmountTendered,sr.ChangeDue;
-
+SELECT
+	sr.ReceiptID AS ReceiptID,
+	sr.TransactionNumber AS TransactionNumber,
+	sr.StoreID AS StoreID,
+	sr.RegisterID AS RegisterID,
+	sr.OperatorID AS OperatorID,
+	sr.CustomerID AS CustomerID,
+	sr.TransactionDateTime AS TransactionDateTime,
+	sr.CheckoutDateTime AS CheckoutDateTime,
+	sr.Status AS Status,
+	sr.ReceiptDiscountAmount AS ReceiptDiscountAmount,
+	sr.SubtotalAmount AS SubtotalAmount,
+	sr.TaxableSubtotalAmount AS TaxableSubtotalAmount,
+	sr.TaxAmount AS TaxAmount,
+	sr.TotalAmount AS TotalAmount,
+	sr.PaymentMethod AS PaymentMethod,
+	sr.AmountTendered AS AmountTendered,
+	sr.ChangeDue AS ChangeDue,
+	COUNT(
+		srl.ReceiptLineID
+	) AS LineCount,
+	COALESCE(
+		SUM(
+			srl.Quantity
+		),
+		0
+	) AS ItemQuantity
+FROM salesreceipt sr
+LEFT JOIN salesreceiptline srl
+	ON srl.ReceiptID = sr.ReceiptID
+GROUP BY
+	sr.ReceiptID,
+	sr.TransactionNumber,
+	sr.StoreID,
+	sr.RegisterID,
+	sr.OperatorID,
+	sr.CustomerID,
+	sr.TransactionDateTime,
+	sr.CheckoutDateTime,
+	sr.Status,
+	sr.ReceiptDiscountAmount,
+	sr.SubtotalAmount,
+	sr.TaxableSubtotalAmount,
+	sr.TaxAmount,
+	sr.TotalAmount,
+	sr.PaymentMethod,
+	sr.AmountTendered,
+	sr.ChangeDue;
 -- vw_receiptdetail
 CREATE VIEW vw_receiptdetail AS
-select sr.ReceiptID AS ReceiptID,sr.TransactionNumber AS TransactionNumber,sr.TransactionDateTime AS PurchaseDateTime,sr.Status AS Status,sr.StoreID AS StoreID,s.StoreNumber AS StoreNumber,s.StoreName AS StoreName,sr.RegisterID AS RegisterID,r.RegisterNumber AS RegisterNumber,o.OperatorID AS CashierID,o.EmployeeNumber AS CashierEmployeeNumber,o.Username AS CashierUsername,concat(o.FirstName,' ',o.LastName) AS CashierName,sr.CustomerID AS CustomerID,srl.LineNumber AS LineNumber,p.ProductID AS ProductID,p.ProductName AS ProductName,p.UPC AS UPC,p.PLUCode AS PLUCode,srl.Quantity AS Quantity,p.UnitType AS UnitType,srl.UnitPrice AS UnitPrice,srl.LineDiscountAmount AS LineDiscountAmount,round(srl.Quantity * srl.UnitPrice - srl.LineDiscountAmount,2) AS LineTotal from (((((salesreceipt sr join store s on(s.StoreID = sr.StoreID)) join register r on(r.StoreID = sr.StoreID and r.RegisterID = sr.RegisterID)) join operator o on(o.OperatorID = sr.OperatorID)) join salesreceiptline srl on(srl.ReceiptID = sr.ReceiptID)) join product p on(p.ProductID = srl.ProductID));
-
+SELECT
+	sr.ReceiptID AS ReceiptID,
+	sr.TransactionNumber AS TransactionNumber,
+	sr.TransactionDateTime AS PurchaseDateTime,
+	sr.Status AS Status,
+	sr.StoreID AS StoreID,
+	s.StoreNumber AS StoreNumber,
+	s.StoreName AS StoreName,
+	sr.RegisterID AS RegisterID,
+	r.RegisterNumber AS RegisterNumber,
+	o.OperatorID AS CashierID,
+	o.EmployeeNumber AS CashierEmployeeNumber,
+	o.Username AS CashierUsername,
+	CONCAT(
+		o.FirstName,
+		' ',
+		o.LastName
+	) AS CashierName,
+	sr.CustomerID AS CustomerID,
+	srl.LineNumber AS LineNumber,
+	p.ProductID AS ProductID,
+	p.ProductName AS ProductName,
+	p.UPC AS UPC,
+	p.PLUCode AS PLUCode,
+	srl.Quantity AS Quantity,
+	p.UnitType AS UnitType,
+	srl.UnitPrice AS UnitPrice,
+	srl.LineDiscountAmount AS LineDiscountAmount,
+	ROUND(
+		srl.Quantity * srl.UnitPrice
+		- srl.LineDiscountAmount,
+		2
+	) AS LineTotal
+FROM salesreceipt sr
+JOIN store s
+	ON s.StoreID = sr.StoreID
+JOIN register r
+	ON r.StoreID = sr.StoreID
+	AND r.RegisterID = sr.RegisterID
+JOIN operator o
+	ON o.OperatorID = sr.OperatorID
+JOIN salesreceiptline srl
+	ON srl.ReceiptID = sr.ReceiptID
+JOIN product p
+	ON p.ProductID = srl.ProductID;
 -- vw_receiptsummary
 CREATE VIEW vw_receiptsummary AS
-select sr.ReceiptID AS ReceiptID,sr.TransactionNumber AS TransactionNumber,sr.TransactionDateTime AS PurchaseDateTime,sr.Status AS Status,sr.StoreID AS StoreID,s.StoreNumber AS StoreNumber,s.StoreName AS StoreName,sr.RegisterID AS RegisterID,r.RegisterNumber AS RegisterNumber,o.OperatorID AS CashierID,o.EmployeeNumber AS CashierEmployeeNumber,o.Username AS CashierUsername,concat(o.FirstName,' ',o.LastName) AS CashierName,sr.CustomerID AS CustomerID,round(sum(srl.Quantity * srl.UnitPrice),2) AS GrossSubtotal,round(sum(srl.LineDiscountAmount),2) AS LineDiscountAmount,round(sum(srl.Quantity * srl.UnitPrice - srl.LineDiscountAmount),2) AS Subtotal,sr.ReceiptDiscountAmount AS ReceiptDiscountAmount,sr.TaxAmount AS TaxAmount,round(sum(srl.Quantity * srl.UnitPrice - srl.LineDiscountAmount) - sr.ReceiptDiscountAmount + sr.TaxAmount,2) AS TotalAmount,sr.PaymentMethod AS PaymentMethod,sr.AmountTendered AS AmountTendered,case when sr.AmountTendered is null then NULL else round(sr.AmountTendered - (sum(srl.Quantity * srl.UnitPrice - srl.LineDiscountAmount) - sr.ReceiptDiscountAmount + sr.TaxAmount),2) end AS ChangeDue from ((((salesreceipt sr join store s on(s.StoreID = sr.StoreID)) join register r on(r.StoreID = sr.StoreID and r.RegisterID = sr.RegisterID)) join operator o on(o.OperatorID = sr.OperatorID)) join salesreceiptline srl on(srl.ReceiptID = sr.ReceiptID)) group by sr.ReceiptID,sr.TransactionNumber,sr.TransactionDateTime,sr.Status,sr.StoreID,s.StoreNumber,s.StoreName,sr.RegisterID,r.RegisterNumber,o.OperatorID,o.EmployeeNumber,o.Username,o.FirstName,o.LastName,sr.CustomerID,sr.ReceiptDiscountAmount,sr.TaxAmount,sr.PaymentMethod,sr.AmountTendered;
-
+SELECT
+	sr.ReceiptID AS ReceiptID,
+	sr.TransactionNumber AS TransactionNumber,
+	sr.TransactionDateTime AS PurchaseDateTime,
+	sr.Status AS Status,
+	sr.StoreID AS StoreID,
+	s.StoreNumber AS StoreNumber,
+	s.StoreName AS StoreName,
+	sr.RegisterID AS RegisterID,
+	r.RegisterNumber AS RegisterNumber,
+	o.OperatorID AS CashierID,
+	o.EmployeeNumber AS CashierEmployeeNumber,
+	o.Username AS CashierUsername,
+	CONCAT(
+		o.FirstName,
+		' ',
+		o.LastName
+	) AS CashierName,
+	sr.CustomerID AS CustomerID,
+	ROUND(
+		SUM(
+			srl.Quantity * srl.UnitPrice
+		),
+		2
+	) AS GrossSubtotal,
+	ROUND(
+		SUM(
+			srl.LineDiscountAmount
+		),
+		2
+	) AS LineDiscountAmount,
+	ROUND(
+		SUM(
+			srl.Quantity * srl.UnitPrice
+			- srl.LineDiscountAmount
+		),
+		2
+	) AS Subtotal,
+	sr.ReceiptDiscountAmount AS ReceiptDiscountAmount,
+	sr.TaxAmount AS TaxAmount,
+	sr.TotalAmount AS TotalAmount,
+	sr.PaymentMethod AS PaymentMethod,
+	sr.AmountTendered AS AmountTendered,
+	sr.ChangeDue AS ChangeDue
+FROM salesreceipt sr
+JOIN store s
+	ON s.StoreID = sr.StoreID
+JOIN register r
+	ON r.StoreID = sr.StoreID
+	AND r.RegisterID = sr.RegisterID
+JOIN operator o
+	ON o.OperatorID = sr.OperatorID
+JOIN salesreceiptline srl
+	ON srl.ReceiptID = sr.ReceiptID
+GROUP BY
+	sr.ReceiptID,
+	sr.TransactionNumber,
+	sr.TransactionDateTime,
+	sr.Status,
+	sr.StoreID,
+	s.StoreNumber,
+	s.StoreName,
+	sr.RegisterID,
+	r.RegisterNumber,
+	o.OperatorID,
+	o.EmployeeNumber,
+	o.Username,
+	o.FirstName,
+	o.LastName,
+	sr.CustomerID,
+	sr.ReceiptDiscountAmount,
+	sr.TaxAmount,
+	sr.TotalAmount,
+	sr.PaymentMethod,
+	sr.AmountTendered,
+	sr.ChangeDue;
 -- vw_transaction_journal
 CREATE VIEW vw_transaction_journal AS
-select tj.JournalID AS JournalID,tj.ReceiptID AS ReceiptID,tj.TransactionNumber AS TransactionNumber,tj.StoreID AS StoreID,s.StoreNumber AS StoreNumber,s.StoreName AS StoreName,tj.RegisterID AS RegisterID,r.RegisterNumber AS RegisterNumber,tj.OpenedByOperatorID AS OpenedByOperatorID,concat(opened.FirstName,' ',opened.LastName) AS OpenedByOperator,tj.ClosedByOperatorID AS ClosedByOperatorID,case when closed.OperatorID is null then NULL else concat(closed.FirstName,' ',closed.LastName) end AS ClosedByOperator,tj.OpenedDateTime AS OpenedDateTime,tj.ClosedDateTime AS ClosedDateTime,tj.Status AS Status,tj.LineCount AS LineCount,tj.ItemQuantity AS ItemQuantity,tj.SubtotalAmount AS SubtotalAmount,tj.DiscountAmount AS DiscountAmount,tj.TaxableSubtotalAmount AS TaxableSubtotalAmount,tj.TaxAmount AS TaxAmount,tj.TotalAmount AS TotalAmount,tj.PaymentMethod AS PaymentMethod,tj.AmountTendered AS AmountTendered,tj.ChangeDue AS ChangeDue from ((((transactionjournal tj join store s on(s.StoreID = tj.StoreID)) join register r on(r.RegisterID = tj.RegisterID)) join operator opened on(opened.OperatorID = tj.OpenedByOperatorID)) left join operator closed on(closed.OperatorID = tj.ClosedByOperatorID));
-
+SELECT
+	tj.JournalID AS JournalID,
+	tj.ReceiptID AS ReceiptID,
+	tj.TransactionNumber AS TransactionNumber,
+	tj.StoreID AS StoreID,
+	s.StoreNumber AS StoreNumber,
+	s.StoreName AS StoreName,
+	tj.RegisterID AS RegisterID,
+	r.RegisterNumber AS RegisterNumber,
+	tj.OpenedByOperatorID AS OpenedByOperatorID,
+	CONCAT(
+		opened.FirstName,
+		' ',
+		opened.LastName
+	) AS OpenedByOperator,
+	tj.ClosedByOperatorID AS ClosedByOperatorID,
+	CASE
+		WHEN closed.OperatorID IS NULL
+		THEN NULL
+		ELSE CONCAT(
+			closed.FirstName,
+			' ',
+			closed.LastName
+		)
+	END AS ClosedByOperator,
+	tj.OpenedDateTime AS OpenedDateTime,
+	tj.ClosedDateTime AS ClosedDateTime,
+	tj.Status AS Status,
+	tj.LineCount AS LineCount,
+	tj.ItemQuantity AS ItemQuantity,
+	tj.SubtotalAmount AS SubtotalAmount,
+	tj.DiscountAmount AS DiscountAmount,
+	tj.TaxableSubtotalAmount AS TaxableSubtotalAmount,
+	tj.TaxAmount AS TaxAmount,
+	tj.TotalAmount AS TotalAmount,
+	tj.PaymentMethod AS PaymentMethod,
+	tj.AmountTendered AS AmountTendered,
+	tj.ChangeDue AS ChangeDue
+FROM transactionjournal tj
+JOIN store s
+	ON s.StoreID = tj.StoreID
+JOIN register r
+	ON r.RegisterID = tj.RegisterID
+JOIN operator opened
+	ON opened.OperatorID = tj.OpenedByOperatorID
+LEFT JOIN operator closed
+	ON closed.OperatorID = tj.ClosedByOperatorID;
 -- vw_customerpurchasehistory
 CREATE VIEW vw_customerpurchasehistory AS
-select cu.CustomerID AS CustomerID,cu.LoyaltyNumber AS LoyaltyNumber,cu.FirstName AS FirstName,cu.LastName AS LastName,cu.LoyaltyPoints AS LoyaltyPoints,rs.ReceiptID AS ReceiptID,rs.TransactionNumber AS TransactionNumber,rs.PurchaseDateTime AS PurchaseDateTime,rs.StoreNumber AS StoreNumber,rs.StoreName AS StoreName,rs.GrossSubtotal AS GrossSubtotal,rs.LineDiscountAmount AS LineDiscountAmount,rs.Subtotal AS Subtotal,rs.ReceiptDiscountAmount AS ReceiptDiscountAmount,round(rs.LineDiscountAmount + rs.ReceiptDiscountAmount,2) AS TotalDiscountAmount,rs.TaxAmount AS TaxAmount,rs.TotalAmount AS TotalAmount,rs.PaymentMethod AS PaymentMethod from (customer cu join vw_receiptsummary rs on(rs.CustomerID = cu.CustomerID)) where rs.Status in ('Completed','Paid');
-
+SELECT
+	cu.CustomerID AS CustomerID,
+	cu.LoyaltyNumber AS LoyaltyNumber,
+	cu.FirstName AS FirstName,
+	cu.LastName AS LastName,
+	cu.LoyaltyPoints AS LoyaltyPoints,
+	rs.ReceiptID AS ReceiptID,
+	rs.TransactionNumber AS TransactionNumber,
+	rs.PurchaseDateTime AS PurchaseDateTime,
+	rs.StoreNumber AS StoreNumber,
+	rs.StoreName AS StoreName,
+	rs.GrossSubtotal AS GrossSubtotal,
+	rs.LineDiscountAmount AS LineDiscountAmount,
+	rs.Subtotal AS Subtotal,
+	rs.ReceiptDiscountAmount AS ReceiptDiscountAmount,
+	ROUND(
+		rs.LineDiscountAmount
+		+ rs.ReceiptDiscountAmount,
+		2
+	) AS TotalDiscountAmount,
+	rs.TaxAmount AS TaxAmount,
+	rs.TotalAmount AS TotalAmount,
+	rs.PaymentMethod AS PaymentMethod
+FROM customer cu
+JOIN vw_receiptsummary rs
+	ON rs.CustomerID = cu.CustomerID
+WHERE rs.Status IN (
+	'Completed',
+	'Paid'
+);
 -- vw_dailysalessummary
 CREATE VIEW vw_dailysalessummary AS
-select rs.StoreID AS StoreID,rs.StoreNumber AS StoreNumber,rs.StoreName AS StoreName,cast(rs.PurchaseDateTime as date) AS SaleDate,count(0) AS TransactionCount,round(sum(rs.GrossSubtotal),2) AS GrossSales,round(sum(rs.LineDiscountAmount + rs.ReceiptDiscountAmount),2) AS TotalDiscounts,round(sum(rs.Subtotal - rs.ReceiptDiscountAmount),2) AS NetSales,round(sum(rs.TaxAmount),2) AS TotalTax,round(sum(rs.TotalAmount),2) AS TotalCollected from vw_receiptsummary rs where rs.Status in ('Completed','Paid') group by rs.StoreID,rs.StoreNumber,rs.StoreName,cast(rs.PurchaseDateTime as date);
-
+SELECT
+	rs.StoreID AS StoreID,
+	rs.StoreNumber AS StoreNumber,
+	rs.StoreName AS StoreName,
+	CAST(
+		rs.PurchaseDateTime AS DATE
+	) AS SaleDate,
+	COUNT(
+		0
+	) AS TransactionCount,
+	ROUND(
+		SUM(
+			rs.GrossSubtotal
+		),
+		2
+	) AS GrossSales,
+	ROUND(
+		SUM(
+			rs.LineDiscountAmount
+			+ rs.ReceiptDiscountAmount
+		),
+		2
+	) AS TotalDiscounts,
+	ROUND(
+		SUM(
+			rs.Subtotal
+			- rs.ReceiptDiscountAmount
+		),
+		2
+	) AS NetSales,
+	ROUND(
+		SUM(
+			rs.TaxAmount
+		),
+		2
+	) AS TotalTax,
+	ROUND(
+		SUM(
+			rs.TotalAmount
+		),
+		2
+	) AS TotalCollected
+FROM vw_receiptsummary rs
+WHERE rs.Status IN (
+	'Completed',
+	'Paid'
+)
+GROUP BY
+	rs.StoreID,
+	rs.StoreNumber,
+	rs.StoreName,
+	CAST(
+		rs.PurchaseDateTime AS DATE
+	);
 -- vw_operatoractivity
 CREATE VIEW vw_operatoractivity AS
-select o.OperatorID AS OperatorID,o.EmployeeNumber AS EmployeeNumber,o.Username AS Username,concat(o.FirstName,' ',o.LastName) AS OperatorName,o.Role AS Role,s.StoreNumber AS CurrentStoreNumber,s.StoreName AS CurrentStoreName,count(rs.ReceiptID) AS TransactionCount,coalesce(round(sum(rs.Subtotal - rs.ReceiptDiscountAmount),2),0.00) AS TotalSales,min(rs.PurchaseDateTime) AS FirstTransaction,max(rs.PurchaseDateTime) AS LastTransaction,o.Active AS Active from ((operator o join store s on(s.StoreID = o.StoreID)) left join vw_receiptsummary rs on(rs.CashierID = o.OperatorID and rs.Status in ('Completed','Paid'))) group by o.OperatorID,o.EmployeeNumber,o.Username,o.FirstName,o.LastName,o.Role,s.StoreNumber,s.StoreName,o.Active;
-
+SELECT
+	o.OperatorID AS OperatorID,
+	o.EmployeeNumber AS EmployeeNumber,
+	o.Username AS Username,
+	CONCAT(
+		o.FirstName,
+		' ',
+		o.LastName
+	) AS OperatorName,
+	o.Role AS Role,
+	s.StoreNumber AS CurrentStoreNumber,
+	s.StoreName AS CurrentStoreName,
+	COUNT(
+		rs.ReceiptID
+	) AS TransactionCount,
+	COALESCE(
+		ROUND(
+			SUM(
+				rs.Subtotal
+				- rs.ReceiptDiscountAmount
+			),
+			2
+		),
+		0.00
+	) AS TotalSales,
+	MIN(
+		rs.PurchaseDateTime
+	) AS FirstTransaction,
+	MAX(
+		rs.PurchaseDateTime
+	) AS LastTransaction,
+	o.Active AS Active
+FROM operator o
+JOIN store s
+	ON s.StoreID = o.StoreID
+LEFT JOIN vw_receiptsummary rs
+	ON rs.CashierID = o.OperatorID
+	AND rs.Status IN (
+		'Completed',
+		'Paid'
+	)
+GROUP BY
+	o.OperatorID,
+	o.EmployeeNumber,
+	o.Username,
+	o.FirstName,
+	o.LastName,
+	o.Role,
+	s.StoreNumber,
+	s.StoreName,
+	o.Active;
 -- Drop existing procedures
 DROP PROCEDURE IF EXISTS sp_create_operator;
 DROP PROCEDURE IF EXISTS sp_update_operator;
@@ -103,10 +684,8 @@ DROP PROCEDURE IF EXISTS sp_add_sale_item;
 DROP PROCEDURE IF EXISTS sp_remove_sale_item;
 DROP PROCEDURE IF EXISTS sp_checkout_sale;
 DROP PROCEDURE IF EXISTS sp_void_sale;
-
 -- Create procedures
 DELIMITER $$
-
 -- sp_create_operator
 CREATE PROCEDURE sp_create_operator(
 	IN pStoreID INT,
@@ -121,76 +700,49 @@ CREATE PROCEDURE sp_create_operator(
 	IN pHireDate DATE
 )
 BEGIN
-
 	DECLARE newOperatorID INT;
-
 	/* Make sure the selected store exists and is active. */
 	IF NOT EXISTS (
-
 		SELECT 1
-
 		FROM store
-
 		WHERE StoreID = pStoreID
 		AND Active = 1
-
 	) THEN
-
 		SIGNAL SQLSTATE '45000'
 		SET MESSAGE_TEXT =
 			'The selected store does not exist or is inactive';
-
 	END IF;
-
 	/* Make sure the username is unique. */
 	IF EXISTS (
-
 		SELECT 1
-
 		FROM operator
-
 		WHERE Username = pUsername
-
 	) THEN
-
 		SIGNAL SQLSTATE '45000'
 		SET MESSAGE_TEXT =
 			'Username already exists';
-
 	END IF;
-
 	/* Make sure the email address is unique. */
 	IF EXISTS (
-
 		SELECT 1
-
 		FROM operator
-
 		WHERE Email = pEmail
-
 	) THEN
-
 		SIGNAL SQLSTATE '45000'
 		SET MESSAGE_TEXT =
 			'Email address already exists';
-
 	END IF;
-
 	/* Make sure a valid operator role was supplied. */
 	IF pRole NOT IN (
 		'Administrator',
 		'Operator'
 	) THEN
-
 		SIGNAL SQLSTATE '45000'
 		SET MESSAGE_TEXT =
 			'Invalid operator role';
-
 	END IF;
-
 	/*
 	   OperatorID is assigned automatically.
-
 	   EmployeeNumber is filled immediately afterward.
 	*/
 	INSERT INTO operator (
@@ -221,20 +773,16 @@ BEGIN
 		pHireDate,
 		1
 	);
-
 	/* This gets the new AUTO_INCREMENT OperatorID. */
 	SET newOperatorID =
 		LAST_INSERT_ID();
-
 	/* This automatically creates the employee number. */
 	UPDATE operator
 	SET EmployeeNumber =
 		newOperatorID + 1000
 	WHERE OperatorID =
 		newOperatorID;
-
 END$$
-
 -- sp_update_operator
 CREATE PROCEDURE sp_update_operator(
 	IN pOperatorID INT,
@@ -262,39 +810,32 @@ BEGIN
 	DECLARE currentSubtotal DECIMAL(10,2) DEFAULT 0.00;
 	DECLARE currentDiscount DECIMAL(10,2) DEFAULT 0.00;
 	DECLARE cancelOpenSale TINYINT DEFAULT 0;
-
 	DECLARE EXIT HANDLER FOR SQLEXCEPTION
 	BEGIN
 		ROLLBACK;
 		RESIGNAL;
 	END;
-
 	START TRANSACTION;
-
 	SELECT Role, Active
 	INTO actingRole, actingActive
 	FROM operator
 	WHERE OperatorID = pCurrentOperatorID
 	FOR UPDATE;
-
 	IF actingRole IS NULL
 	   OR actingRole <> 'Administrator'
 	   OR actingActive <> 1 THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'Administrator access is required';
 	END IF;
-
 	SELECT Role, StoreID
 	INTO currentOperatorRole, currentStoreID
 	FROM operator
 	WHERE OperatorID = pOperatorID
 	FOR UPDATE;
-
 	IF currentOperatorRole IS NULL THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'Operator does not exist';
 	END IF;
-
 	IF NOT EXISTS (
 		SELECT 1
 		FROM store
@@ -304,7 +845,6 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The selected store does not exist or is inactive';
 	END IF;
-
 	IF EXISTS (
 		SELECT 1
 		FROM operator
@@ -314,7 +854,6 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'Username already exists';
 	END IF;
-
 	IF EXISTS (
 		SELECT 1
 		FROM operator
@@ -324,12 +863,10 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'Email address already exists';
 	END IF;
-
 	IF pRole NOT IN ('Pending', 'Administrator', 'Operator') THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'Invalid operator role';
 	END IF;
-
 	IF currentOperatorRole = 'Administrator'
 	   AND pRole <> 'Administrator'
 	   AND (
@@ -341,12 +878,10 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The final active administrator must remain an Administrator';
 	END IF;
-
 	IF currentStoreID <> pStoreID
 	   OR pRole = 'Pending' THEN
 		SET cancelOpenSale = 1;
 	END IF;
-
 	IF cancelOpenSale = 1 THEN
 		SELECT
 			ReceiptID,
@@ -363,7 +898,6 @@ BEGIN
 		  AND Status = 'Open'
 		LIMIT 1
 		FOR UPDATE;
-
 		IF openReceiptID IS NOT NULL THEN
 			SELECT
 				COUNT(*),
@@ -373,7 +907,6 @@ BEGIN
 				currentItemQuantity
 			FROM salesreceiptline
 			WHERE ReceiptID = openReceiptID;
-
 			UPDATE storeinventory si
 			JOIN (
 				SELECT
@@ -388,7 +921,6 @@ BEGIN
 				si.StockQuantity
 				+ saleItems.QuantityToRestore
 			WHERE si.StoreID = openSaleStoreID;
-
 			UPDATE salesreceipt
 			SET
 				CheckoutDateTime = NOW(),
@@ -399,7 +931,6 @@ BEGIN
 				AmountTendered = NULL,
 				ChangeDue = NULL
 			WHERE ReceiptID = openReceiptID;
-
 			UPDATE transactionjournal
 			SET
 				ClosedByOperatorID = pCurrentOperatorID,
@@ -418,7 +949,6 @@ BEGIN
 			WHERE ReceiptID = openReceiptID;
 		END IF;
 	END IF;
-
 	UPDATE operator
 	SET
 		StoreID = pStoreID,
@@ -435,10 +965,8 @@ BEGIN
 		Role = pRole,
 		HireDate = pHireDate
 	WHERE OperatorID = pOperatorID;
-
 	COMMIT;
 END$$
-
 -- sp_update_own_account
 CREATE PROCEDURE sp_update_own_account(
 	IN pOperatorID INT,
@@ -460,12 +988,10 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'Active operator does not exist';
 	END IF;
-
 	IF pUsername IS NULL OR TRIM(pUsername) = '' THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'Username is required';
 	END IF;
-
 	IF EXISTS (
 		SELECT 1
 		FROM operator
@@ -475,7 +1001,6 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'Username already exists';
 	END IF;
-
 	IF EXISTS (
 		SELECT 1
 		FROM operator
@@ -485,7 +1010,6 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'Email address already exists';
 	END IF;
-
 	UPDATE operator
 	SET Username = pUsername,
 		FirstName = pFirstName,
@@ -499,7 +1023,6 @@ BEGIN
 		END
 	WHERE OperatorID = pOperatorID;
 END$$
-
 -- sp_delete_operator
 CREATE PROCEDURE sp_delete_operator(
 	IN pOperatorID INT,
@@ -515,45 +1038,37 @@ BEGIN
 	DECLARE currentItemQuantity DECIMAL(12,3) DEFAULT 0;
 	DECLARE currentSubtotal DECIMAL(10,2) DEFAULT 0.00;
 	DECLARE currentDiscount DECIMAL(10,2) DEFAULT 0.00;
-
 	DECLARE EXIT HANDLER FOR SQLEXCEPTION
 	BEGIN
 		ROLLBACK;
 		RESIGNAL;
 	END;
-
 	START TRANSACTION;
-
 	SELECT Role, Active
 	INTO actingRole, actingActive
 	FROM operator
 	WHERE OperatorID = pCurrentOperatorID
 	FOR UPDATE;
-
 	IF actingRole IS NULL
 	   OR actingRole <> 'Administrator'
 	   OR actingActive <> 1 THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'Administrator access is required';
 	END IF;
-
 	IF pOperatorID = pCurrentOperatorID THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'You cannot delete your own active account';
 	END IF;
-
 	SELECT Role
 	INTO operatorRole
 	FROM operator
 	WHERE OperatorID = pOperatorID
 	  AND Active = 1
 	FOR UPDATE;
-
 	IF operatorRole IS NULL THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'Active operator does not exist';
 	END IF;
-
 	IF operatorRole = 'Administrator'
 	   AND (
 			SELECT COUNT(*)
@@ -564,7 +1079,6 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The final active administrator cannot be deleted';
 	END IF;
-
 	SELECT
 		ReceiptID,
 		StoreID,
@@ -580,7 +1094,6 @@ BEGIN
 	  AND Status = 'Open'
 	LIMIT 1
 	FOR UPDATE;
-
 	IF openReceiptID IS NOT NULL THEN
 		SELECT
 			COUNT(*),
@@ -590,7 +1103,6 @@ BEGIN
 			currentItemQuantity
 		FROM salesreceiptline
 		WHERE ReceiptID = openReceiptID;
-
 		UPDATE storeinventory si
 		JOIN (
 			SELECT
@@ -605,7 +1117,6 @@ BEGIN
 			si.StockQuantity
 			+ saleItems.QuantityToRestore
 		WHERE si.StoreID = openSaleStoreID;
-
 		UPDATE salesreceipt
 		SET
 			CheckoutDateTime = NOW(),
@@ -616,7 +1127,6 @@ BEGIN
 			AmountTendered = NULL,
 			ChangeDue = NULL
 		WHERE ReceiptID = openReceiptID;
-
 		UPDATE transactionjournal
 		SET
 			ClosedByOperatorID = pCurrentOperatorID,
@@ -634,14 +1144,11 @@ BEGIN
 			ChangeDue = NULL
 		WHERE ReceiptID = openReceiptID;
 	END IF;
-
 	UPDATE operator
 	SET Active = 0
 	WHERE OperatorID = pOperatorID;
-
 	COMMIT;
 END$$
-
 -- sp_reactivate_operator
 CREATE PROCEDURE sp_reactivate_operator(
 	IN pOperatorID INT
@@ -655,7 +1162,6 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'Operator does not exist';
 	END IF;
-
 	IF EXISTS (
 		SELECT 1
 		FROM operator
@@ -665,12 +1171,10 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'Operator is already active';
 	END IF;
-
 	UPDATE operator
 	SET Active = 1
 	WHERE OperatorID = pOperatorID;
 END$$
-
 -- sp_start_sale
 CREATE PROCEDURE sp_start_sale(
 	IN pStoreID INT,
@@ -681,15 +1185,12 @@ BEGIN
 	DECLARE newReceiptID BIGINT;
 	DECLARE newTransactionNumber VARCHAR(40);
 	DECLARE lockedRegisterID INT DEFAULT NULL;
-
 	DECLARE EXIT HANDLER FOR SQLEXCEPTION
 	BEGIN
 		ROLLBACK;
 		RESIGNAL;
 	END;
-
 	START TRANSACTION;
-
 	IF NOT EXISTS (
 		SELECT 1
 		FROM store
@@ -699,7 +1200,6 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The selected store is not active';
 	END IF;
-
 	SELECT RegisterID
 	INTO lockedRegisterID
 	FROM register
@@ -707,12 +1207,10 @@ BEGIN
 	  AND StoreID = pStoreID
 	  AND Active = 1
 	FOR UPDATE;
-
 	IF lockedRegisterID IS NULL THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The selected register is not active';
 	END IF;
-
 	IF NOT EXISTS (
 		SELECT 1
 		FROM operator
@@ -724,7 +1222,6 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The operator is not authorized for this store';
 	END IF;
-
 	IF EXISTS (
 		SELECT 1
 		FROM salesreceipt
@@ -735,7 +1232,6 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'This register is currently in use';
 	END IF;
-
 	IF EXISTS (
 		SELECT 1
 		FROM salesreceipt
@@ -745,7 +1241,6 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'This operator already has an open sale';
 	END IF;
-
 	SET newTransactionNumber =
 		CONCAT(
 			'S',
@@ -755,7 +1250,6 @@ BEGIN
 			'-',
 			LPAD(pOperatorID, 4, '0')
 		);
-
 	INSERT INTO salesreceipt (
 		TransactionNumber,
 		StoreID,
@@ -792,9 +1286,7 @@ BEGIN
 		NULL,
 		NULL
 	);
-
 	SET newReceiptID = LAST_INSERT_ID();
-
 	INSERT INTO transactionjournal (
 		ReceiptID,
 		TransactionNumber,
@@ -813,14 +1305,11 @@ BEGIN
 		NOW(),
 		'Open'
 	);
-
 	COMMIT;
-
 	SELECT
 		newReceiptID AS ReceiptID,
 		newTransactionNumber AS TransactionNumber;
 END$$
-
 -- sp_add_sale_item
 CREATE PROCEDURE sp_add_sale_item(
 	IN pReceiptID BIGINT,
@@ -839,20 +1328,16 @@ BEGIN
 	DECLARE currentTaxable TINYINT DEFAULT 0;
 	DECLARE existingReceiptLineID BIGINT DEFAULT NULL;
 	DECLARE nextLineNumber INT;
-
 	DECLARE EXIT HANDLER FOR SQLEXCEPTION
 	BEGIN
 		ROLLBACK;
 		RESIGNAL;
 	END;
-
 	IF pQuantity IS NULL OR pQuantity <= 0 THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'Quantity must be greater than zero';
 	END IF;
-
 	START TRANSACTION;
-
 	SELECT
 		StoreID,
 		OperatorID,
@@ -864,22 +1349,18 @@ BEGIN
 	FROM salesreceipt
 	WHERE ReceiptID = pReceiptID
 	FOR UPDATE;
-
 	IF saleStoreID IS NULL THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The sale does not exist';
 	END IF;
-
 	IF saleOperatorID <> pActingOperatorID THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'You cannot change another operator''s sale';
 	END IF;
-
 	IF saleStatus <> 'Open' THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'Items can only be added to an open sale';
 	END IF;
-
 	SELECT
 		si.StockQuantity,
 		p.RetailPrice,
@@ -899,23 +1380,19 @@ BEGIN
 	  AND si.ProductID = pProductID
 	  AND p.Active = 1
 	FOR UPDATE;
-
 	IF availableStock IS NULL THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The product is not available at this store';
 	END IF;
-
 	IF currentUnitType = 'Each'
 	   AND pQuantity <> FLOOR(pQuantity) THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'This product must use a whole-number quantity';
 	END IF;
-
 	IF availableStock < pQuantity THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'There is not enough stock for that quantity';
 	END IF;
-
 	SELECT ReceiptLineID
 	INTO existingReceiptLineID
 	FROM salesreceiptline
@@ -926,13 +1403,11 @@ BEGIN
 	  AND UnitTypeAtSale = currentUnitType
 	  AND TaxableAtSale = currentTaxable
 	LIMIT 1;
-
 	IF existingReceiptLineID IS NULL THEN
 		SELECT COALESCE(MAX(LineNumber), 0) + 1
 		INTO nextLineNumber
 		FROM salesreceiptline
 		WHERE ReceiptID = pReceiptID;
-
 		INSERT INTO salesreceiptline (
 			ReceiptID,
 			LineNumber,
@@ -960,12 +1435,10 @@ BEGIN
 		SET Quantity = Quantity + pQuantity
 		WHERE ReceiptLineID = existingReceiptLineID;
 	END IF;
-
 	UPDATE storeinventory
 	SET StockQuantity = StockQuantity - pQuantity
 	WHERE StoreID = saleStoreID
 	  AND ProductID = pProductID;
-
 	UPDATE salesreceipt
 	SET SubtotalAmount = (
 		SELECT COALESCE(
@@ -985,7 +1458,6 @@ BEGIN
 	TaxAmount = 0.00,
 	TotalAmount = 0.00
 	WHERE ReceiptID = pReceiptID;
-
 	UPDATE transactionjournal tj
 	JOIN salesreceipt sr
 		ON sr.ReceiptID = tj.ReceiptID
@@ -1003,10 +1475,8 @@ BEGIN
 		tj.SubtotalAmount = sr.SubtotalAmount,
 		tj.DiscountAmount = sr.ReceiptDiscountAmount
 	WHERE tj.ReceiptID = pReceiptID;
-
 	COMMIT;
 END$$
-
 -- sp_remove_sale_item
 CREATE PROCEDURE sp_remove_sale_item(
 	IN pReceiptID BIGINT,
@@ -1020,15 +1490,12 @@ BEGIN
 	DECLARE lineProductID INT DEFAULT NULL;
 	DECLARE currentQuantity DECIMAL(12,3);
 	DECLARE quantityToRemove DECIMAL(12,3);
-
 	DECLARE EXIT HANDLER FOR SQLEXCEPTION
 	BEGIN
 		ROLLBACK;
 		RESIGNAL;
 	END;
-
 	START TRANSACTION;
-
 	SELECT
 		StoreID,
 		OperatorID,
@@ -1040,22 +1507,18 @@ BEGIN
 	FROM salesreceipt
 	WHERE ReceiptID = pReceiptID
 	FOR UPDATE;
-
 	IF saleStoreID IS NULL THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The sale does not exist';
 	END IF;
-
 	IF saleOperatorID <> pActingOperatorID THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'You cannot change another operator''s sale';
 	END IF;
-
 	IF saleStatus <> 'Open' THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'Items can only be removed from an open sale';
 	END IF;
-
 	SELECT
 		ProductID,
 		Quantity
@@ -1066,18 +1529,15 @@ BEGIN
 	WHERE ReceiptID = pReceiptID
 	  AND ReceiptLineID = pReceiptLineID
 	FOR UPDATE;
-
 	IF lineProductID IS NULL THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The selected sale item does not exist';
 	END IF;
-
 	SET quantityToRemove =
 		LEAST(
 			currentQuantity,
 			1.000
 		);
-
 	IF currentQuantity > quantityToRemove THEN
 		UPDATE salesreceiptline
 		SET Quantity = Quantity - quantityToRemove
@@ -1088,12 +1548,10 @@ BEGIN
 		WHERE ReceiptLineID = pReceiptLineID
 		  AND ReceiptID = pReceiptID;
 	END IF;
-
 	UPDATE storeinventory
 	SET StockQuantity = StockQuantity + quantityToRemove
 	WHERE StoreID = saleStoreID
 	  AND ProductID = lineProductID;
-
 	UPDATE salesreceipt
 	SET SubtotalAmount = (
 		SELECT COALESCE(
@@ -1113,7 +1571,6 @@ BEGIN
 	TaxAmount = 0.00,
 	TotalAmount = 0.00
 	WHERE ReceiptID = pReceiptID;
-
 	UPDATE transactionjournal tj
 	JOIN salesreceipt sr
 		ON sr.ReceiptID = tj.ReceiptID
@@ -1131,10 +1588,8 @@ BEGIN
 		tj.SubtotalAmount = sr.SubtotalAmount,
 		tj.DiscountAmount = sr.ReceiptDiscountAmount
 	WHERE tj.ReceiptID = pReceiptID;
-
 	COMMIT;
 END$$
-
 -- sp_checkout_sale
 CREATE PROCEDURE sp_checkout_sale(
 	IN pReceiptID BIGINT,
@@ -1156,15 +1611,12 @@ BEGIN
 	DECLARE calculatedChange DECIMAL(10,2);
 	DECLARE receiptLineCount INT;
 	DECLARE itemQuantity DECIMAL(12,3);
-
 	DECLARE EXIT HANDLER FOR SQLEXCEPTION
 	BEGIN
 		ROLLBACK;
 		RESIGNAL;
 	END;
-
 	START TRANSACTION;
-
 	SELECT
 		OperatorID,
 		Status,
@@ -1176,22 +1628,18 @@ BEGIN
 	FROM salesreceipt
 	WHERE ReceiptID = pReceiptID
 	FOR UPDATE;
-
 	IF saleOperatorID IS NULL THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The sale does not exist';
 	END IF;
-
 	IF saleOperatorID <> pActingOperatorID THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'You cannot complete another operator''s sale';
 	END IF;
-
 	IF saleStatus <> 'Open' THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'Only an open sale can be checked out';
 	END IF;
-
 	SELECT
 		COUNT(*),
 		COALESCE(SUM(Quantity), 0),
@@ -1211,23 +1659,19 @@ BEGIN
 		calculatedGrossSubtotal
 	FROM salesreceiptline
 	WHERE ReceiptID = pReceiptID;
-
 	IF receiptLineCount = 0 THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'At least one item is required before checkout';
 	END IF;
-
 	SET calculatedSubtotal =
 		ROUND(
 			calculatedGrossSubtotal
 			- calculatedDiscount,
 			2
 		);
-
 	IF calculatedSubtotal < 0 THEN
 		SET calculatedSubtotal = 0.00;
 	END IF;
-
 	SELECT COALESCE(
 		ROUND(
 			SUM(
@@ -1245,7 +1689,6 @@ BEGIN
 	INTO calculatedGrossTaxable
 	FROM salesreceiptline srl
 	WHERE srl.ReceiptID = pReceiptID;
-
 	IF calculatedGrossSubtotal > 0 THEN
 		SET taxableRatio =
 			calculatedGrossTaxable
@@ -1253,55 +1696,46 @@ BEGIN
 	ELSE
 		SET taxableRatio = 0;
 	END IF;
-
 	SET taxableDiscount =
 		ROUND(
 			calculatedDiscount
 			* taxableRatio,
 			2
 		);
-
 	SET calculatedTaxableSubtotal =
 		ROUND(
 			calculatedGrossTaxable
 			- taxableDiscount,
 			2
 		);
-
 	IF calculatedTaxableSubtotal < 0 THEN
 		SET calculatedTaxableSubtotal = 0.00;
 	END IF;
-
 	IF calculatedTaxableSubtotal > calculatedSubtotal THEN
 		SET calculatedTaxableSubtotal = calculatedSubtotal;
 	END IF;
-
 	SET calculatedTax =
 		ROUND(
 			calculatedTaxableSubtotal * 0.0775,
 			2
 		);
-
 	SET calculatedTotal =
 		ROUND(
 			calculatedSubtotal
 			+ calculatedTax,
 			2
 		);
-
 	IF pAmountTendered IS NULL
 	   OR pAmountTendered < calculatedTotal THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The cash tendered is less than the total due';
 	END IF;
-
 	SET calculatedChange =
 		ROUND(
 			pAmountTendered
 			- calculatedTotal,
 			2
 		);
-
 	UPDATE salesreceipt
 	SET
 		CheckoutDateTime = NOW(),
@@ -1314,7 +1748,6 @@ BEGIN
 		AmountTendered = pAmountTendered,
 		ChangeDue = calculatedChange
 	WHERE ReceiptID = pReceiptID;
-
 	UPDATE transactionjournal
 	SET
 		ClosedByOperatorID = pActingOperatorID,
@@ -1331,9 +1764,7 @@ BEGIN
 		AmountTendered = pAmountTendered,
 		ChangeDue = calculatedChange
 	WHERE ReceiptID = pReceiptID;
-
 	COMMIT;
-
 	SELECT
 		ReceiptID,
 		TransactionNumber,
@@ -1348,7 +1779,6 @@ BEGIN
 	FROM salesreceipt
 	WHERE ReceiptID = pReceiptID;
 END$$
-
 -- sp_void_sale
 CREATE PROCEDURE sp_void_sale(
 	IN pReceiptID BIGINT,
@@ -1366,15 +1796,12 @@ BEGIN
 	DECLARE currentItemQuantity DECIMAL(12,3) DEFAULT 0;
 	DECLARE currentSubtotal DECIMAL(10,2) DEFAULT 0;
 	DECLARE currentDiscount DECIMAL(10,2) DEFAULT 0;
-
 	DECLARE EXIT HANDLER FOR SQLEXCEPTION
 	BEGIN
 		ROLLBACK;
 		RESIGNAL;
 	END;
-
 	START TRANSACTION;
-
 	SELECT
 		StoreID,
 		OperatorID,
@@ -1390,12 +1817,10 @@ BEGIN
 	FROM salesreceipt
 	WHERE ReceiptID = pReceiptID
 	FOR UPDATE;
-
 	IF saleStoreID IS NULL THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The sale does not exist';
 	END IF;
-
 	SELECT
 		StoreID,
 		Role,
@@ -1406,29 +1831,24 @@ BEGIN
 		actingActive
 	FROM operator
 	WHERE OperatorID = pActingOperatorID;
-
 	IF actingStoreID IS NULL
 	   OR actingActive <> 1 THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The acting operator is not active';
 	END IF;
-
 	IF actingStoreID <> saleStoreID THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The transaction belongs to another store';
 	END IF;
-
 	IF saleOperatorID <> pActingOperatorID
 	   AND actingRole <> 'Administrator' THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'You cannot cancel another operator''s sale';
 	END IF;
-
 	IF saleStatus <> 'Open' THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'Only an open sale can be cancelled';
 	END IF;
-
 	SELECT
 		COUNT(*),
 		COALESCE(SUM(Quantity), 0)
@@ -1437,7 +1857,6 @@ BEGIN
 		currentItemQuantity
 	FROM salesreceiptline
 	WHERE ReceiptID = pReceiptID;
-
 	UPDATE storeinventory si
 	JOIN (
 		SELECT
@@ -1452,13 +1871,11 @@ BEGIN
 		si.StockQuantity
 		+ saleItems.QuantityToRestore
 	WHERE si.StoreID = saleStoreID;
-
 	IF saleOperatorID = pActingOperatorID THEN
 		SET journalStatus = 'Cancelled';
 	ELSE
 		SET journalStatus = 'Cleared';
 	END IF;
-
 	UPDATE salesreceipt
 	SET
 		CheckoutDateTime = NOW(),
@@ -1469,7 +1886,6 @@ BEGIN
 		AmountTendered = NULL,
 		ChangeDue = NULL
 	WHERE ReceiptID = pReceiptID;
-
 	UPDATE transactionjournal
 	SET
 		ClosedByOperatorID = pActingOperatorID,
@@ -1486,8 +1902,6 @@ BEGIN
 		AmountTendered = NULL,
 		ChangeDue = NULL
 	WHERE ReceiptID = pReceiptID;
-
 	COMMIT;
 END$$
-
 DELIMITER ;

@@ -1,4 +1,4 @@
-FnH Groceries - CSC680 Assignment 1
+FnH Groceries - CSC680 Assignment 1 & 2
 Brian Phillips
 
 

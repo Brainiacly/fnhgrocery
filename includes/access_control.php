@@ -183,8 +183,7 @@ function refreshCurrentOperatorSession()
                 LastName,
                 Email,
                 Phone,
-                Role,
-                Active
+                Role
             FROM vw_operatorlogin
             WHERE OperatorID = :operatorID
             LIMIT 1
@@ -197,7 +196,7 @@ function refreshCurrentOperatorSession()
 
         $operatorRecord = $statement->fetch();
 
-        if (!$operatorRecord || (int) $operatorRecord['Active'] !== 1) {
+        if (!$operatorRecord) {
             $_SESSION = [];
             session_destroy();
             return;
