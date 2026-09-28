@@ -47,7 +47,6 @@ assets/images/image4.png
 assets/images/image5.png
 assets/images/image6.png
 assets/images/image7.png
-    
 
 - Week 2: These files were added for the Week 2 Point of Sale and inventory functionality, along with minor updates to the other PHP and CSS files:
 
@@ -64,16 +63,20 @@ assets/css/inventory.css
 SCREENSHOTS
 
 Screenshots demonstrating the project functionality are included in:
-documentation/Screenshots:
+documentation/Screenshots
 
 Week 1 screenshots are located in:
 documentation/Screenshots/Week 1
 
-Week 2 screenshots demonstrating the Week 2 Point of Sale, register, checkout, inventory, and account functionality are located in:
-documentation/Screenshots/Week 2. The Week 2 screenshots were taken using the local XAMPP development database.
+Week 2 screenshots demonstrating the Week 2 Point of Sale, register, checkout, and inventory functionality are located in:
+documentation/Screenshots/Week 2
+
+The Week 2 screenshots were taken using the local XAMPP development database.
 
 The local development database and the live Alwaysdata database began with the same data and numbering. Development and testing have since caused the two databases to become out of sync, so transaction numbers, record numbers, and other changing data shown in the screenshots may differ from the live website.
+
 Beginning with next week's development, the live Alwaysdata database will be used as the database for both the live website and development.
+
 
 DATABASE SETUP
 
@@ -82,7 +85,7 @@ The database and SQL were updated. To rebuild the database, run the SQL files in
 The SQL files are located in:
 documentation/SQL
 
-There are two sets of the SQL files, one for the local XAMPP database and one for the Alwaysdata database. The SQL is the same in both sets except for the database name.
+There are two sets of the SQL files, one for the local XAMPP database and one for the Alwaysdata database. The SQL is the same in both sets except for the database name and the database creation statement required by the local XAMPP version.
 
 The local XAMPP SQL files are located in:
 documentation/SQL/Local XAMPP DB SQL
@@ -102,8 +105,12 @@ fnh_groceries
 The Alwaysdata database is named:
 csc680-fnhgroceries_fnh_groceries
 
+The local XAMPP and Alwaysdata databases began with the same data but are no longer synchronized because of development and testing. Week 2 development and screenshots use the local XAMPP database. Beginning next week, development will use the live Alwaysdata database.
 
-JAVASCRIPT: JavaScript is used only for immediate interface responsiveness and to reduce unnecessary button clicks and page reloads. All security, permissions, validation, sales processing, inventory changes, and database updates are handled by PHP and the database procedures.
+
+JAVASCRIPT
+
+JavaScript is used only for immediate interface responsiveness and to reduce unnecessary button clicks and page reloads. All security, permissions, validation, sales processing, inventory changes, and database updates are handled by PHP and the database procedures.
 
 - Automatically refreshes the Operator List when the role filter or Show Inactive option changes.
 - Enables the correct operator action buttons based on the selected operator, including Update, Delete, or Reactivate.
