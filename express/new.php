@@ -26,14 +26,73 @@ $customerStatement = $databaseConnection->query(
 $customers = $customerStatement->fetchAll();
 
 $customerMode = 'existing';
-$selectedCustomerID = 0;
+$selectedCustomerID = (int) ($_GET['customer_id'] ?? $_POST['customer_id'] ?? 0);
+$selectedAddressID = (int) ($_GET['address_id'] ?? 0);
+
 $newFirstName = '';
 $newLastName = '';
 $newPhone = '';
 $newEmail = '';
 $fulfillmentMethod = 'Curbside';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+$deliveryAddressLine1 = '';
+$deliveryAddressLine2 = '';
+$deliveryCity = '';
+$deliveryState = '';
+$deliveryPostalCode = '';
+
+// These carry the originally-loaded address so the page can tell,
+// at submit time, whether the shopper actually changed it.
+$loadedAddressID = 0;
+$loadedAddressLine1 = '';
+$loadedAddressLine2 = '';
+$loadedAddressCity = '';
+$loadedAddressState = '';
+$loadedAddressPostalCode = '';
+
+// This is this customer's saved address book, if any.
+$savedAddresses = [];
+
+if ($selectedCustomerID > 0) {
+    $addressStatement = $databaseConnection->prepare(
+        'SELECT CustomerAddressID, AddressLabel, AddressLine1, AddressLine2, City, StateCode, PostalCode
+         FROM customeraddress
+         WHERE CustomerID = :customerID
+           AND Active = 1
+         ORDER BY AddressLabel'
+    );
+    $addressStatement->execute([':customerID' => $selectedCustomerID]);
+    $savedAddresses = $addressStatement->fetchAll();
+}
+
+// A GET request with an address_id means the "Load Address" button
+// was used. This fills the editable fields and separately records
+// what was loaded, purely through hidden form fields - nothing here
+// is stored by or read back from JavaScript.
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && $selectedAddressID > 0) {
+    foreach ($savedAddresses as $savedAddress) {
+        if ((int) $savedAddress['CustomerAddressID'] === $selectedAddressID) {
+            $deliveryAddressLine1 = $savedAddress['AddressLine1'];
+            $deliveryAddressLine2 = (string) $savedAddress['AddressLine2'];
+            $deliveryCity = $savedAddress['City'];
+            $deliveryState = $savedAddress['StateCode'];
+            $deliveryPostalCode = $savedAddress['PostalCode'];
+
+            $loadedAddressID = $selectedAddressID;
+            $loadedAddressLine1 = $deliveryAddressLine1;
+            $loadedAddressLine2 = $deliveryAddressLine2;
+            $loadedAddressCity = $deliveryCity;
+            $loadedAddressState = $deliveryState;
+            $loadedAddressPostalCode = $deliveryPostalCode;
+
+            break;
+        }
+    }
+
+    $fulfillmentMethod = 'Delivery';
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_order'])) {
     $submittedSecurityToken = $_POST['form_security_token'] ?? '';
     $customerMode = ($_POST['customer_mode'] ?? 'existing') === 'new' ? 'new' : 'existing';
     $selectedCustomerID = (int) ($_POST['customer_id'] ?? 0);
@@ -42,6 +101,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $newPhone = trim($_POST['new_customer_phone'] ?? '');
     $newEmail = trim($_POST['new_customer_email'] ?? '');
     $fulfillmentMethod = $_POST['fulfillment_method'] ?? 'Curbside';
+
+    $deliveryAddressLine1 = trim($_POST['delivery_address_1'] ?? '');
+    $deliveryAddressLine2 = trim($_POST['delivery_address_2'] ?? '');
+    $deliveryCity = trim($_POST['delivery_city'] ?? '');
+    $deliveryState = trim($_POST['delivery_state'] ?? '');
+    $deliveryPostalCode = trim($_POST['delivery_postal_code'] ?? '');
+
+    $loadedAddressID = (int) ($_POST['loaded_address_id'] ?? 0);
+    $updateAddressOnFile = ($_POST['update_address_on_file'] ?? '') === '1';
+    $saveNewAddress = isset($_POST['save_new_address']);
+    $newAddressLabel = trim($_POST['new_address_label'] ?? '');
 
     if (!formSecurityTokenIsValid($submittedSecurityToken)) {
         $errorMessage = 'The form expired. Please try again.';
@@ -80,15 +150,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 (int) $_SESSION['operator_id'],
                 $customerID,
                 $fulfillmentMethod,
-                trim($_POST['delivery_address_1'] ?? ''),
-                trim($_POST['delivery_address_2'] ?? ''),
-                trim($_POST['delivery_city'] ?? ''),
-                trim($_POST['delivery_state'] ?? ''),
-                trim($_POST['delivery_postal_code'] ?? '')
+                $deliveryAddressLine1,
+                $deliveryAddressLine2,
+                $deliveryCity,
+                $deliveryState,
+                $deliveryPostalCode
             ]);
 
             $created = $statement->fetch();
             $statement->closeCursor();
+
+            // Address-book bookkeeping happens after the order is
+            // safely created. A problem here should not undo an
+            // order that already succeeded, so it is handled on
+            // its own rather than inside the same transaction.
+            if ($fulfillmentMethod === 'Delivery') {
+                try {
+                    if ($loadedAddressID > 0 && $updateAddressOnFile) {
+                        $addressUpdateStatement = $databaseConnection->prepare(
+                            'CALL sp_update_customer_address(?, ?, ?, ?, ?, ?)'
+                        );
+
+                        $addressUpdateStatement->execute([
+                            $loadedAddressID,
+                            $deliveryAddressLine1,
+                            $deliveryAddressLine2,
+                            $deliveryCity,
+                            $deliveryState,
+                            $deliveryPostalCode
+                        ]);
+
+                        $addressUpdateStatement->closeCursor();
+                    } elseif ($loadedAddressID <= 0 && $saveNewAddress && $newAddressLabel !== '') {
+                        $addressCreateStatement = $databaseConnection->prepare(
+                            'CALL sp_create_customer_address(?, ?, ?, ?, ?, ?, ?)'
+                        );
+
+                        $addressCreateStatement->execute([
+                            $customerID,
+                            $newAddressLabel,
+                            $deliveryAddressLine1,
+                            $deliveryAddressLine2,
+                            $deliveryCity,
+                            $deliveryState,
+                            $deliveryPostalCode
+                        ]);
+
+                        $addressCreateStatement->closeCursor();
+                    }
+                } catch (PDOException $addressException) {
+                    // The order already succeeded. The address book
+                    // not updating is worth knowing about later, not
+                    // worth losing the order over right now.
+                    error_log($addressException->getMessage());
+                }
+            }
 
             header(
                 'Location: '
@@ -123,8 +239,16 @@ require __DIR__ . '/../includes/header.php';
         <div class="message message-error"><?= escapeOutput($errorMessage) ?></div>
     <?php endif; ?>
 
-    <form method="post">
+    <form method="post" id="expressNewOrderForm">
         <input type="hidden" name="form_security_token" value="<?= escapeOutput(getFormSecurityToken()) ?>">
+
+        <input type="hidden" name="loaded_address_id" value="<?= (int) $loadedAddressID ?>">
+        <input type="hidden" id="loadedAddressLine1" value="<?= escapeOutput($loadedAddressLine1) ?>">
+        <input type="hidden" id="loadedAddressLine2" value="<?= escapeOutput($loadedAddressLine2) ?>">
+        <input type="hidden" id="loadedAddressCity" value="<?= escapeOutput($loadedAddressCity) ?>">
+        <input type="hidden" id="loadedAddressState" value="<?= escapeOutput($loadedAddressState) ?>">
+        <input type="hidden" id="loadedAddressPostalCode" value="<?= escapeOutput($loadedAddressPostalCode) ?>">
+        <input type="hidden" name="update_address_on_file" id="updateAddressOnFile" value="0">
 
         <div class="form-grid">
 
@@ -173,7 +297,47 @@ require __DIR__ . '/../includes/header.php';
                         </option>
                     <?php endforeach; ?>
                 </select>
+
+                <button type="submit" formmethod="get" name="load_customer" value="1" class="button button-secondary">
+                    Load Customer
+                </button>
+
+                <p class="field-help">
+                    Loading a customer shows their saved addresses below. This reloads the page.
+                </p>
             </div>
+
+            <?php if ($selectedCustomerID > 0 && $savedAddresses): ?>
+
+                <div class="form-field express-address" id="savedAddressField">
+                    <label for="saved_address_select">Saved Address</label>
+                    <select id="saved_address_select" name="address_id">
+                        <option value="">Select a Saved Address</option>
+                        <?php foreach ($savedAddresses as $savedAddress): ?>
+                            <option
+                                value="<?= (int) $savedAddress['CustomerAddressID'] ?>"
+                                <?= $loadedAddressID === (int) $savedAddress['CustomerAddressID'] ? 'selected' : '' ?>
+                            >
+                                <?= escapeOutput($savedAddress['AddressLabel']) ?>
+                                -
+                                <?= escapeOutput($savedAddress['AddressLine1']) ?>,
+                                <?= escapeOutput($savedAddress['City']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+
+                    <input type="hidden" name="customer_id" value="<?= (int) $selectedCustomerID ?>">
+
+                    <button type="submit" formmethod="get" name="load_address" value="1" class="button button-secondary">
+                        Load Address
+                    </button>
+
+                    <p class="field-help">
+                        Loading a saved address fills in the delivery fields below. This reloads the page too.
+                    </p>
+                </div>
+
+            <?php endif; ?>
 
             <div class="express-new-customer" id="newCustomerFields">
 
@@ -248,32 +412,52 @@ require __DIR__ . '/../includes/header.php';
 
             <div class="form-field">
                 <label for="delivery_address_1">Delivery Address</label>
-                <input type="text" id="delivery_address_1" name="delivery_address_1" maxlength="120">
+                <input type="text" id="delivery_address_1" name="delivery_address_1" maxlength="120" value="<?= escapeOutput($deliveryAddressLine1) ?>">
             </div>
 
             <div class="form-field">
                 <label for="delivery_address_2">Address Line 2</label>
-                <input type="text" id="delivery_address_2" name="delivery_address_2" maxlength="120">
+                <input type="text" id="delivery_address_2" name="delivery_address_2" maxlength="120" value="<?= escapeOutput($deliveryAddressLine2) ?>">
             </div>
 
             <div class="form-field">
                 <label for="delivery_city">City</label>
-                <input type="text" id="delivery_city" name="delivery_city" maxlength="80">
+                <input type="text" id="delivery_city" name="delivery_city" maxlength="80" value="<?= escapeOutput($deliveryCity) ?>">
             </div>
 
             <div class="form-field">
                 <label for="delivery_state">State</label>
-                <input type="text" id="delivery_state" name="delivery_state" maxlength="2">
+                <input type="text" id="delivery_state" name="delivery_state" maxlength="2" value="<?= escapeOutput($deliveryState) ?>">
             </div>
 
             <div class="form-field">
                 <label for="delivery_postal_code">ZIP Code</label>
-                <input type="text" id="delivery_postal_code" name="delivery_postal_code" maxlength="10">
+                <input type="text" id="delivery_postal_code" name="delivery_postal_code" maxlength="10" value="<?= escapeOutput($deliveryPostalCode) ?>">
             </div>
+
+            <?php if ($loadedAddressID === 0): ?>
+
+                <div class="form-field express-save-address" id="saveNewAddressField">
+                    <label>
+                        <input type="checkbox" name="save_new_address" id="save_new_address" value="1">
+                        Save this address for reuse
+                    </label>
+
+                    <input
+                        type="text"
+                        name="new_address_label"
+                        id="new_address_label"
+                        maxlength="40"
+                        placeholder="Label, such as Home or Work"
+                    >
+                </div>
+
+            <?php endif; ?>
+
         </div>
 
         <div class="form-actions">
-            <button class="button button-primary" type="submit">Create Express Order</button>
+            <button class="button button-primary" type="submit" name="create_order" value="1">Create Express Order</button>
             <a class="button button-secondary" href="<?= APPLICATION_URL ?>/express/index.php">Cancel</a>
         </div>
     </form>
@@ -281,10 +465,16 @@ require __DIR__ . '/../includes/header.php';
 
 <script>
 /*
-   This only shows the customer section that applies to the
-   selected mode. PHP validates whichever fields are actually
-   submitted regardless of what the browser shows, so nothing
-   here is required for the page to work correctly.
+   Two things happen here, both light. First, only the customer
+   section matching the selected mode is shown - purely a display
+   choice, since PHP validates whichever fields are actually
+   submitted no matter what the browser is showing. Second, if an
+   address was loaded from the address book and the shopper then
+   edits it, a confirm() asks whether to update that saved address.
+   The comparison reads values already rendered by PHP into hidden
+   fields on page load - nothing here stores or transports the
+   address itself, that part is handled entirely through normal
+   form submission and page reloads.
 */
 (function () {
     var existingRadio = document.getElementById('customer_mode_existing');
@@ -301,6 +491,44 @@ require __DIR__ . '/../includes/header.php';
     existingRadio.addEventListener('change', updateCustomerFields);
     newRadio.addEventListener('change', updateCustomerFields);
     updateCustomerFields();
+
+    var form = document.getElementById('expressNewOrderForm');
+    var updateFlag = document.getElementById('updateAddressOnFile');
+
+    form.addEventListener('submit', function (event) {
+        var submitter = event.submitter;
+
+        if (!submitter || submitter.name !== 'create_order') {
+            return;
+        }
+
+        var loadedAddressID = form.querySelector('[name="loaded_address_id"]').value;
+
+        if (!loadedAddressID || loadedAddressID === '0') {
+            return;
+        }
+
+        var line1 = document.getElementById('delivery_address_1').value;
+        var line2 = document.getElementById('delivery_address_2').value;
+        var city = document.getElementById('delivery_city').value;
+        var state = document.getElementById('delivery_state').value;
+        var zip = document.getElementById('delivery_postal_code').value;
+
+        var changed =
+            line1 !== document.getElementById('loadedAddressLine1').value
+            || line2 !== document.getElementById('loadedAddressLine2').value
+            || city !== document.getElementById('loadedAddressCity').value
+            || state !== document.getElementById('loadedAddressState').value
+            || zip !== document.getElementById('loadedAddressPostalCode').value;
+
+        if (changed) {
+            var shouldUpdate = window.confirm(
+                'You changed this saved address. Update it on file for next time?'
+            );
+
+            updateFlag.value = shouldUpdate ? '1' : '0';
+        }
+    });
 })();
 </script>
 

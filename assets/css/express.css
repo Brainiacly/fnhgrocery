@@ -146,6 +146,37 @@
     grid-column: 1 / -1;
 }
 
+.express-address .button {
+    margin-top: 0.5rem;
+}
+
+.express-save-address {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 0.5rem;
+    padding: 1rem;
+    border: 0.0625rem solid var(--standard-border-color);
+    border-radius: var(--standard-border-radius);
+}
+
+.express-save-address label {
+    min-height: var(--minimum-touch-size);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.express-save-address input[type="checkbox"] {
+    width: 1.125rem;
+    height: 1.125rem;
+    min-width: 1.125rem;
+    min-height: 1.125rem;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
+    accent-color: var(--shared-blue-color);
+}
+
 .express-status-form {
     max-width: 30rem;
     display: grid;

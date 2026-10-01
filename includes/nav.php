@@ -423,7 +423,7 @@ $showSaleNavigationLink =
                         href="<?= APPLICATION_URL ?>/express/index.php"
                         class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
                     >
-                        FnH Express
+                        Express Orders
                     </a>
 
                 <?php endif; ?>
@@ -482,7 +482,7 @@ $showSaleNavigationLink =
                         href="<?= APPLICATION_URL ?>/express/index.php"
                         class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
                     >
-                        FnH Express
+                        Express Orders
                     </a>
 
                 <?php endif; ?>
@@ -541,7 +541,7 @@ $showSaleNavigationLink =
                         href="<?= APPLICATION_URL ?>/express/index.php"
                         class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
                     >
-                        FnH Express
+                        Express Orders
                     </a>
 
                 <?php endif; ?>
@@ -596,7 +596,7 @@ $showSaleNavigationLink =
                         href="<?= APPLICATION_URL ?>/express/index.php"
                         class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
                     >
-                        FnH Express
+                        Express Orders
                     </a>
 
                 <?php endif; ?>
@@ -659,7 +659,7 @@ $showSaleNavigationLink =
                         href="<?= APPLICATION_URL ?>/express/index.php"
                         class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
                     >
-                        FnH Express
+                        Express Orders
                     </a>
 
                 <?php endif; ?>
@@ -773,7 +773,7 @@ $showSaleNavigationLink =
                         href="<?= APPLICATION_URL ?>/express/index.php"
                         class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
                     >
-                        FnH Express
+                        Express Orders
                     </a>
 
                 <?php endif; ?>

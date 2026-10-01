@@ -35,7 +35,7 @@ $stockStatement = $databaseConnection->prepare(
 $stockStatement->execute([(int) $_SESSION['store_id']]);
 $stockRows = $stockStatement->fetchAll();
 
-$pageTitle = 'FnH Express';
+$pageTitle = 'Express Orders';
 $currentSection = 'express';
 $currentPage = 'express';
 
@@ -44,7 +44,7 @@ require __DIR__ . '/../includes/header.php';
 
 <section class="content-panel express-panel">
     <div class="page-intro">
-        <h1>FnH Express</h1>
+        <h1>Express Orders</h1>
         <p>Record, pick, prepare, and review today&apos;s Express grocery orders.</p>
     </div>
 
