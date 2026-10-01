@@ -395,20 +395,44 @@ require __DIR__ . '/includes/header.php';
 
             <div class="home-menu-grid">
 
-                <a
-                    href="<?= escapeOutput($saleNavigationHref) ?>"
-                    class="home-menu-card"
-                >
+                <?php if (operatorCanUseRegularPOS()): ?>
 
-                    <strong>
-                        <?= escapeOutput($saleNavigationLabel) ?>
-                    </strong>
+                    <a
+                        href="<?= escapeOutput($saleNavigationHref) ?>"
+                        class="home-menu-card"
+                    >
 
-                    <span>
-                        <?= escapeOutput($saleNavigationDescription) ?>
-                    </span>
+                        <strong>
+                            <?= escapeOutput($saleNavigationLabel) ?>
+                        </strong>
 
-                </a>
+                        <span>
+                            <?= escapeOutput($saleNavigationDescription) ?>
+                        </span>
+
+                    </a>
+
+                <?php endif; ?>
+
+
+                <?php if (operatorCanUseExpress()): ?>
+
+                    <a
+                        href="<?= APPLICATION_URL ?>/express/index.php"
+                        class="home-menu-card"
+                    >
+
+                        <strong>
+                            FnH Express
+                        </strong>
+
+                        <span>
+                            Take, pick, prepare, and check out Express orders.
+                        </span>
+
+                    </a>
+
+                <?php endif; ?>
 
 
                 <a

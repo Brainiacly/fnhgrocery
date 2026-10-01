@@ -19,7 +19,8 @@ if (
         [
             'all',
             'Administrator',
-            'Operator'
+            'Operator',
+            'Personal Shopper'
         ],
         true
     )
@@ -142,6 +143,13 @@ require __DIR__ . '/../includes/header.php';
                         <?= $roleFilter === 'Operator' ? 'selected' : '' ?>
                     >
                         Operators
+                    </option>
+
+                    <option
+                        value="Personal Shopper"
+                        <?= $roleFilter === 'Personal Shopper' ? 'selected' : '' ?>
+                    >
+                        Personal Shoppers
                     </option>
                 </select>
             </div>

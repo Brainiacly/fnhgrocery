@@ -73,7 +73,7 @@ $saleNavigationDescription =
 if (
     operatorIsLoggedIn()
     &&
-    operatorHasAssignedAccess()
+    operatorCanUseRegularPOS()
 ) {
 
     try {
@@ -98,6 +98,8 @@ if (
                     :operatorID
                   AND sr.Status =
                     \'Open\'
+                  AND sr.SaleType =
+                    \'Regular\'
                 GROUP BY
                     sr.ReceiptID,
                     sr.TransactionDateTime
@@ -160,6 +162,8 @@ if (
 
 
 $showSaleNavigationLink =
+    operatorCanUseRegularPOS()
+    &&
     !(
         $onSalesPage
         &&
@@ -413,6 +417,18 @@ $showSaleNavigationLink =
                 <?php endif; ?>
 
 
+                <?php if (operatorCanUseExpress()): ?>
+
+                    <a
+                        href="<?= APPLICATION_URL ?>/express/index.php"
+                        class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
+                    >
+                        FnH Express
+                    </a>
+
+                <?php endif; ?>
+
+
                 <a
                     href="<?= APPLICATION_URL ?>/inventory/store_stock_levels.php"
                     class="navigation-link"
@@ -455,6 +471,18 @@ $showSaleNavigationLink =
                         class="navigation-link"
                     >
                         <?= escapeOutput($saleNavigationLabel) ?>
+                    </a>
+
+                <?php endif; ?>
+
+
+                <?php if (operatorCanUseExpress()): ?>
+
+                    <a
+                        href="<?= APPLICATION_URL ?>/express/index.php"
+                        class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
+                    >
+                        FnH Express
                     </a>
 
                 <?php endif; ?>
@@ -507,6 +535,18 @@ $showSaleNavigationLink =
                 <?php endif; ?>
 
 
+                <?php if (operatorCanUseExpress()): ?>
+
+                    <a
+                        href="<?= APPLICATION_URL ?>/express/index.php"
+                        class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
+                    >
+                        FnH Express
+                    </a>
+
+                <?php endif; ?>
+
+
                 <a
                     href="<?= APPLICATION_URL ?>/inventory/store_stock_levels.php"
                     class="navigation-link"
@@ -545,6 +585,18 @@ $showSaleNavigationLink =
                         class="navigation-link"
                     >
                         <?= escapeOutput($saleNavigationLabel) ?>
+                    </a>
+
+                <?php endif; ?>
+
+
+                <?php if (operatorCanUseExpress()): ?>
+
+                    <a
+                        href="<?= APPLICATION_URL ?>/express/index.php"
+                        class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
+                    >
+                        FnH Express
                     </a>
 
                 <?php endif; ?>
@@ -597,6 +649,18 @@ $showSaleNavigationLink =
                         </a>
 
                     <?php endif; ?>
+
+                <?php endif; ?>
+
+
+                <?php if (operatorCanUseExpress()): ?>
+
+                    <a
+                        href="<?= APPLICATION_URL ?>/express/index.php"
+                        class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
+                    >
+                        FnH Express
+                    </a>
 
                 <?php endif; ?>
 
@@ -698,6 +762,18 @@ $showSaleNavigationLink =
                         class="navigation-link"
                     >
                         <?= escapeOutput($saleNavigationLabel) ?>
+                    </a>
+
+                <?php endif; ?>
+
+
+                <?php if (operatorCanUseExpress()): ?>
+
+                    <a
+                        href="<?= APPLICATION_URL ?>/express/index.php"
+                        class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
+                    >
+                        FnH Express
                     </a>
 
                 <?php endif; ?>

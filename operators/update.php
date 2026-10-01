@@ -196,6 +196,8 @@ if (
             (int) $operatorRecord['StoreID']
             ||
             $selectedRole === 'Pending'
+            ||
+            $selectedRole !== $operatorRecord['Role']
         );
 
     $openSaleCancellationConfirmed =
@@ -269,7 +271,8 @@ if (
             [
                 'Pending',
                 'Operator',
-                'Administrator'
+                'Administrator',
+                'Personal Shopper'
             ],
             true
         )
@@ -515,6 +518,10 @@ require __DIR__ . '/../includes/header.php';
 
                     <option value="Administrator" <?= $selectedRole === 'Administrator' ? 'selected' : '' ?>>
                         Administrator
+                    </option>
+
+                    <option value="Personal Shopper" <?= $selectedRole === 'Personal Shopper' ? 'selected' : '' ?>>
+                        Personal Shopper
                     </option>
 
                 </select>

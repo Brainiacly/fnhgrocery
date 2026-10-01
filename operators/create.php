@@ -89,7 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $selectedRole,
             [
                 'Administrator',
-                'Operator'
+                'Operator',
+                'Personal Shopper'
             ],
             true
         )
@@ -272,6 +273,10 @@ require __DIR__ . '/../includes/header.php';
 
                     <option value="Administrator" <?= $selectedRole === 'Administrator' ? 'selected' : '' ?>>
                         Administrator
+                    </option>
+
+                    <option value="Personal Shopper" <?= $selectedRole === 'Personal Shopper' ? 'selected' : '' ?>>
+                        Personal Shopper
                     </option>
                 </select>
             </div>

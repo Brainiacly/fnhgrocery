@@ -33,7 +33,7 @@ function operatorHasAssignedAccess()
     return operatorIsLoggedIn()
         && in_array(
             $_SESSION['role'] ?? '',
-            ['Administrator', 'Operator'],
+            ['Administrator', 'Operator', 'Personal Shopper'],
             true
         );
 }
@@ -43,6 +43,57 @@ function operatorIsAdministrator()
 {
     return operatorIsLoggedIn()
         && ($_SESSION['role'] ?? '') === 'Administrator';
+}
+
+// Check regular point-of-sale access
+function operatorCanUseRegularPOS()
+{
+    return operatorIsLoggedIn()
+        && in_array(
+            $_SESSION['role'] ?? '',
+            ['Administrator', 'Operator'],
+            true
+        );
+}
+
+// Check FnH Express access
+function operatorCanUseExpress()
+{
+    return operatorIsLoggedIn()
+        && in_array(
+            $_SESSION['role'] ?? '',
+            ['Administrator', 'Personal Shopper'],
+            true
+        );
+}
+
+// Check personal shopper
+function operatorIsPersonalShopper()
+{
+    return operatorIsLoggedIn()
+        && ($_SESSION['role'] ?? '') === 'Personal Shopper';
+}
+
+// Require regular point-of-sale access
+function requireRegularPOSAccess()
+{
+    requireOperatorLogin();
+
+    if (!operatorCanUseRegularPOS()) {
+        http_response_code(403);
+        exit('Point of Sale access is required');
+    }
+}
+
+// Require FnH Express access
+function requireExpressAccess()
+{
+    requireOperatorLogin();
+
+    if (!operatorCanUseExpress()) {
+        http_response_code(403);
+        exit('FnH Express access is required');
+    }
 }
 
 // Require login

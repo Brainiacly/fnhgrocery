@@ -675,6 +675,7 @@ GROUP BY
 	o.Active;
 -- Drop existing procedures
 DROP PROCEDURE IF EXISTS sp_create_operator;
+DROP PROCEDURE IF EXISTS sp_create_customer;
 DROP PROCEDURE IF EXISTS sp_update_operator;
 DROP PROCEDURE IF EXISTS sp_update_own_account;
 DROP PROCEDURE IF EXISTS sp_delete_operator;
@@ -735,7 +736,8 @@ BEGIN
 	/* Make sure a valid operator role was supplied. */
 	IF pRole NOT IN (
 		'Administrator',
-		'Operator'
+		'Operator',
+		'Personal Shopper'
 	) THEN
 		SIGNAL SQLSTATE '45000'
 		SET MESSAGE_TEXT =
@@ -863,7 +865,7 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'Email address already exists';
 	END IF;
-	IF pRole NOT IN ('Pending', 'Administrator', 'Operator') THEN
+	IF pRole NOT IN ('Pending', 'Administrator', 'Operator', 'Personal Shopper') THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'Invalid operator role';
 	END IF;
@@ -878,8 +880,24 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The final active administrator must remain an Administrator';
 	END IF;
+	IF (
+		currentStoreID <> pStoreID
+		OR currentOperatorRole <> pRole
+	)
+	AND EXISTS (
+		SELECT 1
+		FROM expressorder eo
+		JOIN salesreceipt sr
+			ON sr.ReceiptID = eo.ReceiptID
+		WHERE eo.PersonalShopperID = pOperatorID
+		  AND sr.Status = 'Open'
+	) THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'Complete or cancel this employee''s open Express orders before changing store or role';
+	END IF;
 	IF currentStoreID <> pStoreID
-	   OR pRole = 'Pending' THEN
+	   OR pRole = 'Pending'
+	   OR currentOperatorRole <> pRole THEN
 		SET cancelOpenSale = 1;
 	END IF;
 	IF cancelOpenSale = 1 THEN
@@ -1069,6 +1087,17 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'Active operator does not exist';
 	END IF;
+	IF EXISTS (
+		SELECT 1
+		FROM expressorder eo
+		JOIN salesreceipt sr
+			ON sr.ReceiptID = eo.ReceiptID
+		WHERE eo.PersonalShopperID = pOperatorID
+		  AND sr.Status = 'Open'
+	) THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'Complete or cancel this employee''s open Express orders before deleting the account';
+	END IF;
 	IF operatorRole = 'Administrator'
 	   AND (
 			SELECT COUNT(*)
@@ -1211,6 +1240,16 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The selected register is not active';
 	END IF;
+	IF EXISTS (
+		SELECT 1
+		FROM register
+		WHERE RegisterID = pRegisterID
+		  AND StoreID = pStoreID
+		  AND RegisterNumber = 1
+	) THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'Register 1 is reserved for FnH Express orders';
+	END IF;
 	IF NOT EXISTS (
 		SELECT 1
 		FROM operator
@@ -1320,6 +1359,7 @@ CREATE PROCEDURE sp_add_sale_item(
 BEGIN
 	DECLARE saleStoreID INT DEFAULT NULL;
 	DECLARE saleOperatorID INT DEFAULT NULL;
+	DECLARE actingOperatorRole VARCHAR(20) DEFAULT NULL;
 	DECLARE saleStatus VARCHAR(20);
 	DECLARE availableStock DECIMAL(12,3);
 	DECLARE currentPrice DECIMAL(10,2);
@@ -1338,6 +1378,11 @@ BEGIN
 			SET MESSAGE_TEXT = 'Quantity must be greater than zero';
 	END IF;
 	START TRANSACTION;
+	SELECT Role
+	INTO actingOperatorRole
+	FROM operator
+	WHERE OperatorID = pActingOperatorID;
+
 	SELECT
 		StoreID,
 		OperatorID,
@@ -1353,7 +1398,8 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The sale does not exist';
 	END IF;
-	IF saleOperatorID <> pActingOperatorID THEN
+	IF saleOperatorID <> pActingOperatorID
+	   AND actingOperatorRole <> 'Administrator' THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'You cannot change another operator''s sale';
 	END IF;
@@ -1486,6 +1532,7 @@ CREATE PROCEDURE sp_remove_sale_item(
 BEGIN
 	DECLARE saleStoreID INT DEFAULT NULL;
 	DECLARE saleOperatorID INT DEFAULT NULL;
+	DECLARE actingOperatorRole VARCHAR(20) DEFAULT NULL;
 	DECLARE saleStatus VARCHAR(20);
 	DECLARE lineProductID INT DEFAULT NULL;
 	DECLARE currentQuantity DECIMAL(12,3);
@@ -1496,6 +1543,11 @@ BEGIN
 		RESIGNAL;
 	END;
 	START TRANSACTION;
+	SELECT Role
+	INTO actingOperatorRole
+	FROM operator
+	WHERE OperatorID = pActingOperatorID;
+
 	SELECT
 		StoreID,
 		OperatorID,
@@ -1511,7 +1563,8 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The sale does not exist';
 	END IF;
-	IF saleOperatorID <> pActingOperatorID THEN
+	IF saleOperatorID <> pActingOperatorID
+	   AND actingOperatorRole <> 'Administrator' THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'You cannot change another operator''s sale';
 	END IF;
@@ -1598,7 +1651,10 @@ CREATE PROCEDURE sp_checkout_sale(
 )
 BEGIN
 	DECLARE saleOperatorID INT DEFAULT NULL;
+	DECLARE actingOperatorRole VARCHAR(20) DEFAULT NULL;
 	DECLARE saleStatus VARCHAR(20);
+	DECLARE saleType VARCHAR(20);
+	DECLARE expressDeliveryFee DECIMAL(10,2) DEFAULT 0.00;
 	DECLARE calculatedGrossSubtotal DECIMAL(10,2);
 	DECLARE calculatedSubtotal DECIMAL(10,2);
 	DECLARE calculatedGrossTaxable DECIMAL(10,2);
@@ -1617,13 +1673,20 @@ BEGIN
 		RESIGNAL;
 	END;
 	START TRANSACTION;
+	SELECT Role
+	INTO actingOperatorRole
+	FROM operator
+	WHERE OperatorID = pActingOperatorID;
+
 	SELECT
 		OperatorID,
 		Status,
+		SaleType,
 		ReceiptDiscountAmount
 	INTO
 		saleOperatorID,
 		saleStatus,
+		saleType,
 		calculatedDiscount
 	FROM salesreceipt
 	WHERE ReceiptID = pReceiptID
@@ -1632,7 +1695,8 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The sale does not exist';
 	END IF;
-	IF saleOperatorID <> pActingOperatorID THEN
+	IF saleOperatorID <> pActingOperatorID
+	   AND actingOperatorRole <> 'Administrator' THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'You cannot complete another operator''s sale';
 	END IF;
@@ -1719,10 +1783,18 @@ BEGIN
 			calculatedTaxableSubtotal * 0.0775,
 			2
 		);
+	IF saleType = 'Express' THEN
+		SELECT DeliveryFee
+		INTO expressDeliveryFee
+		FROM expressorder
+		WHERE ReceiptID = pReceiptID
+		FOR UPDATE;
+	END IF;
 	SET calculatedTotal =
 		ROUND(
 			calculatedSubtotal
-			+ calculatedTax,
+			+ calculatedTax
+			+ expressDeliveryFee,
 			2
 		);
 	IF pAmountTendered IS NULL
@@ -1764,6 +1836,11 @@ BEGIN
 		AmountTendered = pAmountTendered,
 		ChangeDue = calculatedChange
 	WHERE ReceiptID = pReceiptID;
+	IF saleType = 'Express' THEN
+		UPDATE expressorder
+		SET Status = 'Completed'
+		WHERE ReceiptID = pReceiptID;
+	END IF;
 	COMMIT;
 	SELECT
 		ReceiptID,
@@ -1788,6 +1865,7 @@ BEGIN
 	DECLARE saleStoreID INT DEFAULT NULL;
 	DECLARE saleOperatorID INT DEFAULT NULL;
 	DECLARE saleStatus VARCHAR(20);
+	DECLARE saleType VARCHAR(20);
 	DECLARE actingStoreID INT DEFAULT NULL;
 	DECLARE actingRole VARCHAR(20);
 	DECLARE actingActive TINYINT DEFAULT 0;
@@ -1806,12 +1884,14 @@ BEGIN
 		StoreID,
 		OperatorID,
 		Status,
+		SaleType,
 		SubtotalAmount,
 		ReceiptDiscountAmount
 	INTO
 		saleStoreID,
 		saleOperatorID,
 		saleStatus,
+		saleType,
 		currentSubtotal,
 		currentDiscount
 	FROM salesreceipt
@@ -1902,6 +1982,495 @@ BEGIN
 		AmountTendered = NULL,
 		ChangeDue = NULL
 	WHERE ReceiptID = pReceiptID;
+	IF saleType = 'Express' THEN
+		UPDATE expressorder
+		SET Status = 'Cancelled'
+		WHERE ReceiptID = pReceiptID;
+	END IF;
 	COMMIT;
 END$$
+DELIMITER ;
+
+-- FnH Express
+DROP VIEW IF EXISTS vw_express_orders;
+
+CREATE VIEW vw_express_orders AS
+SELECT
+	eo.ExpressOrderID,
+	sr.ReceiptID,
+	sr.TransactionNumber,
+	sr.StoreID,
+	s.StoreNumber,
+	s.StoreName,
+	sr.RegisterID,
+	r.RegisterNumber,
+	r.RegisterName,
+	sr.CustomerID,
+	c.LoyaltyNumber,
+	c.FirstName AS CustomerFirstName,
+	c.LastName AS CustomerLastName,
+	c.Phone AS CustomerPhone,
+	eo.PersonalShopperID,
+	o.Username AS PersonalShopperUsername,
+	o.FirstName AS PersonalShopperFirstName,
+	o.LastName AS PersonalShopperLastName,
+	eo.OrderPlacedDateTime,
+	eo.FulfillmentMethod,
+	eo.DeliveryFee,
+	eo.DeliveryAddressLine1,
+	eo.DeliveryAddressLine2,
+	eo.DeliveryCity,
+	eo.DeliveryStateCode,
+	eo.DeliveryPostalCode,
+	eo.Status AS ExpressStatus,
+	sr.Status AS ReceiptStatus,
+	sr.ReceiptDiscountAmount,
+	sr.SubtotalAmount,
+	sr.TaxableSubtotalAmount,
+	sr.TaxAmount,
+	sr.TotalAmount,
+	sr.PaymentMethod,
+	sr.AmountTendered,
+	sr.ChangeDue,
+	sr.CheckoutDateTime
+FROM expressorder eo
+JOIN salesreceipt sr
+	ON sr.ReceiptID = eo.ReceiptID
+JOIN store s
+	ON s.StoreID = sr.StoreID
+JOIN register r
+	ON r.StoreID = sr.StoreID
+	AND r.RegisterID = sr.RegisterID
+JOIN operator o
+	ON o.OperatorID = eo.PersonalShopperID
+LEFT JOIN customer c
+	ON c.CustomerID = eo.CustomerID;
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS sp_get_express_capacity$$
+CREATE PROCEDURE sp_get_express_capacity(
+	IN pStoreID INT
+)
+BEGIN
+	DECLARE usedOrders INT DEFAULT 0;
+
+	SELECT COUNT(*)
+	INTO usedOrders
+	FROM expressorder eo
+	JOIN salesreceipt sr
+		ON sr.ReceiptID = eo.ReceiptID
+	WHERE sr.StoreID = pStoreID
+	  AND DATE(eo.OrderPlacedDateTime) = CURDATE()
+	  AND eo.Status <> 'Cancelled';
+
+	SELECT
+		20 AS DailyCapacity,
+		usedOrders AS OrdersUsed,
+		GREATEST(20 - usedOrders, 0) AS OrdersRemaining;
+END$$
+
+DROP PROCEDURE IF EXISTS sp_create_express_order$$
+CREATE PROCEDURE sp_create_express_order(
+	IN pStoreID INT,
+	IN pPersonalShopperID INT,
+	IN pCustomerID INT,
+	IN pFulfillmentMethod VARCHAR(20),
+	IN pDeliveryAddressLine1 VARCHAR(120),
+	IN pDeliveryAddressLine2 VARCHAR(120),
+	IN pDeliveryCity VARCHAR(80),
+	IN pDeliveryStateCode CHAR(2),
+	IN pDeliveryPostalCode VARCHAR(10)
+)
+BEGIN
+	DECLARE expressRegisterID INT DEFAULT NULL;
+	DECLARE usedOrders INT DEFAULT 0;
+	DECLARE newReceiptID BIGINT;
+	DECLARE newExpressOrderID BIGINT;
+	DECLARE newTransactionNumber VARCHAR(40);
+	DECLARE deliveryFee DECIMAL(10,2) DEFAULT 0.00;
+
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+	BEGIN
+		ROLLBACK;
+		RESIGNAL;
+	END;
+
+	START TRANSACTION;
+
+	IF NOT EXISTS (
+		SELECT 1
+		FROM store
+		WHERE StoreID = pStoreID
+		  AND Active = 1
+	) THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The selected store is not active';
+	END IF;
+
+	SELECT RegisterID
+	INTO expressRegisterID
+	FROM register
+	WHERE StoreID = pStoreID
+	  AND RegisterNumber = 1
+	  AND Active = 1
+	FOR UPDATE;
+
+	IF expressRegisterID IS NULL THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'FnH Express Register 1 is not active';
+	END IF;
+
+	IF NOT EXISTS (
+		SELECT 1
+		FROM operator
+		WHERE OperatorID = pPersonalShopperID
+		  AND StoreID = pStoreID
+		  AND Active = 1
+		  AND Role IN ('Administrator','Personal Shopper')
+	) THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The user is not authorized to create an Express order';
+	END IF;
+
+	IF pCustomerID IS NOT NULL
+	   AND NOT EXISTS (
+			SELECT 1
+			FROM customer
+			WHERE CustomerID = pCustomerID
+			  AND Active = 1
+	   ) THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The selected customer is not active';
+	END IF;
+
+	SELECT COUNT(*)
+	INTO usedOrders
+	FROM expressorder eo
+	JOIN salesreceipt sr
+		ON sr.ReceiptID = eo.ReceiptID
+	WHERE sr.StoreID = pStoreID
+	  AND DATE(eo.OrderPlacedDateTime) = CURDATE()
+	  AND eo.Status <> 'Cancelled';
+
+	IF usedOrders >= 20 THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The store has reached its daily capacity of 20 Express orders';
+	END IF;
+
+	IF pFulfillmentMethod NOT IN ('Curbside','Delivery') THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'Fulfillment method must be Curbside or Delivery';
+	END IF;
+
+	IF pFulfillmentMethod = 'Delivery' THEN
+		IF CURTIME() < '08:00:00'
+		   OR CURTIME() > '16:00:00' THEN
+			SIGNAL SQLSTATE '45000'
+				SET MESSAGE_TEXT = 'Home delivery is available only for orders placed from 8:00 AM through 4:00 PM';
+		END IF;
+
+		IF NULLIF(TRIM(pDeliveryAddressLine1), '') IS NULL
+		   OR NULLIF(TRIM(pDeliveryCity), '') IS NULL
+		   OR NULLIF(TRIM(pDeliveryStateCode), '') IS NULL
+		   OR NULLIF(TRIM(pDeliveryPostalCode), '') IS NULL THEN
+			SIGNAL SQLSTATE '45000'
+				SET MESSAGE_TEXT = 'A delivery address is required for home delivery';
+		END IF;
+
+		SET deliveryFee = 10.00;
+	ELSE
+		SET deliveryFee = 0.00;
+		SET pDeliveryAddressLine1 = NULL;
+		SET pDeliveryAddressLine2 = NULL;
+		SET pDeliveryCity = NULL;
+		SET pDeliveryStateCode = NULL;
+		SET pDeliveryPostalCode = NULL;
+	END IF;
+
+	SET newTransactionNumber =
+		CONCAT(
+			'E',
+			LPAD(pStoreID, 3, '0'),
+			'-',
+			DATE_FORMAT(NOW(6), '%Y%m%d%H%i%s%f'),
+			'-',
+			LPAD(pPersonalShopperID, 4, '0')
+		);
+
+	INSERT INTO salesreceipt (
+		TransactionNumber,
+		StoreID,
+		RegisterID,
+		OperatorID,
+		CustomerID,
+		SaleType,
+		TransactionDateTime,
+		CheckoutDateTime,
+		Status,
+		ReceiptDiscountAmount,
+		SubtotalAmount,
+		TaxableSubtotalAmount,
+		TaxAmount,
+		TotalAmount,
+		PaymentMethod,
+		AmountTendered,
+		ChangeDue
+	)
+	VALUES (
+		newTransactionNumber,
+		pStoreID,
+		expressRegisterID,
+		pPersonalShopperID,
+		pCustomerID,
+		'Express',
+		NOW(),
+		NULL,
+		'Open',
+		0.00,
+		0.00,
+		0.00,
+		0.00,
+		deliveryFee,
+		'Cash',
+		NULL,
+		NULL
+	);
+
+	SET newReceiptID = LAST_INSERT_ID();
+
+	INSERT INTO transactionjournal (
+		ReceiptID,
+		TransactionNumber,
+		StoreID,
+		RegisterID,
+		OpenedByOperatorID,
+		OpenedDateTime,
+		Status
+	)
+	VALUES (
+		newReceiptID,
+		newTransactionNumber,
+		pStoreID,
+		expressRegisterID,
+		pPersonalShopperID,
+		NOW(),
+		'Open'
+	);
+
+	INSERT INTO expressorder (
+		ReceiptID,
+		CustomerID,
+		PersonalShopperID,
+		OrderPlacedDateTime,
+		FulfillmentMethod,
+		DeliveryFee,
+		DeliveryAddressLine1,
+		DeliveryAddressLine2,
+		DeliveryCity,
+		DeliveryStateCode,
+		DeliveryPostalCode,
+		Status
+	)
+	VALUES (
+		newReceiptID,
+		pCustomerID,
+		pPersonalShopperID,
+		NOW(),
+		pFulfillmentMethod,
+		deliveryFee,
+		pDeliveryAddressLine1,
+		pDeliveryAddressLine2,
+		pDeliveryCity,
+		CASE
+			WHEN pDeliveryStateCode IS NULL THEN NULL
+			ELSE UPPER(pDeliveryStateCode)
+		END,
+		pDeliveryPostalCode,
+		'Received'
+	);
+
+	SET newExpressOrderID = LAST_INSERT_ID();
+
+	COMMIT;
+
+	SELECT
+		newExpressOrderID AS ExpressOrderID,
+		newReceiptID AS ReceiptID,
+		newTransactionNumber AS TransactionNumber,
+		GREATEST(20 - (usedOrders + 1), 0) AS OrdersRemaining;
+END$$
+
+DROP PROCEDURE IF EXISTS sp_create_express_customer$$
+CREATE PROCEDURE sp_create_express_customer(
+	IN pFirstName VARCHAR(60),
+	IN pLastName VARCHAR(60),
+	IN pPhone VARCHAR(20),
+	IN pEmail VARCHAR(120)
+)
+BEGIN
+	DECLARE newCustomerID INT;
+
+	IF NULLIF(TRIM(pFirstName), '') IS NULL THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'First name is required';
+	END IF;
+
+	IF NULLIF(TRIM(pLastName), '') IS NULL THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'Last name is required';
+	END IF;
+
+	IF NULLIF(TRIM(pPhone), '') IS NOT NULL
+	   AND TRIM(pPhone) NOT REGEXP '^[0-9]{10}$' THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'Phone number must contain exactly 10 digits or be left blank';
+	END IF;
+
+	/*
+	   LoyaltyNumber is NOT NULL and unique, so the row is
+	   inserted with a UUID placeholder first, exactly like
+	   sp_create_operator assigns EmployeeNumber after the
+	   new ID exists. This avoids two simultaneous inserts
+	   ever colliding on the same placeholder value.
+	*/
+	INSERT INTO customer (
+		LoyaltyNumber,
+		FirstName,
+		LastName,
+		Email,
+		Phone,
+		JoinDate,
+		LoyaltyPoints,
+		Active
+	)
+	VALUES (
+		UUID(),
+		pFirstName,
+		pLastName,
+		NULLIF(pEmail, ''),
+		NULLIF(pPhone, ''),
+		CURDATE(),
+		0,
+		1
+	);
+
+	SET newCustomerID = LAST_INSERT_ID();
+
+	UPDATE customer
+	SET LoyaltyNumber =
+		CONCAT('EXP', LPAD(newCustomerID, 6, '0'))
+	WHERE CustomerID = newCustomerID;
+
+	SELECT newCustomerID AS CustomerID;
+END$$
+
+DROP PROCEDURE IF EXISTS sp_set_express_order_status$$
+CREATE PROCEDURE sp_set_express_order_status(
+	IN pExpressOrderID BIGINT,
+	IN pPersonalShopperID INT,
+	IN pStatus VARCHAR(20)
+)
+BEGIN
+	DECLARE orderShopperID INT DEFAULT NULL;
+	DECLARE receiptID BIGINT DEFAULT NULL;
+	DECLARE receiptStatus VARCHAR(20) DEFAULT NULL;
+
+	IF pStatus NOT IN ('Received','Picking','Ready') THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'Invalid Express order status';
+	END IF;
+
+	SELECT
+		eo.PersonalShopperID,
+		eo.ReceiptID,
+		sr.Status
+	INTO
+		orderShopperID,
+		receiptID,
+		receiptStatus
+	FROM expressorder eo
+	JOIN salesreceipt sr
+		ON sr.ReceiptID = eo.ReceiptID
+	WHERE eo.ExpressOrderID = pExpressOrderID;
+
+	IF receiptID IS NULL THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'Express order does not exist';
+	END IF;
+
+	IF orderShopperID <> pPersonalShopperID
+	   AND NOT EXISTS (
+			SELECT 1
+			FROM operator
+			WHERE OperatorID = pPersonalShopperID
+			  AND Active = 1
+			  AND Role = 'Administrator'
+	   ) THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'You cannot update another personal shopper''s Express order';
+	END IF;
+
+	IF receiptStatus <> 'Open' THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'Only an open Express order can be updated';
+	END IF;
+
+	UPDATE expressorder
+	SET Status = pStatus
+	WHERE ExpressOrderID = pExpressOrderID;
+END$$
+
+CREATE PROCEDURE sp_create_customer(
+	IN pFirstName VARCHAR(60),
+	IN pLastName VARCHAR(60),
+	IN pEmail VARCHAR(120),
+	IN pPhone VARCHAR(20)
+)
+BEGIN
+	DECLARE newCustomerID INT;
+	DECLARE newLoyaltyNumber VARCHAR(30);
+
+	IF NULLIF(TRIM(pFirstName), '') IS NULL
+	   OR NULLIF(TRIM(pLastName), '') IS NULL THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'A first and last name are required';
+	END IF;
+
+	INSERT INTO customer (
+		LoyaltyNumber,
+		FirstName,
+		LastName,
+		Email,
+		Phone,
+		JoinDate,
+		LoyaltyPoints,
+		Active
+	)
+	VALUES (
+		CONCAT('TEMP', UUID_SHORT()),
+		pFirstName,
+		pLastName,
+		NULLIF(pEmail, ''),
+		NULLIF(pPhone, ''),
+		CURDATE(),
+		0,
+		1
+	);
+
+	SET newCustomerID = LAST_INSERT_ID();
+
+	/* This mirrors the operator EmployeeNumber pattern: insert first, then derive the loyalty number from the new ID. */
+	SET newLoyaltyNumber = CONCAT('FNH1', LPAD(newCustomerID, 4, '0'));
+
+	UPDATE customer
+	SET LoyaltyNumber = newLoyaltyNumber
+	WHERE CustomerID = newCustomerID;
+
+	SELECT
+		newCustomerID AS CustomerID,
+		newLoyaltyNumber AS LoyaltyNumber;
+END$$
+
+
 DELIMITER ;

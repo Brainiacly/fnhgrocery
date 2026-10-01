@@ -1,0 +1,214 @@
+/* assets/css/express.css */
+
+/*
+  Brian Phillips
+  CSC 680
+*/
+
+.express-panel {
+    overflow: hidden;
+}
+
+.express-capacity {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border: 0.125rem solid var(--shared-blue-color);
+    border-radius: var(--standard-border-radius);
+    background: var(--theme-primary-light-color);
+    text-align: center;
+}
+
+.express-capacity strong {
+    font-size: 2rem;
+    color: var(--theme-primary-dark-color);
+}
+
+.express-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    margin: 1rem 0;
+}
+
+.express-table-container {
+    width: 100%;
+    overflow-x: auto;
+    margin-bottom: 1.25rem;
+}
+
+.express-table {
+    width: 100%;
+    min-width: 42rem;
+    border-collapse: collapse;
+}
+
+.express-table th,
+.express-table td {
+    padding: 0.75rem;
+    border: 0.0625rem solid var(--standard-border-color);
+    text-align: left;
+    vertical-align: middle;
+}
+
+.express-table th {
+    background: var(--theme-primary-dark-color);
+    color: white;
+}
+
+.express-table tbody tr:nth-child(even) {
+    background: var(--panel-background-color);
+}
+
+.express-empty {
+    padding: 1rem;
+    border: 0.0625rem dashed var(--standard-border-color);
+    border-radius: var(--standard-border-radius);
+    text-align: center;
+}
+
+.express-method-delivery,
+.express-method-curbside {
+    display: inline-block;
+    padding: 0.25rem 0.625rem;
+    border-radius: var(--standard-border-radius);
+    font-weight: bold;
+    font-size: 0.875rem;
+}
+
+.express-method-delivery {
+    border: 0.125rem solid var(--theme-orange-color);
+    background: var(--theme-light-green-color);
+    color: var(--theme-primary-dark-color);
+}
+
+.express-method-curbside {
+    border: 0.0625rem solid var(--standard-border-color);
+    background: var(--panel-background-color);
+    color: var(--main-text-color);
+}
+
+.express-fulfillment,
+.express-customer-mode {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 0.0625rem solid var(--standard-border-color);
+    border-radius: var(--standard-border-radius);
+}
+
+.express-new-customer {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 0.0625rem solid var(--standard-border-color);
+    border-radius: var(--standard-border-radius);
+}
+
+.express-fulfillment label,
+.express-customer-mode label {
+    min-height: var(--minimum-touch-size);
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+}
+
+.express-fulfillment input[type="radio"],
+.express-customer-mode input[type="radio"] {
+    width: 1.125rem;
+    height: 1.125rem;
+    min-width: 1.125rem;
+    min-height: 1.125rem;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
+    accent-color: var(--shared-blue-color);
+}
+
+.express-order-summary {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.625rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border: 0.0625rem solid var(--shared-blue-color);
+    border-radius: var(--standard-border-radius);
+    background: var(--theme-primary-light-color);
+}
+
+.express-address {
+    grid-column: 1 / -1;
+}
+
+.express-status-form {
+    max-width: 30rem;
+    display: grid;
+    gap: 0.75rem;
+    margin: 1rem auto;
+}
+
+.express-status-form select {
+    min-height: var(--minimum-touch-size);
+}
+
+@media (min-width: 48rem) {
+    .express-order-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+
+/* Express item entry and checkout */
+
+.express-entry-panel,
+.express-checkout-totals,
+.express-checkout-form,
+.express-order-footer {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 0.0625rem solid var(--standard-border-color);
+    border-radius: var(--standard-border-radius);
+    background: var(--panel-background-color);
+}
+
+.express-item-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+}
+
+.express-checkout-totals {
+    display: grid;
+    gap: 0.625rem;
+}
+
+.express-checkout-totals > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.express-checkout-grand-total {
+    padding-top: 0.75rem;
+    border-top: 0.125rem solid var(--shared-blue-color);
+    font-size: 1.125rem;
+}
+
+.express-checkout-form {
+    max-width: 36rem;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+@media (min-width: 48rem) {
+    .express-item-form {
+        grid-template-columns: minmax(0, 2fr) minmax(8rem, 1fr) auto;
+        align-items: end;
+    }
+}

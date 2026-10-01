@@ -124,9 +124,9 @@ INSERT INTO register (
 	Active
 )
 VALUES
-	(1,1,1,'Front Register 1',1),
+	(1,1,1,'Express Register',1),
 	(2,1,2,'Front Register 2',1),
-	(3,1,3,'Express Register',1);
+	(3,1,3,'Front Register 3',1);
 
 -- storeinventory
 INSERT INTO storeinventory (

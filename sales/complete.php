@@ -7,7 +7,7 @@
 
 require_once __DIR__ . '/../includes/access_control.php';
 
-requireAssignedAccess();
+requireRegularPOSAccess();
 
 $storeID =
     (int)($_SESSION['store_id'] ?? 0);

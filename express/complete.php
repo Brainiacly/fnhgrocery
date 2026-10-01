@@ -1,0 +1,350 @@
+<?php // express/complete.php
+
+/**
+ * Brian Phillips
+ * CSC 680
+ */
+
+require_once __DIR__ . '/../includes/access_control.php';
+
+requireExpressAccess();
+
+$databaseConnection = connectDatabase();
+
+$storeID = (int) ($_SESSION['store_id'] ?? 0);
+$operatorID = (int) ($_SESSION['operator_id'] ?? 0);
+$expressOrderID = (int) ($_GET['id'] ?? 0);
+
+$errorMessage = '';
+
+$orderStatement =
+    $databaseConnection->prepare(
+        '
+        SELECT *
+        FROM vw_express_orders
+        WHERE ExpressOrderID = :expressOrderID
+          AND StoreID = :storeID
+        LIMIT 1
+        '
+    );
+
+$orderStatement->execute([
+    ':expressOrderID' =>
+        $expressOrderID,
+
+    ':storeID' =>
+        $storeID
+]);
+
+$order =
+    $orderStatement->fetch();
+
+
+if (
+    !$order
+    ||
+    $order['ReceiptStatus'] !== 'Paid'
+) {
+
+    $errorMessage =
+        'The completed Express receipt could not be found.';
+
+} elseif (
+    (int) $order['PersonalShopperID'] !== $operatorID
+    &&
+    !operatorIsAdministrator()
+) {
+
+    http_response_code(403);
+
+    exit(
+        'You cannot view another personal shopper\'s Express receipt'
+    );
+}
+
+
+$saleItems = [];
+
+if ($errorMessage === '') {
+
+    $itemStatement =
+        $databaseConnection->prepare(
+            '
+            SELECT
+                ProductName,
+                UnitType,
+                Quantity,
+                UnitPrice,
+                LineTotal
+            FROM vw_sale_detail
+            WHERE ReceiptID = :receiptID
+            ORDER BY LineNumber
+            '
+        );
+
+    $itemStatement->execute([
+        ':receiptID' =>
+            (int) $order['ReceiptID']
+    ]);
+
+    $saleItems =
+        $itemStatement->fetchAll();
+}
+
+
+$pageTitle =
+    'Express Sale Complete';
+
+$currentSection =
+    'express';
+
+$currentPage =
+    'express-complete';
+
+
+require __DIR__ . '/../includes/header.php';
+?>
+
+<section class="content-panel express-panel">
+
+    <div class="page-intro">
+
+        <h1>
+            Express Sale Complete
+        </h1>
+
+        <p>
+            The Express transaction has been recorded.
+        </p>
+
+    </div>
+
+
+    <?php if ($errorMessage !== ''): ?>
+
+        <div class="message message-error">
+            <?= escapeOutput($errorMessage) ?>
+        </div>
+
+    <?php else: ?>
+
+        <div class="message message-success">
+            Payment accepted. The Express order is complete.
+        </div>
+
+
+        <div class="express-order-summary">
+
+            <div>
+                <strong>Transaction:</strong>
+                <?= escapeOutput($order['TransactionNumber']) ?>
+            </div>
+
+            <div>
+                <strong>Customer:</strong>
+                <?= escapeOutput(
+                    trim(
+                        ($order['CustomerFirstName'] ?? '')
+                        . ' '
+                        . ($order['CustomerLastName'] ?? '')
+                    )
+                ) ?>
+            </div>
+
+            <div>
+                <strong>Fulfillment:</strong>
+                <?= escapeOutput($order['FulfillmentMethod']) ?>
+            </div>
+
+            <div>
+                <strong>Order Status:</strong>
+                <?= escapeOutput($order['ExpressStatus']) ?>
+            </div>
+
+
+            <?php if ($order['FulfillmentMethod'] === 'Delivery'): ?>
+
+                <div class="express-address">
+
+                    <strong>
+                        Delivery Address:
+                    </strong>
+
+                    <?= escapeOutput($order['DeliveryAddressLine1']) ?>
+
+                    <?php if (!empty($order['DeliveryAddressLine2'])): ?>
+                        ,
+                        <?= escapeOutput($order['DeliveryAddressLine2']) ?>
+                    <?php endif; ?>
+
+                    ,
+                    <?= escapeOutput($order['DeliveryCity']) ?>
+                    ,
+                    <?= escapeOutput($order['DeliveryStateCode']) ?>
+                    <?= escapeOutput($order['DeliveryPostalCode']) ?>
+
+                </div>
+
+            <?php endif; ?>
+
+        </div>
+
+
+        <div class="express-table-container">
+
+            <table class="express-table">
+
+                <thead>
+
+                    <tr>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Unit Price</th>
+                        <th>Line Total</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    <?php foreach ($saleItems as $saleItem): ?>
+
+                        <tr>
+
+                            <td>
+                                <?= escapeOutput($saleItem['ProductName']) ?>
+                            </td>
+
+                            <td>
+                                <?= escapeOutput($saleItem['Quantity']) ?>
+                            </td>
+
+                            <td>
+                                $<?= escapeOutput(
+                                    number_format(
+                                        (float) $saleItem['UnitPrice'],
+                                        2
+                                    )
+                                ) ?>
+                            </td>
+
+                            <td>
+                                $<?= escapeOutput(
+                                    number_format(
+                                        (float) $saleItem['LineTotal'],
+                                        2
+                                    )
+                                ) ?>
+                            </td>
+
+                        </tr>
+
+                    <?php endforeach; ?>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <div class="express-checkout-totals">
+
+            <div>
+                <span>Merchandise Subtotal</span>
+                <strong>
+                    $<?= escapeOutput(
+                        number_format(
+                            (float) $order['SubtotalAmount'],
+                            2
+                        )
+                    ) ?>
+                </strong>
+            </div>
+
+            <div>
+                <span>Sales Tax</span>
+                <strong>
+                    $<?= escapeOutput(
+                        number_format(
+                            (float) $order['TaxAmount'],
+                            2
+                        )
+                    ) ?>
+                </strong>
+            </div>
+
+            <div>
+                <span>Delivery Fee</span>
+                <strong>
+                    $<?= escapeOutput(
+                        number_format(
+                            (float) $order['DeliveryFee'],
+                            2
+                        )
+                    ) ?>
+                </strong>
+            </div>
+
+            <div class="express-checkout-grand-total">
+                <span>Total</span>
+                <strong>
+                    $<?= escapeOutput(
+                        number_format(
+                            (float) $order['TotalAmount'],
+                            2
+                        )
+                    ) ?>
+                </strong>
+            </div>
+
+            <div>
+                <span>Cash Tendered</span>
+                <strong>
+                    $<?= escapeOutput(
+                        number_format(
+                            (float) $order['AmountTendered'],
+                            2
+                        )
+                    ) ?>
+                </strong>
+            </div>
+
+            <div>
+                <span>Change Due</span>
+                <strong>
+                    $<?= escapeOutput(
+                        number_format(
+                            (float) $order['ChangeDue'],
+                            2
+                        )
+                    ) ?>
+                </strong>
+            </div>
+
+        </div>
+
+
+        <div class="express-actions">
+
+            <a
+                href="<?= APPLICATION_URL ?>/express/index.php"
+                class="button button-primary"
+            >
+                Express Home
+            </a>
+
+            <a
+                href="<?= APPLICATION_URL ?>/express/orders.php"
+                class="button button-secondary"
+            >
+                Today&apos;s Orders
+            </a>
+
+        </div>
+
+    <?php endif; ?>
+
+</section>
+
+<?php require __DIR__ . '/../includes/footer.php'; ?>

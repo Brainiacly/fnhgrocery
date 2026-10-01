@@ -36,6 +36,8 @@ if ($currentPage === 'home') {
     $pageStylesheet = 'sales.css';
 } elseif ($currentSection === 'inventory') {
     $pageStylesheet = 'inventory.css';
+} elseif ($currentSection === 'express') {
+    $pageStylesheet = 'express.css';
 }
 
 

@@ -7,7 +7,7 @@
 
 require_once __DIR__ . '/../includes/access_control.php';
 
-requireAssignedAccess();
+requireRegularPOSAccess();
 
 $storeID = (int) ($_SESSION['store_id'] ?? 0);
 $operatorID = (int) ($_SESSION['operator_id'] ?? 0);
@@ -123,6 +123,7 @@ try {
             WHERE r.StoreID =
                 :storeID
               AND r.Active = 1
+              AND r.RegisterNumber <> 1
             ORDER BY
                 r.RegisterNumber
             '

@@ -94,7 +94,7 @@ CREATE TABLE operator (
 	LastName varchar(60) NOT NULL,
 	Email varchar(120) NOT NULL UNIQUE,
 	Phone char(10) DEFAULT NULL CHECK (Phone IS NULL OR Phone REGEXP '^[0-9]{10}$'),
-	Role enum('Pending','Administrator','Operator') NOT NULL DEFAULT 'Pending',
+	Role enum('Pending','Administrator','Operator','Personal Shopper') NOT NULL DEFAULT 'Pending',
 	HireDate date DEFAULT NULL,
 	Active tinyint(1) NOT NULL DEFAULT 1,
 	CreatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -147,15 +147,60 @@ CREATE TABLE salesreceipt (
 	PaymentMethod enum('Cash','Credit','Debit','Gift Card','Other') NOT NULL DEFAULT 'Cash',
 	AmountTendered decimal(10,2) DEFAULT NULL CHECK (AmountTendered IS NULL OR AmountTendered >= 0),
 	ChangeDue decimal(10,2) DEFAULT NULL CHECK (ChangeDue IS NULL OR ChangeDue >= 0),
+	SaleType enum('Regular','Express') NOT NULL DEFAULT 'Regular',
 	INDEX idx_sales_receipt_store_date (StoreID, TransactionDateTime),
 	INDEX idx_sales_receipt_register_date (RegisterID, TransactionDateTime),
 	INDEX idx_sales_receipt_operator_date (OperatorID, TransactionDateTime),
 	INDEX idx_sales_receipt_customer_date (CustomerID, TransactionDateTime),
 	INDEX idx_sales_receipt_open_sale (StoreID, RegisterID, OperatorID, Status),
+	INDEX idx_sales_receipt_type_date (StoreID, SaleType, TransactionDateTime),
 	FOREIGN KEY (CustomerID) REFERENCES customer(CustomerID),
 	FOREIGN KEY (OperatorID) REFERENCES operator(OperatorID),
 	FOREIGN KEY (StoreID, RegisterID) REFERENCES register(StoreID, RegisterID),
 	FOREIGN KEY (StoreID) REFERENCES store(StoreID)
+);
+
+CREATE TABLE expressorder (
+	ExpressOrderID bigint NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	ReceiptID bigint NOT NULL UNIQUE,
+	CustomerID int DEFAULT NULL,
+	PersonalShopperID int NOT NULL,
+	OrderPlacedDateTime datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	FulfillmentMethod enum('Curbside','Delivery') NOT NULL DEFAULT 'Curbside',
+	DeliveryFee decimal(10,2) NOT NULL DEFAULT 0.00 CHECK (DeliveryFee IN (0.00, 10.00)),
+	DeliveryAddressLine1 varchar(120) DEFAULT NULL,
+	DeliveryAddressLine2 varchar(120) DEFAULT NULL,
+	DeliveryCity varchar(80) DEFAULT NULL,
+	DeliveryStateCode char(2) DEFAULT NULL,
+	DeliveryPostalCode varchar(10) DEFAULT NULL,
+	Status enum('Received','Picking','Ready','Completed','Cancelled') NOT NULL DEFAULT 'Received',
+	CreatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	INDEX idx_express_order_date_status (OrderPlacedDateTime, Status),
+	INDEX idx_express_order_shopper (PersonalShopperID, Status),
+	INDEX idx_express_order_customer (CustomerID, OrderPlacedDateTime),
+	FOREIGN KEY (ReceiptID) REFERENCES salesreceipt(ReceiptID),
+	FOREIGN KEY (CustomerID) REFERENCES customer(CustomerID),
+	FOREIGN KEY (PersonalShopperID) REFERENCES operator(OperatorID),
+	CONSTRAINT chk_express_order_fulfillment CHECK (
+		(
+			FulfillmentMethod = 'Curbside'
+			AND DeliveryFee = 0.00
+			AND DeliveryAddressLine1 IS NULL
+			AND DeliveryAddressLine2 IS NULL
+			AND DeliveryCity IS NULL
+			AND DeliveryStateCode IS NULL
+			AND DeliveryPostalCode IS NULL
+		)
+		OR
+		(
+			FulfillmentMethod = 'Delivery'
+			AND DeliveryFee = 10.00
+			AND DeliveryAddressLine1 IS NOT NULL
+			AND DeliveryCity IS NOT NULL
+			AND DeliveryStateCode IS NOT NULL
+			AND DeliveryPostalCode IS NOT NULL
+		)
+	)
 );
 
 CREATE TABLE salesreceiptline (
