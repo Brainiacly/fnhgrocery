@@ -1,4 +1,4 @@
-<?php // express/checkout.php
+<?php // express/ex_checkout.php
 
 /**
  * Brian Phillips
@@ -71,7 +71,7 @@ if ($order['ReceiptStatus'] !== 'Open') {
     header(
         'Location: '
         . APPLICATION_URL
-        . '/express/complete.php?id='
+        . '/express/ex_complete.php?id='
         . $expressOrderID
     );
 
@@ -262,7 +262,7 @@ if (
                 header(
                     'Location: '
                     . APPLICATION_URL
-                    . '/express/complete.php?id='
+                    . '/express/ex_complete.php?id='
                     . $expressOrderID
                 );
 

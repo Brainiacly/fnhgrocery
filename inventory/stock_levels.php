@@ -1,4 +1,4 @@
-<?php // inventory/store_stock_levels.php
+<?php // inventory/stock_levels.php
 
 /**
  * Brian Phillips

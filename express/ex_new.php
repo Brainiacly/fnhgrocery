@@ -1,4 +1,4 @@
-<?php // express/new.php
+<?php // express/ex_new.php
 
 /**
  * Brian Phillips
@@ -458,7 +458,7 @@ require __DIR__ . '/../includes/header.php';
 
         <div class="form-actions">
             <button class="button button-primary" type="submit" name="create_order" value="1">Create Express Order</button>
-            <a class="button button-secondary" href="<?= APPLICATION_URL ?>/express/index.php">Cancel</a>
+            <a class="button button-secondary" href="<?= APPLICATION_URL ?>/express/ex_home.php">Cancel</a>
         </div>
     </form>
 </section>

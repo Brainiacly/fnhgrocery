@@ -1,4 +1,4 @@
-<?php // sales/complete.php
+<?php // sales/sale_complete.php
 
 /**
  * Brian Phillips
@@ -439,7 +439,7 @@ require __DIR__ . '/../includes/header.php';
         <div class="page-main-actions">
 
             <a
-                href="<?= APPLICATION_URL ?>/sales/new.php"
+                href="<?= APPLICATION_URL ?>/sales/sale_new.php"
                 class="button button-primary"
             >
                 Start New Sale

@@ -61,7 +61,7 @@ $onInventoryPage =
 
 // Set the sales navigation action for the current operator
 $saleNavigationHref =
-    APPLICATION_URL . '/sales/new.php';
+    APPLICATION_URL . '/sales/sale_new.php';
 
 $saleNavigationLabel =
     'New Sale';
@@ -126,7 +126,7 @@ if (
 
             $saleNavigationHref =
                 APPLICATION_URL
-                . '/sales/new.php?receipt='
+                . '/sales/sale_new.php?receipt='
                 . (int) $saleNavigationRecord['ReceiptID'];
 
 
@@ -420,7 +420,7 @@ $showSaleNavigationLink =
                 <?php if (operatorCanUseExpress()): ?>
 
                     <a
-                        href="<?= APPLICATION_URL ?>/express/index.php"
+                        href="<?= APPLICATION_URL ?>/express/ex_home.php"
                         class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
                     >
                         Express Orders
@@ -430,7 +430,7 @@ $showSaleNavigationLink =
 
 
                 <a
-                    href="<?= APPLICATION_URL ?>/inventory/store_stock_levels.php"
+                    href="<?= APPLICATION_URL ?>/inventory/stock_levels.php"
                     class="navigation-link"
                 >
                     Store Stock Levels
@@ -479,7 +479,7 @@ $showSaleNavigationLink =
                 <?php if (operatorCanUseExpress()): ?>
 
                     <a
-                        href="<?= APPLICATION_URL ?>/express/index.php"
+                        href="<?= APPLICATION_URL ?>/express/ex_home.php"
                         class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
                     >
                         Express Orders
@@ -489,7 +489,7 @@ $showSaleNavigationLink =
 
 
                 <a
-                    href="<?= APPLICATION_URL ?>/inventory/store_stock_levels.php"
+                    href="<?= APPLICATION_URL ?>/inventory/stock_levels.php"
                     class="navigation-link"
                 >
                     Store Stock Levels
@@ -538,7 +538,7 @@ $showSaleNavigationLink =
                 <?php if (operatorCanUseExpress()): ?>
 
                     <a
-                        href="<?= APPLICATION_URL ?>/express/index.php"
+                        href="<?= APPLICATION_URL ?>/express/ex_home.php"
                         class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
                     >
                         Express Orders
@@ -548,7 +548,7 @@ $showSaleNavigationLink =
 
 
                 <a
-                    href="<?= APPLICATION_URL ?>/inventory/store_stock_levels.php"
+                    href="<?= APPLICATION_URL ?>/inventory/stock_levels.php"
                     class="navigation-link"
                 >
                     Store Stock Levels
@@ -593,7 +593,7 @@ $showSaleNavigationLink =
                 <?php if (operatorCanUseExpress()): ?>
 
                     <a
-                        href="<?= APPLICATION_URL ?>/express/index.php"
+                        href="<?= APPLICATION_URL ?>/express/ex_home.php"
                         class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
                     >
                         Express Orders
@@ -603,7 +603,7 @@ $showSaleNavigationLink =
 
 
                 <a
-                    href="<?= APPLICATION_URL ?>/inventory/store_stock_levels.php"
+                    href="<?= APPLICATION_URL ?>/inventory/stock_levels.php"
                     class="navigation-link"
                 >
                     Store Stock Levels
@@ -656,7 +656,7 @@ $showSaleNavigationLink =
                 <?php if (operatorCanUseExpress()): ?>
 
                     <a
-                        href="<?= APPLICATION_URL ?>/express/index.php"
+                        href="<?= APPLICATION_URL ?>/express/ex_home.php"
                         class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
                     >
                         Express Orders
@@ -666,7 +666,7 @@ $showSaleNavigationLink =
 
 
                 <a
-                    href="<?= APPLICATION_URL ?>/inventory/store_stock_levels.php"
+                    href="<?= APPLICATION_URL ?>/inventory/stock_levels.php"
                     class="navigation-link"
                 >
                     Store Stock Levels
@@ -715,7 +715,7 @@ $showSaleNavigationLink =
                 <?php if ($currentPage !== 'list'): ?>
 
                     <a
-                        href="<?= APPLICATION_URL ?>/inventory/store_stock_levels.php"
+                        href="<?= APPLICATION_URL ?>/inventory/stock_levels.php"
                         class="navigation-link"
                     >
                         Store Stock Levels
@@ -770,7 +770,7 @@ $showSaleNavigationLink =
                 <?php if (operatorCanUseExpress()): ?>
 
                     <a
-                        href="<?= APPLICATION_URL ?>/express/index.php"
+                        href="<?= APPLICATION_URL ?>/express/ex_home.php"
                         class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
                     >
                         Express Orders
@@ -780,7 +780,7 @@ $showSaleNavigationLink =
 
 
                 <a
-                    href="<?= APPLICATION_URL ?>/inventory/store_stock_levels.php"
+                    href="<?= APPLICATION_URL ?>/inventory/stock_levels.php"
                     class="navigation-link"
                 >
                     Store Stock Levels

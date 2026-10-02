@@ -1,4 +1,4 @@
-<?php // sales/new.php
+<?php // sales/sale_new.php
 
 /**
  * Brian Phillips
@@ -197,7 +197,7 @@ try {
                     header(
                         'Location: '
                         . APPLICATION_URL
-                        . '/sales/new.php?closed=1'
+                        . '/sales/sale_new.php?closed=1'
                     );
                     exit;
                 } catch (PDOException $exception) {
@@ -248,7 +248,7 @@ try {
                     header(
                         'Location: '
                         . APPLICATION_URL
-                        . '/sales/new.php?receipt='
+                        . '/sales/sale_new.php?receipt='
                         . (int) $selectedRegister['OpenReceiptID']
                     );
 
@@ -321,7 +321,7 @@ try {
                             header(
                                 'Location: '
                                 . APPLICATION_URL
-                                . '/sales/new.php?receipt='
+                                . '/sales/sale_new.php?receipt='
                                 . $newReceiptID
                             );
 
@@ -365,7 +365,7 @@ try {
                     header(
                         'Location: '
                         . APPLICATION_URL
-                        . '/sales/new.php?cleared=1'
+                        . '/sales/sale_new.php?cleared=1'
                     );
 
                     exit;
@@ -530,7 +530,7 @@ try {
                     header(
                         'Location: '
                         . APPLICATION_URL
-                        . '/sales/new.php?receipt='
+                        . '/sales/sale_new.php?receipt='
                         . $receiptID
                         . '&added=1'
                     );
@@ -653,7 +653,7 @@ try {
                     header(
                         'Location: '
                         . APPLICATION_URL
-                        . '/sales/new.php?receipt='
+                        . '/sales/sale_new.php?receipt='
                         . $newReceiptID
                         . '&cancelled=1'
                     );
@@ -684,7 +684,7 @@ try {
 
             $safeCloseDestination =
                 APPLICATION_URL
-                . '/sales/new.php?closed=1';
+                . '/sales/sale_new.php?closed=1';
 
             if (
                 $closeDestination !== ''
@@ -830,7 +830,7 @@ try {
             header(
                 'Location: '
                 . APPLICATION_URL
-                . '/sales/new.php'
+                . '/sales/sale_new.php'
             );
 
             exit;
@@ -1383,7 +1383,7 @@ require __DIR__ . '/../includes/header.php';
 
                     <?php if (!empty($saleItems)): ?>
 
-                        <a href="<?= APPLICATION_URL ?>/sales/checkout.php?receipt=<?= (int) $receiptID ?>"
+                        <a href="<?= APPLICATION_URL ?>/sales/sale_checkout.php?receipt=<?= (int) $receiptID ?>"
                             class="button button-primary" data-sale-safe="true">
                             Checkout
                         </a>

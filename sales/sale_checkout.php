@@ -1,4 +1,4 @@
-<?php // sales/checkout.php
+<?php // sales/sale_checkout.php
 
 /**
  * Brian Phillips
@@ -91,7 +91,7 @@ try {
         header(
             'Location: '
             . APPLICATION_URL
-            . '/sales/new.php'
+            . '/sales/sale_new.php'
         );
 
         exit;
@@ -129,7 +129,7 @@ try {
         header(
             'Location: '
             . APPLICATION_URL
-            . '/sales/new.php?receipt='
+            . '/sales/sale_new.php?receipt='
             . $receiptID
         );
 
@@ -284,7 +284,7 @@ try {
                 header(
                     'Location: '
                     . APPLICATION_URL
-                    . '/sales/new.php?receipt='
+                    . '/sales/sale_new.php?receipt='
                     . (int) $newSale['ReceiptID']
                     . '&cancelled=1'
                 );
@@ -333,7 +333,7 @@ try {
 
             $safeCloseDestination =
                 APPLICATION_URL
-                . '/sales/new.php?closed=1';
+                . '/sales/sale_new.php?closed=1';
 
             if (
                 $closeDestination !== ''
@@ -473,7 +473,7 @@ try {
                     header(
                         'Location: '
                         . APPLICATION_URL
-                        . '/sales/complete.php?receipt='
+                        . '/sales/sale_complete.php?receipt='
                         . $receiptID
                     );
 
@@ -792,7 +792,7 @@ require __DIR__ . '/../includes/header.php';
 
 
             <a
-                href="<?= APPLICATION_URL ?>/sales/new.php?receipt=<?= (int) $receiptID ?>"
+                href="<?= APPLICATION_URL ?>/sales/sale_new.php?receipt=<?= (int) $receiptID ?>"
                 class="button button-secondary"
                 data-checkout-safe="true"
             >

@@ -418,7 +418,7 @@ require __DIR__ . '/includes/header.php';
                 <?php if (operatorCanUseExpress()): ?>
 
                     <a
-                        href="<?= APPLICATION_URL ?>/express/index.php"
+                        href="<?= APPLICATION_URL ?>/express/ex_home.php"
                         class="home-menu-card"
                     >
 
@@ -436,7 +436,7 @@ require __DIR__ . '/includes/header.php';
 
 
                 <a
-                    href="<?= APPLICATION_URL ?>/inventory/store_stock_levels.php"
+                    href="<?= APPLICATION_URL ?>/inventory/stock_levels.php"
                     class="home-menu-card"
                 >
 

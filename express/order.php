@@ -790,7 +790,7 @@ require __DIR__ . '/../includes/header.php';
                 <?php if ($lines): ?>
 
                     <a
-                        href="<?= APPLICATION_URL ?>/express/checkout.php?id=<?= $expressOrderID ?>"
+                        href="<?= APPLICATION_URL ?>/express/ex_checkout.php?id=<?= $expressOrderID ?>"
                         class="button button-primary"
                     >
                         Checkout Order

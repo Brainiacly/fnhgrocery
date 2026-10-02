@@ -1,4 +1,4 @@
-<?php // express/complete.php
+<?php // express/ex_complete.php
 
 /**
  * Brian Phillips
@@ -328,7 +328,7 @@ require __DIR__ . '/../includes/header.php';
         <div class="express-actions">
 
             <a
-                href="<?= APPLICATION_URL ?>/express/index.php"
+                href="<?= APPLICATION_URL ?>/express/ex_home.php"
                 class="button button-primary"
             >
                 Express Home

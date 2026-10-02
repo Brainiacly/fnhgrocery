@@ -59,8 +59,8 @@ require __DIR__ . '/../includes/header.php';
     </div>
 
     <div class="express-actions">
-        <a class="button button-primary" href="<?= APPLICATION_URL ?>/express/new.php">New Express Order</a>
-        <a class="button button-secondary" href="<?= APPLICATION_URL ?>/express/index.php">Back to Express Home</a>
+        <a class="button button-primary" href="<?= APPLICATION_URL ?>/express/ex_new.php">New Express Order</a>
+        <a class="button button-secondary" href="<?= APPLICATION_URL ?>/express/ex_home.php">Back to Express Home</a>
     </div>
 
     <?php if (!$orders): ?>

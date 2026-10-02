@@ -50,11 +50,11 @@ assets/images/image7.png
 
 - Week 2: These files were added for the Week 2 Point of Sale and inventory functionality, along with minor updates to the other PHP and CSS files:
 
-sales/new.php
-sales/checkout.php
-sales/complete.php
+sales/sale_new.php
+sales/sale_checkout.php
+sales/sale_complete.php
 
-inventory/store_stock_levels.php
+inventory/stock_levels.php
 
 assets/css/sales.css
 assets/css/inventory.css

@@ -1,4 +1,4 @@
-<?php // express/index.php
+<?php // express/ex_home.php
 
 /**
  * Brian Phillips
@@ -55,7 +55,7 @@ require __DIR__ . '/../includes/header.php';
 
     <div class="express-actions">
         <?php if ((int) ($capacity['OrdersRemaining'] ?? 0) > 0): ?>
-            <a class="button button-primary" href="<?= APPLICATION_URL ?>/express/new.php">New Express Order</a>
+            <a class="button button-primary" href="<?= APPLICATION_URL ?>/express/ex_new.php">New Express Order</a>
         <?php else: ?>
             <span class="button button-disabled" aria-disabled="true">Daily Capacity Full</span>
         <?php endif; ?>
