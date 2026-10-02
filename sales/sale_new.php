@@ -89,6 +89,262 @@ function voidRegisterSale(
     $statement->closeCursor();
 }
 
+
+function removeWeightedSaleQuantity(
+    PDO $databaseConnection,
+    int $receiptID,
+    int $receiptLineID,
+    int $operatorID,
+    ?float $requestedQuantity,
+    bool $removeAll
+): float {
+
+    if (
+        !$removeAll
+        &&
+        (
+            $requestedQuantity === null
+            ||
+            $requestedQuantity <= 0
+        )
+    ) {
+        throw new RuntimeException(
+            'Enter a weight greater than zero.'
+        );
+    }
+
+    try {
+
+        $databaseConnection->beginTransaction();
+
+        $roleStatement =
+            $databaseConnection->prepare(
+                '
+                SELECT Role
+                FROM operator
+                WHERE OperatorID = :operatorID
+                LIMIT 1
+                '
+            );
+
+        $roleStatement->execute([
+            ':operatorID' => $operatorID
+        ]);
+
+        $actingOperatorRole =
+            (string) $roleStatement->fetchColumn();
+
+        $lineStatement =
+            $databaseConnection->prepare(
+                '
+                SELECT
+                    sr.StoreID,
+                    sr.OperatorID,
+                    sr.Status,
+                    srl.ProductID,
+                    srl.Quantity,
+                    srl.UnitTypeAtSale
+                FROM salesreceipt sr
+                INNER JOIN salesreceiptline srl
+                    ON srl.ReceiptID = sr.ReceiptID
+                WHERE sr.ReceiptID = :receiptID
+                  AND srl.ReceiptLineID = :receiptLineID
+                FOR UPDATE
+                '
+            );
+
+        $lineStatement->execute([
+            ':receiptID' => $receiptID,
+            ':receiptLineID' => $receiptLineID
+        ]);
+
+        $lineRecord =
+            $lineStatement->fetch();
+
+        if (!$lineRecord) {
+            throw new RuntimeException(
+                'The selected sale item does not exist.'
+            );
+        }
+
+        if (
+            (int) $lineRecord['OperatorID'] !== $operatorID
+            &&
+            $actingOperatorRole !== 'Administrator'
+        ) {
+            throw new RuntimeException(
+                'You cannot change another operator\'s sale.'
+            );
+        }
+
+        if ($lineRecord['Status'] !== 'Open') {
+            throw new RuntimeException(
+                'Items can only be removed from an open sale.'
+            );
+        }
+
+        if ($lineRecord['UnitTypeAtSale'] !== 'Pound') {
+            throw new RuntimeException(
+                'Weight removal is only available for weighted items.'
+            );
+        }
+
+        $currentQuantity =
+            round(
+                (float) $lineRecord['Quantity'],
+                3
+            );
+
+        $quantityToRemove =
+            $removeAll
+            ? $currentQuantity
+            : min(
+                $currentQuantity,
+                round(
+                    (float) $requestedQuantity,
+                    3
+                )
+            );
+
+        if ($quantityToRemove <= 0) {
+            throw new RuntimeException(
+                'Enter a weight greater than zero.'
+            );
+        }
+
+        if ($currentQuantity > $quantityToRemove) {
+
+            $updateLineStatement =
+                $databaseConnection->prepare(
+                    '
+                    UPDATE salesreceiptline
+                    SET Quantity =
+                        Quantity - :quantityToRemove
+                    WHERE ReceiptID = :receiptID
+                      AND ReceiptLineID = :receiptLineID
+                    '
+                );
+
+            $updateLineStatement->execute([
+                ':quantityToRemove' => $quantityToRemove,
+                ':receiptID' => $receiptID,
+                ':receiptLineID' => $receiptLineID
+            ]);
+
+        } else {
+
+            $deleteLineStatement =
+                $databaseConnection->prepare(
+                    '
+                    DELETE FROM salesreceiptline
+                    WHERE ReceiptID = :receiptID
+                      AND ReceiptLineID = :receiptLineID
+                    '
+                );
+
+            $deleteLineStatement->execute([
+                ':receiptID' => $receiptID,
+                ':receiptLineID' => $receiptLineID
+            ]);
+        }
+
+        $inventoryStatement =
+            $databaseConnection->prepare(
+                '
+                UPDATE storeinventory
+                SET StockQuantity =
+                    StockQuantity + :quantityToRemove
+                WHERE StoreID = :storeID
+                  AND ProductID = :productID
+                '
+            );
+
+        $inventoryStatement->execute([
+            ':quantityToRemove' => $quantityToRemove,
+            ':storeID' => (int) $lineRecord['StoreID'],
+            ':productID' => (int) $lineRecord['ProductID']
+        ]);
+
+        $receiptStatement =
+            $databaseConnection->prepare(
+                '
+                UPDATE salesreceipt
+                SET
+                    SubtotalAmount = (
+                        SELECT COALESCE(
+                            ROUND(
+                                SUM(
+                                    (Quantity * UnitPrice)
+                                    - LineDiscountAmount
+                                ),
+                                2
+                            ),
+                            0.00
+                        )
+                        FROM salesreceiptline
+                        WHERE ReceiptID = :subtotalReceiptID
+                    ),
+                    TaxableSubtotalAmount = 0.00,
+                    TaxAmount = 0.00,
+                    TotalAmount = 0.00
+                WHERE ReceiptID = :receiptID
+                '
+            );
+
+        $receiptStatement->execute([
+            ':subtotalReceiptID' => $receiptID,
+            ':receiptID' => $receiptID
+        ]);
+
+        $journalStatement =
+            $databaseConnection->prepare(
+                '
+                UPDATE transactionjournal tj
+                INNER JOIN salesreceipt sr
+                    ON sr.ReceiptID = tj.ReceiptID
+                SET
+                    tj.LineCount = (
+                        SELECT COUNT(*)
+                        FROM salesreceiptline
+                        WHERE ReceiptID = :lineCountReceiptID
+                    ),
+                    tj.ItemQuantity = (
+                        SELECT COALESCE(
+                            SUM(Quantity),
+                            0
+                        )
+                        FROM salesreceiptline
+                        WHERE ReceiptID = :itemQuantityReceiptID
+                    ),
+                    tj.SubtotalAmount =
+                        sr.SubtotalAmount,
+                    tj.DiscountAmount =
+                        sr.ReceiptDiscountAmount
+                WHERE tj.ReceiptID =
+                    :journalReceiptID
+                '
+            );
+
+        $journalStatement->execute([
+            ':lineCountReceiptID' => $receiptID,
+            ':itemQuantityReceiptID' => $receiptID,
+            ':journalReceiptID' => $receiptID
+        ]);
+
+        $databaseConnection->commit();
+
+        return $quantityToRemove;
+
+    } catch (Throwable $exception) {
+
+        if ($databaseConnection->inTransaction()) {
+            $databaseConnection->rollBack();
+        }
+
+        throw $exception;
+    }
+}
+
 try {
 
     $databaseConnection =
@@ -548,7 +804,11 @@ try {
             }
 
         } elseif (
-            isset($_POST['remove_product'])
+            (
+                isset($_POST['remove_product'])
+                ||
+                isset($_POST['remove_all_product'])
+            )
             &&
             $receiptID > 0
         ) {
@@ -559,42 +819,122 @@ try {
                     ?? 0
                 );
 
-            try {
+            $removeAllProduct =
+                isset($_POST['remove_all_product']);
 
-                $statement =
-                    $databaseConnection->prepare(
-                        '
-                        CALL sp_remove_sale_item(
-                            :receiptID,
-                            :receiptLineID,
-                            :operatorID
-                        )
-                        '
+            $removeQuantityText =
+                trim(
+                    (string) (
+                        $_POST['remove_quantity']
+                        ?? ''
+                    )
+                );
+
+            $isWeightedRemoval =
+                $removeAllProduct
+                ||
+                $removeQuantityText !== '';
+
+            if ($isWeightedRemoval) {
+
+                $removeQuantity =
+                    $removeAllProduct
+                    ? null
+                    : filter_var(
+                        $removeQuantityText,
+                        FILTER_VALIDATE_FLOAT
                     );
 
-                $statement->execute([
-                    ':receiptID' =>
-                        $receiptID,
+                if (
+                    !$removeAllProduct
+                    &&
+                    (
+                        $removeQuantity === false
+                        ||
+                        $removeQuantity <= 0
+                    )
+                ) {
 
-                    ':receiptLineID' =>
-                        $receiptLineID,
+                    $errorMessage =
+                        'Enter a weight greater than zero.';
 
-                    ':operatorID' =>
-                        $operatorID
-                ]);
+                } else {
 
-                $statement->closeCursor();
+                    try {
 
-                $successMessage =
-                    'The selected quantity was removed from the sale.';
+                        $removedQuantity =
+                            removeWeightedSaleQuantity(
+                                $databaseConnection,
+                                $receiptID,
+                                $receiptLineID,
+                                $operatorID,
+                                $removeQuantity === null
+                                ? null
+                                : (float) $removeQuantity,
+                                $removeAllProduct
+                            );
 
-            } catch (PDOException $exception) {
+                        $successMessage =
+                            number_format(
+                                $removedQuantity,
+                                3
+                            )
+                            . ' lb was removed from the sale.';
 
-                $errorMessage =
-                    getSafeDatabaseErrorMessage(
-                        $exception,
-                        'The product could not be removed.'
-                    );
+                    } catch (PDOException $exception) {
+
+                        $errorMessage =
+                            getSafeDatabaseErrorMessage(
+                                $exception,
+                                'The weighted product could not be removed.'
+                            );
+
+                    } catch (RuntimeException $exception) {
+
+                        $errorMessage =
+                            $exception->getMessage();
+                    }
+                }
+
+            } else {
+
+                try {
+
+                    $statement =
+                        $databaseConnection->prepare(
+                            '
+                            CALL sp_remove_sale_item(
+                                :receiptID,
+                                :receiptLineID,
+                                :operatorID
+                            )
+                            '
+                        );
+
+                    $statement->execute([
+                        ':receiptID' =>
+                            $receiptID,
+
+                        ':receiptLineID' =>
+                            $receiptLineID,
+
+                        ':operatorID' =>
+                            $operatorID
+                    ]);
+
+                    $statement->closeCursor();
+
+                    $successMessage =
+                        'The selected quantity was removed from the sale.';
+
+                } catch (PDOException $exception) {
+
+                    $errorMessage =
+                        getSafeDatabaseErrorMessage(
+                            $exception,
+                            'The product could not be removed.'
+                        );
+                }
             }
 
         } elseif (
@@ -1176,6 +1516,8 @@ require __DIR__ . '/../includes/header.php';
                                 class="sale-product-button<?= $productIsWeighted ? ' sale-weighted-product-button' : '' ?>"
                                 data-product-id="<?= (int) $productRecord['ProductID'] ?>"
                                 data-product-code="<?= escapeOutput($productCodeForButton) ?>"
+                                data-upc="<?= escapeOutput((string) $productRecord['UPC']) ?>"
+                                data-plu="<?= escapeOutput((string) $productRecord['PLUCode']) ?>"
                                 data-unit-type="<?= escapeOutput($productRecord['UnitType']) ?>" <?= (float) $productRecord['StockQuantity'] <= 0 ? 'disabled' : '' ?>>
 
                                 <strong>
@@ -1327,26 +1669,77 @@ require __DIR__ . '/../includes/header.php';
 
                                         <td>
 
-                                            <form method="post">
+                                            <?php if ($saleItem['UnitType'] === 'Pound'): ?>
 
-                                                <input type="hidden" name="form_security_token"
-                                                    value="<?= escapeOutput(getFormSecurityToken()) ?>">
+                                                <?php
+                                                $saleItemWeight =
+                                                    round(
+                                                        (float) $saleItem['Quantity'],
+                                                        3
+                                                    );
 
-                                                <input type="hidden" name="receipt_id" value="<?= (int) $receiptID ?>">
+                                                $defaultRemoveWeight =
+                                                    min(
+                                                        0.1,
+                                                        $saleItemWeight
+                                                    );
+                                                ?>
 
-                                                <input type="hidden" name="receipt_line_id"
-                                                    value="<?= (int) $saleItem['ReceiptLineID'] ?>">
+                                                <form method="post" class="sale-weight-remove-form">
 
-                                                <button type="submit" name="remove_product" value="1"
-                                                    class="button button-secondary sale-remove-button">
-                                                    <?=
-                                                        (float) $saleItem['Quantity'] > 1
-                                                        ? 'Remove 1'
-                                                        : 'Remove Item'
-                                                        ?>
-                                                </button>
+                                                    <input type="hidden" name="form_security_token"
+                                                        value="<?= escapeOutput(getFormSecurityToken()) ?>">
 
-                                            </form>
+                                                    <input type="hidden" name="receipt_id" value="<?= (int) $receiptID ?>">
+
+                                                    <input type="hidden" name="receipt_line_id"
+                                                        value="<?= (int) $saleItem['ReceiptLineID'] ?>">
+
+                                                    <input type="number" name="remove_quantity"
+                                                        value="<?= escapeOutput(number_format($defaultRemoveWeight, 3, '.', '')) ?>"
+                                                        min="<?= escapeOutput(number_format($defaultRemoveWeight, 3, '.', '')) ?>"
+                                                        max="<?= escapeOutput(number_format($saleItemWeight, 3, '.', '')) ?>"
+                                                        step="0.1" inputmode="decimal" class="sale-remove-weight-input"
+                                                        aria-label="Weight to remove in pounds"
+                                                        title="Weight to remove in pounds">
+
+                                                    <button type="submit" name="remove_product" value="1"
+                                                        class="button button-secondary sale-remove-weight-button">
+                                                        Remove
+                                                    </button>
+
+                                                    <button type="submit" name="remove_all_product" value="1"
+                                                        class="button button-secondary sale-remove-all-button"
+                                                        title="Remove all weight for this item">
+                                                        All
+                                                    </button>
+
+                                                </form>
+
+                                            <?php else: ?>
+
+                                                <form method="post">
+
+                                                    <input type="hidden" name="form_security_token"
+                                                        value="<?= escapeOutput(getFormSecurityToken()) ?>">
+
+                                                    <input type="hidden" name="receipt_id" value="<?= (int) $receiptID ?>">
+
+                                                    <input type="hidden" name="receipt_line_id"
+                                                        value="<?= (int) $saleItem['ReceiptLineID'] ?>">
+
+                                                    <button type="submit" name="remove_product" value="1"
+                                                        class="button button-secondary sale-remove-button">
+                                                        <?=
+                                                            (float) $saleItem['Quantity'] > 1
+                                                            ? 'Remove 1'
+                                                            : 'Remove Item'
+                                                            ?>
+                                                    </button>
+
+                                                </form>
+
+                                            <?php endif; ?>
 
                                         </td>
 
@@ -1411,7 +1804,7 @@ require __DIR__ . '/../includes/header.php';
 
                     <?php endif; ?>
 
-                    <form method="post" id="closeCurrentRegisterForm">
+                    <form method="post" id="closeCurrentRegisterForm" class="sale-close-register-form">
 
                         <input type="hidden" name="form_security_token" value="<?= escapeOutput(getFormSecurityToken()) ?>">
 
@@ -1649,10 +2042,138 @@ require __DIR__ . '/../includes/header.php';
                     'sale_quantity_label'
                 );
 
+            const productButtons =
+                document.querySelectorAll(
+                    '.sale-product-button'
+                );
+
             const weightedProductButtons =
                 document.querySelectorAll(
                     '.sale-weighted-product-button'
                 );
+
+            let quantityIsWeighted = false;
+
+            function setQuantityMode(
+                isWeighted,
+                clearWeightValue
+            ) {
+
+                if (isWeighted) {
+
+                    quantityLabel.textContent =
+                        'Weight (lb)';
+
+                    quantityInput.min =
+                        '0.1';
+
+                    quantityInput.step =
+                        '0.1';
+
+                    if (
+                        !quantityIsWeighted
+                        &&
+                        clearWeightValue
+                    ) {
+                        quantityInput.value =
+                            '';
+                    }
+
+                    quantityInput.placeholder =
+                        '0.0';
+
+                } else {
+
+                    quantityLabel.textContent =
+                        'Quantity';
+
+                    quantityInput.min =
+                        '0.001';
+
+                    quantityInput.step =
+                        '0.001';
+
+                    if (
+                        quantityIsWeighted
+                        &&
+                        quantityInput.value === ''
+                    ) {
+                        quantityInput.value =
+                            '1';
+                    }
+
+                    quantityInput.placeholder =
+                        '';
+                }
+
+                quantityIsWeighted =
+                    isWeighted;
+            }
+
+            function findProductButtonByCode(
+                productCode
+            ) {
+
+                const normalizedCode =
+                    productCode.trim();
+
+                if (normalizedCode === '') {
+                    return null;
+                }
+
+                for (const button of productButtons) {
+
+                    const upc =
+                        (
+                            button.dataset.upc
+                            ||
+                            ''
+                        ).trim();
+
+                    const plu =
+                        (
+                            button.dataset.plu
+                            ||
+                            ''
+                        ).trim();
+
+                    if (
+                        normalizedCode === upc
+                        ||
+                        normalizedCode === plu
+                    ) {
+                        return button;
+                    }
+                }
+
+                return null;
+            }
+
+            function syncQuantityModeFromCode() {
+
+                const matchingButton =
+                    findProductButtonByCode(
+                        productCodeInput.value
+                    );
+
+                scannerProductID.value =
+                    matchingButton
+                    ? (
+                        matchingButton.dataset.productId
+                        ||
+                        '0'
+                    )
+                    : '0';
+
+                setQuantityMode(
+                    matchingButton !== null
+                    &&
+                    matchingButton.dataset.unitType
+                    ===
+                    'Pound',
+                    true
+                );
+            }
 
             weightedProductButtons.forEach(
                 function (button) {
@@ -1671,20 +2192,10 @@ require __DIR__ . '/../includes/header.php';
                                 ||
                                 '';
 
-                            quantityLabel.textContent =
-                                'Weight (lb)';
-
-                            quantityInput.min =
-                                '0.001';
-
-                            quantityInput.step =
-                                '0.001';
-
-                            quantityInput.value =
-                                '';
-
-                            quantityInput.placeholder =
-                                '0.000';
+                            setQuantityMode(
+                                true,
+                                true
+                            );
 
                             quantityInput.focus();
                         }
@@ -1694,23 +2205,12 @@ require __DIR__ . '/../includes/header.php';
 
             productCodeInput.addEventListener(
                 'input',
-                function () {
+                syncQuantityModeFromCode
+            );
 
-                    scannerProductID.value =
-                        '0';
-
-                    quantityLabel.textContent =
-                        'Quantity';
-
-                    quantityInput.min =
-                        '0.001';
-
-                    quantityInput.step =
-                        '0.001';
-
-                    quantityInput.placeholder =
-                        '';
-                }
+            quantityInput.addEventListener(
+                'focus',
+                syncQuantityModeFromCode
             );
 
             document.addEventListener(

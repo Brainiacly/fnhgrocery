@@ -675,7 +675,6 @@ GROUP BY
 	o.Active;
 -- Drop existing procedures
 DROP PROCEDURE IF EXISTS sp_create_operator;
-DROP PROCEDURE IF EXISTS sp_create_customer;
 DROP PROCEDURE IF EXISTS sp_update_operator;
 DROP PROCEDURE IF EXISTS sp_update_own_account;
 DROP PROCEDURE IF EXISTS sp_delete_operator;
@@ -2337,13 +2336,7 @@ BEGIN
 			SET MESSAGE_TEXT = 'Phone number must contain exactly 10 digits or be left blank';
 	END IF;
 
-	/*
-	   LoyaltyNumber is NOT NULL and unique, so the row is
-	   inserted with a UUID placeholder first, exactly like
-	   sp_create_operator assigns EmployeeNumber after the
-	   new ID exists. This avoids two simultaneous inserts
-	   ever colliding on the same placeholder value.
-	*/
+	/* Insert with a UUID placeholder, then set the real loyalty number from the new ID, same as EmployeeNumber. */
 	INSERT INTO customer (
 		LoyaltyNumber,
 		FirstName,
@@ -2558,57 +2551,6 @@ BEGIN
 	UPDATE expressorder
 	SET Status = pStatus
 	WHERE ExpressOrderID = pExpressOrderID;
-END$$
-
-CREATE PROCEDURE sp_create_customer(
-	IN pFirstName VARCHAR(60),
-	IN pLastName VARCHAR(60),
-	IN pEmail VARCHAR(120),
-	IN pPhone VARCHAR(20)
-)
-BEGIN
-	DECLARE newCustomerID INT;
-	DECLARE newLoyaltyNumber VARCHAR(30);
-
-	IF NULLIF(TRIM(pFirstName), '') IS NULL
-	   OR NULLIF(TRIM(pLastName), '') IS NULL THEN
-		SIGNAL SQLSTATE '45000'
-			SET MESSAGE_TEXT = 'A first and last name are required';
-	END IF;
-
-	INSERT INTO customer (
-		LoyaltyNumber,
-		FirstName,
-		LastName,
-		Email,
-		Phone,
-		JoinDate,
-		LoyaltyPoints,
-		Active
-	)
-	VALUES (
-		CONCAT('TEMP', UUID_SHORT()),
-		pFirstName,
-		pLastName,
-		NULLIF(pEmail, ''),
-		NULLIF(pPhone, ''),
-		CURDATE(),
-		0,
-		1
-	);
-
-	SET newCustomerID = LAST_INSERT_ID();
-
-	/* This mirrors the operator EmployeeNumber pattern: insert first, then derive the loyalty number from the new ID. */
-	SET newLoyaltyNumber = CONCAT('FNH1', LPAD(newCustomerID, 4, '0'));
-
-	UPDATE customer
-	SET LoyaltyNumber = newLoyaltyNumber
-	WHERE CustomerID = newCustomerID;
-
-	SELECT
-		newCustomerID AS CustomerID,
-		newLoyaltyNumber AS LoyaltyNumber;
 END$$
 
 

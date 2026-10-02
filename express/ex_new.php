@@ -41,8 +41,7 @@ $deliveryCity = '';
 $deliveryState = '';
 $deliveryPostalCode = '';
 
-// These carry the originally-loaded address so the page can tell,
-// at submit time, whether the shopper actually changed it.
+// Track the originally-loaded address for comparison on submit
 $loadedAddressID = 0;
 $loadedAddressLine1 = '';
 $loadedAddressLine2 = '';
@@ -50,7 +49,7 @@ $loadedAddressCity = '';
 $loadedAddressState = '';
 $loadedAddressPostalCode = '';
 
-// This is this customer's saved address book, if any.
+// Load saved addresses
 $savedAddresses = [];
 
 if ($selectedCustomerID > 0) {
@@ -65,10 +64,7 @@ if ($selectedCustomerID > 0) {
     $savedAddresses = $addressStatement->fetchAll();
 }
 
-// A GET request with an address_id means the "Load Address" button
-// was used. This fills the editable fields and separately records
-// what was loaded, purely through hidden form fields - nothing here
-// is stored by or read back from JavaScript.
+// Load Address button was used - fill the fields from the saved address
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && $selectedAddressID > 0) {
     foreach ($savedAddresses as $savedAddress) {
         if ((int) $savedAddress['CustomerAddressID'] === $selectedAddressID) {
@@ -160,10 +156,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_order'])) {
             $created = $statement->fetch();
             $statement->closeCursor();
 
-            // Address-book bookkeeping happens after the order is
-            // safely created. A problem here should not undo an
-            // order that already succeeded, so it is handled on
-            // its own rather than inside the same transaction.
+            // Save or update the address book after the order succeeds
             if ($fulfillmentMethod === 'Delivery') {
                 try {
                     if ($loadedAddressID > 0 && $updateAddressOnFile) {
@@ -199,9 +192,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_order'])) {
                         $addressCreateStatement->closeCursor();
                     }
                 } catch (PDOException $addressException) {
-                    // The order already succeeded. The address book
-                    // not updating is worth knowing about later, not
-                    // worth losing the order over right now.
+                    // Log it, but keep the order either way
                     error_log($addressException->getMessage());
                 }
             }
