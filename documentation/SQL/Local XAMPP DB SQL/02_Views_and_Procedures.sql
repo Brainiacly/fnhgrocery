@@ -2133,6 +2133,16 @@ BEGIN
 			SET MESSAGE_TEXT = 'The user is not authorized to create an Express order';
 	END IF;
 
+	IF EXISTS (
+		SELECT 1
+		FROM expressorder eo
+		WHERE eo.PersonalShopperID = pPersonalShopperID
+		  AND eo.Status IN ('Received','Picking','Ready')
+	) THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'Finish or cancel your current Express order before starting another';
+	END IF;
+
 	IF pCustomerID IS NOT NULL
 	   AND NOT EXISTS (
 			SELECT 1
@@ -2363,6 +2373,135 @@ BEGIN
 	WHERE CustomerID = newCustomerID;
 
 	SELECT newCustomerID AS CustomerID;
+END$$
+
+DROP PROCEDURE IF EXISTS sp_create_customer_address$$
+CREATE PROCEDURE sp_create_customer_address(
+	IN pCustomerID INT,
+	IN pAddressLabel VARCHAR(40),
+	IN pAddressLine1 VARCHAR(120),
+	IN pAddressLine2 VARCHAR(120),
+	IN pCity VARCHAR(80),
+	IN pStateCode CHAR(2),
+	IN pPostalCode VARCHAR(10)
+)
+BEGIN
+	DECLARE newCustomerAddressID INT;
+
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+	BEGIN
+		ROLLBACK;
+		RESIGNAL;
+	END;
+
+	START TRANSACTION;
+
+	IF NOT EXISTS (
+		SELECT 1
+		FROM customer
+		WHERE CustomerID = pCustomerID
+		  AND Active = 1
+	) THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The selected customer is not active';
+	END IF;
+
+	IF NULLIF(TRIM(pAddressLabel), '') IS NULL THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'Enter a name for this address, such as Home or Work';
+	END IF;
+
+	IF NULLIF(TRIM(pAddressLine1), '') IS NULL
+	   OR NULLIF(TRIM(pCity), '') IS NULL
+	   OR NULLIF(TRIM(pStateCode), '') IS NULL
+	   OR NULLIF(TRIM(pPostalCode), '') IS NULL THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'Street address, city, state, and ZIP code are all required';
+	END IF;
+
+	IF EXISTS (
+		SELECT 1
+		FROM customeraddress
+		WHERE CustomerID = pCustomerID
+		  AND AddressLabel = pAddressLabel
+		  AND Active = 1
+	) THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'This customer already has an address saved under that name';
+	END IF;
+
+	INSERT INTO customeraddress (
+		CustomerID,
+		AddressLabel,
+		AddressLine1,
+		AddressLine2,
+		City,
+		StateCode,
+		PostalCode
+	)
+	VALUES (
+		pCustomerID,
+		TRIM(pAddressLabel),
+		TRIM(pAddressLine1),
+		NULLIF(TRIM(pAddressLine2), ''),
+		TRIM(pCity),
+		UPPER(TRIM(pStateCode)),
+		TRIM(pPostalCode)
+	);
+
+	SET newCustomerAddressID = LAST_INSERT_ID();
+
+	COMMIT;
+
+	SELECT newCustomerAddressID AS CustomerAddressID;
+END$$
+
+DROP PROCEDURE IF EXISTS sp_update_customer_address$$
+CREATE PROCEDURE sp_update_customer_address(
+	IN pCustomerAddressID INT,
+	IN pAddressLine1 VARCHAR(120),
+	IN pAddressLine2 VARCHAR(120),
+	IN pCity VARCHAR(80),
+	IN pStateCode CHAR(2),
+	IN pPostalCode VARCHAR(10)
+)
+BEGIN
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+	BEGIN
+		ROLLBACK;
+		RESIGNAL;
+	END;
+
+	START TRANSACTION;
+
+	IF NOT EXISTS (
+		SELECT 1
+		FROM customeraddress
+		WHERE CustomerAddressID = pCustomerAddressID
+		  AND Active = 1
+	) THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The selected saved address was not found';
+	END IF;
+
+	IF NULLIF(TRIM(pAddressLine1), '') IS NULL
+	   OR NULLIF(TRIM(pCity), '') IS NULL
+	   OR NULLIF(TRIM(pStateCode), '') IS NULL
+	   OR NULLIF(TRIM(pPostalCode), '') IS NULL THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'Street address, city, state, and ZIP code are all required';
+	END IF;
+
+	UPDATE customeraddress
+	SET
+		AddressLine1 = TRIM(pAddressLine1),
+		AddressLine2 = NULLIF(TRIM(pAddressLine2), ''),
+		City = TRIM(pCity),
+		StateCode = UPPER(TRIM(pStateCode)),
+		PostalCode = TRIM(pPostalCode)
+	WHERE CustomerAddressID = pCustomerAddressID;
+
+	COMMIT;
 END$$
 
 DROP PROCEDURE IF EXISTS sp_set_express_order_status$$

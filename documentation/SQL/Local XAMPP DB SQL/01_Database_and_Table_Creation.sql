@@ -56,6 +56,22 @@ CREATE TABLE customer (
 	INDEX idx_customer_email (Email)
 );
 
+CREATE TABLE customeraddress (
+	CustomerAddressID int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	CustomerID int NOT NULL,
+	AddressLabel varchar(40) NOT NULL,
+	AddressLine1 varchar(120) NOT NULL,
+	AddressLine2 varchar(120) DEFAULT NULL,
+	City varchar(80) NOT NULL,
+	StateCode char(2) NOT NULL,
+	PostalCode varchar(10) NOT NULL,
+	Active tinyint(1) NOT NULL DEFAULT 1,
+	CreatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	UNIQUE (CustomerID, AddressLabel),
+	INDEX idx_customer_address_customer (CustomerID, Active),
+	FOREIGN KEY (CustomerID) REFERENCES customer(CustomerID)
+);
+
 CREATE TABLE department (
 	DepartmentID int NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	CategoryID int NOT NULL,

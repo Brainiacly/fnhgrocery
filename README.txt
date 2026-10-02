@@ -1,10 +1,12 @@
-FnH Groceries - CSC680 Assignment 1 & 2
+FnH Groceries - CSC680 Assignment 1, 2, and 3
 Brian Phillips
 
 
 - Completed in Week 1: The original FnH Groceries application, operator management, account management, access control, navigation, database structure, and responsive interface were completed as part of Week 1.
 
 - Week 2 update: The Week 2 Point of Sale, register, checkout, inventory, and account updates were added to the existing Week 1 project.
+
+- Week 3 update: The Week 3 FnH Express curbside pickup and home delivery functionality was added to the existing Week 1 and Week 2 project.
 
 
 WEBSITES
@@ -58,6 +60,17 @@ inventory/stock_levels.php
 
 assets/css/sales.css
 assets/css/inventory.css
+
+- Week 3: These files were added for the FnH Express functionality, along with minor updates to the other PHP and CSS files:
+
+express/ex_home.php
+express/ex_new.php
+express/order.php
+express/orders.php
+express/ex_checkout.php
+express/ex_complete.php
+
+assets/css/express.css
 
 
 SCREENSHOTS
@@ -117,6 +130,8 @@ JavaScript is used only for immediate interface responsiveness and to reduce unn
 - Shows the Close Register button only when the selected register can be closed by the current user.
 - Changes the quantity field to a weight field when a product sold by weight is selected.
 - Warns when leaving a sale that contains items and gives the options to stay, save and leave, or close the register and cancel the transaction.
+- Shows the Existing Customer or New Customer fields on the Express order form based on the option selected.
+- Asks whether to update a customer's saved address on file when a loaded address is changed before an Express order is submitted.
 
 
 ADDITIONAL FUNCTIONALITY
@@ -125,6 +140,8 @@ ADDITIONAL FUNCTIONALITY
 
 - Week 2 update: The project now includes register sessions, product selection, barcode and PLU entry, weighted products, inventory updates, transaction cancellation, checkout, and store stock viewing.
 
+- Week 3 update: The project now includes FnH Express, a curbside pickup and home delivery workflow handled by a new Personal Shopper role. Register 1 is reserved exclusively for Express orders and is not available at the regular registers. Each store allows up to 20 Express orders per day, home delivery adds a $10.00 fee and is only available for orders placed between 8:00 AM and 4:00 PM, and each shopper may have only one open Express order at a time. Customers can save multiple named delivery addresses, such as Home or Work, for reuse on future orders, and an Administrator can open and complete another shopper's Express order if needed.
+
 
 RESPONSIVE AND TOUCH-SCREEN DESIGN
 
@@ -132,7 +149,9 @@ RESPONSIVE AND TOUCH-SCREEN DESIGN
 
 - Week 2 update: The Point of Sale, product buttons, register controls, checkout, and inventory pages use the same responsive and touch-screen design.
 
+- Week 3 update: The Express pages, including the capacity display, order forms, and checkout, use the same responsive and touch-screen design as the rest of the site.
+
 
 SUBMISSION
 
-The ZIP includes the original Week 1 project files with the Week 2 additions, one README file, both sets of the three SQL files needed to rebuild the local XAMPP or Alwaysdata database, and screenshots demonstrating the Week 1 and Week 2 functionality.
+The ZIP includes the original Week 1 project files with the Week 2 and Week 3 additions, one README file, both sets of the three SQL files needed to rebuild the local XAMPP or Alwaysdata database, and screenshots demonstrating the Week 1, Week 2, and Week 3 functionality.
