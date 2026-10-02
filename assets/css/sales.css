@@ -65,6 +65,10 @@
     flex: 0 0 auto;
 }
 
+#closeSelectedRegisterButton {
+    min-width: 0;
+}
+
 /* Compact sale information */
 
 .sale-information {

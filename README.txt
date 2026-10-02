@@ -88,7 +88,7 @@ The Week 2 screenshots were taken using the local XAMPP development database.
 
 The local development database and the live Alwaysdata database began with the same data and numbering. Development and testing have since caused the two databases to become out of sync, so transaction numbers, record numbers, and other changing data shown in the screenshots may differ from the live website.
 
-Beginning with next week's development, the live Alwaysdata database will be used as the database for both the live website and development.
+Both the local XAMPP database and the live Alwaysdata database are kept current throughout development. The same SQL files are run against both after each update, so either one can be used for testing.
 
 
 DATABASE SETUP
@@ -118,7 +118,7 @@ fnh_groceries
 The Alwaysdata database is named:
 csc680-fnhgroceries_fnh_groceries
 
-The local XAMPP and Alwaysdata databases began with the same data but are no longer synchronized because of development and testing. Week 2 development and screenshots use the local XAMPP database. Beginning next week, development will use the live Alwaysdata database.
+The local XAMPP and Alwaysdata databases began with the same data. Both are updated and tested together as development continues, using the same SQL files.
 
 
 JAVASCRIPT

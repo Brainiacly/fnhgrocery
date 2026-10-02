@@ -90,261 +90,6 @@ function voidRegisterSale(
 }
 
 
-function removeWeightedSaleQuantity(
-    PDO $databaseConnection,
-    int $receiptID,
-    int $receiptLineID,
-    int $operatorID,
-    ?float $requestedQuantity,
-    bool $removeAll
-): float {
-
-    if (
-        !$removeAll
-        &&
-        (
-            $requestedQuantity === null
-            ||
-            $requestedQuantity <= 0
-        )
-    ) {
-        throw new RuntimeException(
-            'Enter a weight greater than zero.'
-        );
-    }
-
-    try {
-
-        $databaseConnection->beginTransaction();
-
-        $roleStatement =
-            $databaseConnection->prepare(
-                '
-                SELECT Role
-                FROM operator
-                WHERE OperatorID = :operatorID
-                LIMIT 1
-                '
-            );
-
-        $roleStatement->execute([
-            ':operatorID' => $operatorID
-        ]);
-
-        $actingOperatorRole =
-            (string) $roleStatement->fetchColumn();
-
-        $lineStatement =
-            $databaseConnection->prepare(
-                '
-                SELECT
-                    sr.StoreID,
-                    sr.OperatorID,
-                    sr.Status,
-                    srl.ProductID,
-                    srl.Quantity,
-                    srl.UnitTypeAtSale
-                FROM salesreceipt sr
-                INNER JOIN salesreceiptline srl
-                    ON srl.ReceiptID = sr.ReceiptID
-                WHERE sr.ReceiptID = :receiptID
-                  AND srl.ReceiptLineID = :receiptLineID
-                FOR UPDATE
-                '
-            );
-
-        $lineStatement->execute([
-            ':receiptID' => $receiptID,
-            ':receiptLineID' => $receiptLineID
-        ]);
-
-        $lineRecord =
-            $lineStatement->fetch();
-
-        if (!$lineRecord) {
-            throw new RuntimeException(
-                'The selected sale item does not exist.'
-            );
-        }
-
-        if (
-            (int) $lineRecord['OperatorID'] !== $operatorID
-            &&
-            $actingOperatorRole !== 'Administrator'
-        ) {
-            throw new RuntimeException(
-                'You cannot change another operator\'s sale.'
-            );
-        }
-
-        if ($lineRecord['Status'] !== 'Open') {
-            throw new RuntimeException(
-                'Items can only be removed from an open sale.'
-            );
-        }
-
-        if ($lineRecord['UnitTypeAtSale'] !== 'Pound') {
-            throw new RuntimeException(
-                'Weight removal is only available for weighted items.'
-            );
-        }
-
-        $currentQuantity =
-            round(
-                (float) $lineRecord['Quantity'],
-                3
-            );
-
-        $quantityToRemove =
-            $removeAll
-            ? $currentQuantity
-            : min(
-                $currentQuantity,
-                round(
-                    (float) $requestedQuantity,
-                    3
-                )
-            );
-
-        if ($quantityToRemove <= 0) {
-            throw new RuntimeException(
-                'Enter a weight greater than zero.'
-            );
-        }
-
-        if ($currentQuantity > $quantityToRemove) {
-
-            $updateLineStatement =
-                $databaseConnection->prepare(
-                    '
-                    UPDATE salesreceiptline
-                    SET Quantity =
-                        Quantity - :quantityToRemove
-                    WHERE ReceiptID = :receiptID
-                      AND ReceiptLineID = :receiptLineID
-                    '
-                );
-
-            $updateLineStatement->execute([
-                ':quantityToRemove' => $quantityToRemove,
-                ':receiptID' => $receiptID,
-                ':receiptLineID' => $receiptLineID
-            ]);
-
-        } else {
-
-            $deleteLineStatement =
-                $databaseConnection->prepare(
-                    '
-                    DELETE FROM salesreceiptline
-                    WHERE ReceiptID = :receiptID
-                      AND ReceiptLineID = :receiptLineID
-                    '
-                );
-
-            $deleteLineStatement->execute([
-                ':receiptID' => $receiptID,
-                ':receiptLineID' => $receiptLineID
-            ]);
-        }
-
-        $inventoryStatement =
-            $databaseConnection->prepare(
-                '
-                UPDATE storeinventory
-                SET StockQuantity =
-                    StockQuantity + :quantityToRemove
-                WHERE StoreID = :storeID
-                  AND ProductID = :productID
-                '
-            );
-
-        $inventoryStatement->execute([
-            ':quantityToRemove' => $quantityToRemove,
-            ':storeID' => (int) $lineRecord['StoreID'],
-            ':productID' => (int) $lineRecord['ProductID']
-        ]);
-
-        $receiptStatement =
-            $databaseConnection->prepare(
-                '
-                UPDATE salesreceipt
-                SET
-                    SubtotalAmount = (
-                        SELECT COALESCE(
-                            ROUND(
-                                SUM(
-                                    (Quantity * UnitPrice)
-                                    - LineDiscountAmount
-                                ),
-                                2
-                            ),
-                            0.00
-                        )
-                        FROM salesreceiptline
-                        WHERE ReceiptID = :subtotalReceiptID
-                    ),
-                    TaxableSubtotalAmount = 0.00,
-                    TaxAmount = 0.00,
-                    TotalAmount = 0.00
-                WHERE ReceiptID = :receiptID
-                '
-            );
-
-        $receiptStatement->execute([
-            ':subtotalReceiptID' => $receiptID,
-            ':receiptID' => $receiptID
-        ]);
-
-        $journalStatement =
-            $databaseConnection->prepare(
-                '
-                UPDATE transactionjournal tj
-                INNER JOIN salesreceipt sr
-                    ON sr.ReceiptID = tj.ReceiptID
-                SET
-                    tj.LineCount = (
-                        SELECT COUNT(*)
-                        FROM salesreceiptline
-                        WHERE ReceiptID = :lineCountReceiptID
-                    ),
-                    tj.ItemQuantity = (
-                        SELECT COALESCE(
-                            SUM(Quantity),
-                            0
-                        )
-                        FROM salesreceiptline
-                        WHERE ReceiptID = :itemQuantityReceiptID
-                    ),
-                    tj.SubtotalAmount =
-                        sr.SubtotalAmount,
-                    tj.DiscountAmount =
-                        sr.ReceiptDiscountAmount
-                WHERE tj.ReceiptID =
-                    :journalReceiptID
-                '
-            );
-
-        $journalStatement->execute([
-            ':lineCountReceiptID' => $receiptID,
-            ':itemQuantityReceiptID' => $receiptID,
-            ':journalReceiptID' => $receiptID
-        ]);
-
-        $databaseConnection->commit();
-
-        return $quantityToRemove;
-
-    } catch (Throwable $exception) {
-
-        if ($databaseConnection->inTransaction()) {
-            $databaseConnection->rollBack();
-        }
-
-        throw $exception;
-    }
-}
-
 try {
 
     $databaseConnection =
@@ -819,9 +564,6 @@ try {
                     ?? 0
                 );
 
-            $removeAllProduct =
-                isset($_POST['remove_all_product']);
-
             $removeQuantityText =
                 trim(
                     (string) (
@@ -830,71 +572,25 @@ try {
                     )
                 );
 
-            $isWeightedRemoval =
-                $removeAllProduct
-                ||
-                $removeQuantityText !== '';
-
-            if ($isWeightedRemoval) {
-
+            // A large sentinel removes the whole line, since the
+            // procedure always clamps to what's actually there.
+            // Blank means the plain "Remove 1" button was used.
+            if (isset($_POST['remove_all_product'])) {
+                $removeQuantity = 999999;
+            } elseif ($removeQuantityText !== '') {
                 $removeQuantity =
-                    $removeAllProduct
-                    ? null
-                    : filter_var(
+                    filter_var(
                         $removeQuantityText,
                         FILTER_VALIDATE_FLOAT
                     );
+            } else {
+                $removeQuantity = null;
+            }
 
-                if (
-                    !$removeAllProduct
-                    &&
-                    (
-                        $removeQuantity === false
-                        ||
-                        $removeQuantity <= 0
-                    )
-                ) {
+            if ($removeQuantity === false || $removeQuantity === 0.0) {
 
-                    $errorMessage =
-                        'Enter a weight greater than zero.';
-
-                } else {
-
-                    try {
-
-                        $removedQuantity =
-                            removeWeightedSaleQuantity(
-                                $databaseConnection,
-                                $receiptID,
-                                $receiptLineID,
-                                $operatorID,
-                                $removeQuantity === null
-                                ? null
-                                : (float) $removeQuantity,
-                                $removeAllProduct
-                            );
-
-                        $successMessage =
-                            number_format(
-                                $removedQuantity,
-                                3
-                            )
-                            . ' lb was removed from the sale.';
-
-                    } catch (PDOException $exception) {
-
-                        $errorMessage =
-                            getSafeDatabaseErrorMessage(
-                                $exception,
-                                'The weighted product could not be removed.'
-                            );
-
-                    } catch (RuntimeException $exception) {
-
-                        $errorMessage =
-                            $exception->getMessage();
-                    }
-                }
+                $errorMessage =
+                    'Enter a weight greater than zero.';
 
             } else {
 
@@ -906,7 +602,8 @@ try {
                             CALL sp_remove_sale_item(
                                 :receiptID,
                                 :receiptLineID,
-                                :operatorID
+                                :operatorID,
+                                :removeQuantity
                             )
                             '
                         );
@@ -919,7 +616,10 @@ try {
                             $receiptLineID,
 
                         ':operatorID' =>
-                            $operatorID
+                            $operatorID,
+
+                        ':removeQuantity' =>
+                            $removeQuantity
                     ]);
 
                     $statement->closeCursor();
@@ -1698,10 +1398,9 @@ require __DIR__ . '/../includes/header.php';
                                                     <input type="number" name="remove_quantity"
                                                         value="<?= escapeOutput(number_format($defaultRemoveWeight, 3, '.', '')) ?>"
                                                         min="<?= escapeOutput(number_format($defaultRemoveWeight, 3, '.', '')) ?>"
-                                                        max="<?= escapeOutput(number_format($saleItemWeight, 3, '.', '')) ?>"
-                                                        step="0.1" inputmode="decimal" class="sale-remove-weight-input"
-                                                        aria-label="Weight to remove in pounds"
-                                                        title="Weight to remove in pounds">
+                                                        max="<?= escapeOutput(number_format($saleItemWeight, 3, '.', '')) ?>" step="0.1"
+                                                        inputmode="decimal" class="sale-remove-weight-input"
+                                                        aria-label="Weight to remove in pounds" title="Weight to remove in pounds">
 
                                                     <button type="submit" name="remove_product" value="1"
                                                         class="button button-secondary sale-remove-weight-button">
@@ -2158,12 +1857,12 @@ require __DIR__ . '/../includes/header.php';
 
                 scannerProductID.value =
                     matchingButton
-                    ? (
-                        matchingButton.dataset.productId
-                        ||
-                        '0'
-                    )
-                    : '0';
+                        ? (
+                            matchingButton.dataset.productId
+                            ||
+                            '0'
+                        )
+                        : '0';
 
                 setQuantityMode(
                     matchingButton !== null

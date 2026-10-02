@@ -1526,7 +1526,8 @@ END$$
 CREATE PROCEDURE sp_remove_sale_item(
 	IN pReceiptID BIGINT,
 	IN pReceiptLineID BIGINT,
-	IN pActingOperatorID INT
+	IN pActingOperatorID INT,
+	IN pQuantityToRemove DECIMAL(12,3)
 )
 BEGIN
 	DECLARE saleStoreID INT DEFAULT NULL;
@@ -1588,7 +1589,10 @@ BEGIN
 	SET quantityToRemove =
 		LEAST(
 			currentQuantity,
-			1.000
+			CASE
+				WHEN pQuantityToRemove IS NULL OR pQuantityToRemove <= 0 THEN 1.000
+				ELSE pQuantityToRemove
+			END
 		);
 	IF currentQuantity > quantityToRemove THEN
 		UPDATE salesreceiptline
