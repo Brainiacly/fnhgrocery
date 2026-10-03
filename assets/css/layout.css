@@ -476,8 +476,6 @@ body {
 }
 
 
-
-
 .navigation-home-icon {
     display: inline-flex;
 
@@ -657,8 +655,6 @@ body {
 .navigation-demo-notice {
     margin-top: -0.625rem;
 }
-
-
 
 
 /* Footer */
@@ -951,8 +947,6 @@ body {
     .navigation-home-icon {
         font-size: 1.625rem;
     }
-
-
 
     .navigation-login-heading {
         font-size: 1.125rem;

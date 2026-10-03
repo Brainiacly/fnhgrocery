@@ -161,7 +161,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     CALL sp_remove_sale_item(
                         :receiptID,
                         :receiptLineID,
-                        :operatorID
+                        :operatorID,
+                        :removeQuantity
                     )
                     '
                 );
@@ -172,6 +173,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 ':receiptLineID' =>
                     $receiptLineID,
+
+                ':removeQuantity' =>
+                    null,
 
                 ':operatorID' =>
                     $operatorID

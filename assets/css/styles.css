@@ -464,6 +464,20 @@ select:focus {
 }
 
 
+.button-disabled {
+    background:
+        var(--disabled-background-color);
+
+    color:
+        var(--disabled-text-color);
+
+    border-color:
+        var(--disabled-border-color);
+
+    cursor: not-allowed;
+}
+
+
 .button:hover,
 .button:focus-visible {
     background:
