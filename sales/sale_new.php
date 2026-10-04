@@ -580,9 +580,7 @@ try {
                     )
                 );
 
-            // A large sentinel removes the whole line, since the
-            // procedure always clamps to what's actually there.
-            // Blank means the plain "Remove 1" button was used.
+            // Remove All sends a large amount, blank means Remove 1
             if (isset($_POST['remove_all_product'])) {
                 $removeQuantity = 999999;
             } elseif ($removeQuantityText !== '') {
@@ -1011,7 +1009,11 @@ require __DIR__ . '/../includes/header.php';
 
             <form method="post">
 
-                <input type="hidden" name="form_security_token" value="<?= escapeOutput(getFormSecurityToken()) ?>">
+                <input
+                    type="hidden"
+                    name="form_security_token"
+                    value="<?= escapeOutput(getFormSecurityToken()) ?>"
+                >
 
                 <div class="form-field">
 
@@ -1019,7 +1021,11 @@ require __DIR__ . '/../includes/header.php';
                         Checkout Station
                     </label>
 
-                    <select id="register_id" name="register_id" required>
+                    <select
+                        id="register_id"
+                        name="register_id"
+                        required
+                    >
 
                         <option value="">
                             Choose a checkout station
@@ -1049,16 +1055,19 @@ require __DIR__ . '/../includes/header.php';
 
                             ?>
 
-                            <option value="<?= (int) $registerRecord['RegisterID'] ?>"
-                                data-open-receipt-id="<?= $openReceiptID ?>" data-open-operator-id="<?= $openOperatorID ?>"
+                            <option
+                                value="<?= (int) $registerRecord['RegisterID'] ?>"
+                                data-open-receipt-id="<?= $openReceiptID ?>"
+                                data-open-operator-id="<?= $openOperatorID ?>"
                                 <?=
-                                    $selectedRegisterID
-                                    ===
-                                    (int) $registerRecord['RegisterID']
-                                    ? 'selected'
-                                    : ''
-                                    ?>
-                                <?= $inUseByOtherOperator && !operatorIsAdministrator() ? 'disabled' : '' ?>>
+                                $selectedRegisterID
+                                ===
+                                (int) $registerRecord['RegisterID']
+                                ? 'selected'
+                                : ''
+                                ?>
+                                <?= $inUseByOtherOperator && !operatorIsAdministrator() ? 'disabled' : '' ?>
+                            >
 
                                 Register #<?= escapeOutput($registerRecord['RegisterNumber']) ?>
 
@@ -1088,13 +1097,24 @@ require __DIR__ . '/../includes/header.php';
 
                 <div class="form-actions sale-register-actions">
 
-                    <button type="submit" id="openSelectedRegisterButton" name="select_register" value="1"
-                        class="button button-primary">
+                    <button
+                        type="submit"
+                        id="openSelectedRegisterButton"
+                        name="select_register"
+                        value="1"
+                        class="button button-primary"
+                    >
                         Open Register
                     </button>
-                    <button type="submit" id="closeSelectedRegisterButton" name="close_selected_register" value="1"
-                        class="button button-danger" hidden
-                        onclick="return window.confirm('Close this register? Any open transaction will be cancelled and its items will be returned to inventory.');">
+                    <button
+                        type="submit"
+                        id="closeSelectedRegisterButton"
+                        name="close_selected_register"
+                        value="1"
+                        class="button button-danger"
+                        hidden
+                        onclick="return window.confirm('Close this register? Any open transaction will be cancelled and its items will be returned to inventory.');"
+                    >
                         Close Register
                     </button>
 
@@ -1142,13 +1162,29 @@ require __DIR__ . '/../includes/header.php';
 
             <section class="sale-product-area">
 
-                <form method="post" class="sale-scan-form">
+                <form
+                    method="post"
+                    class="sale-scan-form"
+                >
 
-                    <input type="hidden" name="form_security_token" value="<?= escapeOutput(getFormSecurityToken()) ?>">
+                    <input
+                        type="hidden"
+                        name="form_security_token"
+                        value="<?= escapeOutput(getFormSecurityToken()) ?>"
+                    >
 
-                    <input type="hidden" name="receipt_id" value="<?= (int) $receiptID ?>">
+                    <input
+                        type="hidden"
+                        name="receipt_id"
+                        value="<?= (int) $receiptID ?>"
+                    >
 
-                    <input type="hidden" id="scanner_product_id" name="product_id" value="0">
+                    <input
+                        type="hidden"
+                        id="scanner_product_id"
+                        name="product_id"
+                        value="0"
+                    >
 
                     <?php if ($errorMessage !== ''): ?>
                         <div class="message message-error sale-scan-message">
@@ -1168,23 +1204,46 @@ require __DIR__ . '/../includes/header.php';
                             Barcode / Product Code
                         </label>
 
-                        <input type="text" id="product_code" name="product_code" value="" maxlength="20" autocomplete="off"
-                            autofocus>
+                        <input
+                            type="text"
+                            id="product_code"
+                            name="product_code"
+                            value=""
+                            maxlength="20"
+                            autocomplete="off"
+                            autofocus
+                        >
 
                     </div>
 
                     <div class="form-field sale-quantity-field">
 
-                        <label for="quantity" id="sale_quantity_label">
+                        <label
+                            for="quantity"
+                            id="sale_quantity_label"
+                        >
                             Quantity
                         </label>
 
-                        <input type="number" id="quantity" name="quantity" value="1" min="0.001" step="0.001"
-                            inputmode="decimal" required>
+                        <input
+                            type="number"
+                            id="quantity"
+                            name="quantity"
+                            value="1"
+                            min="0.001"
+                            step="0.001"
+                            inputmode="decimal"
+                            required
+                        >
 
                     </div>
 
-                    <button type="submit" name="add_product" value="1" class="button button-primary">
+                    <button
+                        type="submit"
+                        name="add_product"
+                        value="1"
+                        class="button button-primary"
+                    >
                         Add Product
                     </button>
 
@@ -1198,15 +1257,34 @@ require __DIR__ . '/../includes/header.php';
 
                     <?php foreach ($productRecords as $productRecord): ?>
 
-                        <form method="post" class="sale-product-form">
+                        <form
+                            method="post"
+                            class="sale-product-form"
+                        >
 
-                            <input type="hidden" name="form_security_token" value="<?= escapeOutput(getFormSecurityToken()) ?>">
+                            <input
+                                type="hidden"
+                                name="form_security_token"
+                                value="<?= escapeOutput(getFormSecurityToken()) ?>"
+                            >
 
-                            <input type="hidden" name="receipt_id" value="<?= (int) $receiptID ?>">
+                            <input
+                                type="hidden"
+                                name="receipt_id"
+                                value="<?= (int) $receiptID ?>"
+                            >
 
-                            <input type="hidden" name="product_id" value="<?= (int) $productRecord['ProductID'] ?>">
+                            <input
+                                type="hidden"
+                                name="product_id"
+                                value="<?= (int) $productRecord['ProductID'] ?>"
+                            >
 
-                            <input type="hidden" name="quantity" value="1">
+                            <input
+                                type="hidden"
+                                name="quantity"
+                                value="1"
+                            >
 
                             <?php
 
@@ -1222,15 +1300,22 @@ require __DIR__ . '/../includes/header.php';
 
                             ?>
 
-                            <button type="<?= $productIsWeighted ? 'button' : 'submit' ?>"
+                            <button
+                                type="<?= $productIsWeighted ? 'button' : 'submit' ?>"
                                 name="<?= $productIsWeighted ? '' : 'add_product' ?>"
                                 value="<?= $productIsWeighted ? '' : '1' ?>"
-                                class="sale-product-button<?= $productIsWeighted ? ' sale-weighted-product-button' : '' ?>"
+                                class="sale-product-button<?=
+                                    $productIsWeighted
+                                        ? ' sale-weighted-product-button'
+                                        : ''
+                                ?>"
                                 data-product-id="<?= (int) $productRecord['ProductID'] ?>"
                                 data-product-code="<?= escapeOutput($productCodeForButton) ?>"
                                 data-upc="<?= escapeOutput((string) $productRecord['UPC']) ?>"
                                 data-plu="<?= escapeOutput((string) $productRecord['PLUCode']) ?>"
-                                data-unit-type="<?= escapeOutput($productRecord['UnitType']) ?>" <?= (float) $productRecord['StockQuantity'] <= 0 ? 'disabled' : '' ?>>
+                                data-unit-type="<?= escapeOutput($productRecord['UnitType']) ?>"
+                                <?= (float) $productRecord['StockQuantity'] <= 0 ? 'disabled' : '' ?>
+                            >
 
                                 <strong>
                                     <?= escapeOutput(
@@ -1397,31 +1482,79 @@ require __DIR__ . '/../includes/header.php';
                                                     );
                                                 ?>
 
-                                                <form method="post" class="sale-weight-remove-form">
+                                                <form
+                                                    method="post"
+                                                    class="sale-weight-remove-form"
+                                                >
 
-                                                    <input type="hidden" name="form_security_token"
-                                                        value="<?= escapeOutput(getFormSecurityToken()) ?>">
+                                                    <input
+                                                        type="hidden"
+                                                        name="form_security_token"
+                                                        value="<?= escapeOutput(getFormSecurityToken()) ?>"
+                                                    >
 
-                                                    <input type="hidden" name="receipt_id" value="<?= (int) $receiptID ?>">
+                                                    <input
+                                                        type="hidden"
+                                                        name="receipt_id"
+                                                        value="<?= (int) $receiptID ?>"
+                                                    >
 
-                                                    <input type="hidden" name="receipt_line_id"
-                                                        value="<?= (int) $saleItem['ReceiptLineID'] ?>">
+                                                    <input
+                                                        type="hidden"
+                                                        name="receipt_line_id"
+                                                        value="<?= (int) $saleItem['ReceiptLineID'] ?>"
+                                                    >
 
-                                                    <input type="number" name="remove_quantity"
-                                                        value="<?= escapeOutput(number_format($defaultRemoveWeight, 3, '.', '')) ?>"
-                                                        min="<?= escapeOutput(number_format($defaultRemoveWeight, 3, '.', '')) ?>"
-                                                        max="<?= escapeOutput(number_format($saleItemWeight, 3, '.', '')) ?>" step="0.1"
-                                                        inputmode="decimal" class="sale-remove-weight-input"
-                                                        aria-label="Weight to remove in pounds" title="Weight to remove in pounds">
+                                                    <input
+                                                        type="number"
+                                                        name="remove_quantity"
+                                                        value="<?= escapeOutput(
+                                                            number_format(
+                                                                $defaultRemoveWeight,
+                                                                3,
+                                                                '.',
+                                                                ''
+                                                            )
+                                                        ) ?>"
+                                                        min="<?= escapeOutput(
+                                                            number_format(
+                                                                $defaultRemoveWeight,
+                                                                3,
+                                                                '.',
+                                                                ''
+                                                            )
+                                                        ) ?>"
+                                                        max="<?= escapeOutput(
+                                                            number_format(
+                                                                $saleItemWeight,
+                                                                3,
+                                                                '.',
+                                                                ''
+                                                            )
+                                                        ) ?>"
+                                                        step="0.1"
+                                                        inputmode="decimal"
+                                                        class="sale-remove-weight-input"
+                                                        aria-label="Weight to remove in pounds"
+                                                        title="Weight to remove in pounds"
+                                                    >
 
-                                                    <button type="submit" name="remove_product" value="1"
-                                                        class="button button-secondary sale-remove-weight-button">
+                                                    <button
+                                                        type="submit"
+                                                        name="remove_product"
+                                                        value="1"
+                                                        class="button button-secondary sale-remove-weight-button"
+                                                    >
                                                         Remove
                                                     </button>
 
-                                                    <button type="submit" name="remove_all_product" value="1"
+                                                    <button
+                                                        type="submit"
+                                                        name="remove_all_product"
+                                                        value="1"
                                                         class="button button-secondary sale-remove-all-button"
-                                                        title="Remove all weight for this item">
+                                                        title="Remove all weight for this item"
+                                                    >
                                                         All
                                                     </button>
 
@@ -1431,16 +1564,30 @@ require __DIR__ . '/../includes/header.php';
 
                                                 <form method="post">
 
-                                                    <input type="hidden" name="form_security_token"
-                                                        value="<?= escapeOutput(getFormSecurityToken()) ?>">
+                                                    <input
+                                                        type="hidden"
+                                                        name="form_security_token"
+                                                        value="<?= escapeOutput(getFormSecurityToken()) ?>"
+                                                    >
 
-                                                    <input type="hidden" name="receipt_id" value="<?= (int) $receiptID ?>">
+                                                    <input
+                                                        type="hidden"
+                                                        name="receipt_id"
+                                                        value="<?= (int) $receiptID ?>"
+                                                    >
 
-                                                    <input type="hidden" name="receipt_line_id"
-                                                        value="<?= (int) $saleItem['ReceiptLineID'] ?>">
+                                                    <input
+                                                        type="hidden"
+                                                        name="receipt_line_id"
+                                                        value="<?= (int) $saleItem['ReceiptLineID'] ?>"
+                                                    >
 
-                                                    <button type="submit" name="remove_product" value="1"
-                                                        class="button button-secondary sale-remove-button">
+                                                    <button
+                                                        type="submit"
+                                                        name="remove_product"
+                                                        value="1"
+                                                        class="button button-secondary sale-remove-button"
+                                                    >
                                                         <?=
                                                             (float) $saleItem['Quantity'] > 1
                                                             ? 'Remove 1'
@@ -1487,8 +1634,11 @@ require __DIR__ . '/../includes/header.php';
 
                     <?php if (!empty($saleItems)): ?>
 
-                        <a href="<?= APPLICATION_URL ?>/sales/sale_checkout.php?receipt=<?= (int) $receiptID ?>"
-                            class="button button-primary" data-sale-safe="true">
+                        <a
+                            href="<?= APPLICATION_URL ?>/sales/sale_checkout.php?receipt=<?= (int) $receiptID ?>"
+                            class="button button-primary"
+                            data-sale-safe="true"
+                        >
                             Checkout
                         </a>
 
@@ -1496,18 +1646,42 @@ require __DIR__ . '/../includes/header.php';
 
                     <?php if (!empty($saleItems)): ?>
 
-                        <form method="post" id="cancelCurrentSaleForm">
+                        <form
+                            method="post"
+                            id="cancelCurrentSaleForm"
+                        >
 
-                            <input type="hidden" name="form_security_token" value="<?= escapeOutput(getFormSecurityToken()) ?>">
+                            <input
+                                type="hidden"
+                                name="form_security_token"
+                                value="<?= escapeOutput(getFormSecurityToken()) ?>"
+                            >
 
-                            <input type="hidden" name="receipt_id" value="<?= (int) $receiptID ?>">
+                            <input
+                                type="hidden"
+                                name="receipt_id"
+                                value="<?= (int) $receiptID ?>"
+                            >
 
-                            <input type="hidden" name="register_id" value="<?= (int) $saleRecord['RegisterID'] ?>">
+                            <input
+                                type="hidden"
+                                name="register_id"
+                                value="<?= (int) $saleRecord['RegisterID'] ?>"
+                            >
 
-                            <input type="hidden" name="cancel_sale" value="1">
+                            <input
+                                type="hidden"
+                                name="cancel_sale"
+                                value="1"
+                            >
 
-                            <button type="submit" name="cancel_sale" value="1" class="button button-danger"
-                                onclick="return window.confirm('Cancel this sale? All scanned items will be returned to inventory.');">
+                            <button
+                                type="submit"
+                                name="cancel_sale"
+                                value="1"
+                                class="button button-danger"
+                                onclick="return window.confirm('Cancel this sale? All scanned items will be returned to inventory.');"
+                            >
                                 Cancel Sale
                             </button>
 
@@ -1515,18 +1689,44 @@ require __DIR__ . '/../includes/header.php';
 
                     <?php endif; ?>
 
-                    <form method="post" id="closeCurrentRegisterForm" class="sale-close-register-form">
+                    <form
+                        method="post"
+                        id="closeCurrentRegisterForm"
+                        class="sale-close-register-form"
+                    >
 
-                        <input type="hidden" name="form_security_token" value="<?= escapeOutput(getFormSecurityToken()) ?>">
+                        <input
+                            type="hidden"
+                            name="form_security_token"
+                            value="<?= escapeOutput(getFormSecurityToken()) ?>"
+                        >
 
-                        <input type="hidden" name="receipt_id" value="<?= (int) $receiptID ?>">
+                        <input
+                            type="hidden"
+                            name="receipt_id"
+                            value="<?= (int) $receiptID ?>"
+                        >
 
-                        <input type="hidden" id="sale_close_destination" name="close_destination" value="">
+                        <input
+                            type="hidden"
+                            id="sale_close_destination"
+                            name="close_destination"
+                            value=""
+                        >
 
-                        <input type="hidden" name="close_register" value="1">
+                        <input
+                            type="hidden"
+                            name="close_register"
+                            value="1"
+                        >
 
-                        <button type="submit" name="close_register" value="1" class="button button-secondary"
-                            onclick="return window.confirm('Close this register? The current transaction will be cancelled and all scanned items will be returned to inventory.');">
+                        <button
+                            type="submit"
+                            name="close_register"
+                            value="1"
+                            class="button button-secondary"
+                            onclick="return window.confirm('Close this register? The current transaction will be cancelled and all scanned items will be returned to inventory.');"
+                        >
                             Close Register
                         </button>
 
@@ -1538,7 +1738,10 @@ require __DIR__ . '/../includes/header.php';
 
         </div>
 
-        <dialog id="saleLeaveDialog" class="checkout-leave-dialog">
+        <dialog
+            id="saleLeaveDialog"
+            class="checkout-leave-dialog"
+        >
 
             <h2>
                 Leave Current Transaction?
@@ -1550,15 +1753,27 @@ require __DIR__ . '/../includes/header.php';
 
             <div class="checkout-leave-actions">
 
-                <button type="button" id="saleStayButton" class="button button-secondary">
+                <button
+                    type="button"
+                    id="saleStayButton"
+                    class="button button-secondary"
+                >
                     Stay on Transaction
                 </button>
 
-                <button type="button" id="saleSaveButton" class="button button-primary">
+                <button
+                    type="button"
+                    id="saleSaveButton"
+                    class="button button-primary"
+                >
                     Save Transaction and Leave
                 </button>
 
-                <button type="button" id="saleCloseButton" class="button button-danger">
+                <button
+                    type="button"
+                    id="saleCloseButton"
+                    class="button button-danger"
+                >
                     Close Register and Leave
                 </button>
 

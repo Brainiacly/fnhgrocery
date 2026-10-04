@@ -30,6 +30,7 @@ $expressOrderID =
 
 $errorMessage = '';
 $successMessage = '';
+$warningMessage = '';
 
 if ($expressOrderID <= 0) {
     header('Location: ' . APPLICATION_URL . '/express/orders.php');
@@ -317,6 +318,11 @@ if (isset($_GET['added'])) {
     $successMessage = 'The Express order status was updated.';
 }
 
+if (isset($_GET['address_warning'])) {
+    $warningMessage =
+        'The Express order was created, but the saved address could not be updated. The delivery address on this order is still correct.';
+}
+
 $order = loadExpressOrder(
     $databaseConnection,
     $expressOrderID,
@@ -385,14 +391,6 @@ foreach ($lines as $line) {
 $deliveryFee =
     (float) $order['DeliveryFee'];
 
-$currentEstimatedTotal =
-    round(
-        $merchandiseSubtotal
-        + $deliveryFee,
-        2
-    );
-
-
 $pageTitle =
     'Express Order';
 
@@ -434,6 +432,15 @@ require __DIR__ . '/../includes/header.php';
 
         <div class="message message-error">
             <?= escapeOutput($errorMessage) ?>
+        </div>
+
+    <?php endif; ?>
+
+
+    <?php if ($warningMessage !== ''): ?>
+
+        <div class="message message-warning">
+            <?= escapeOutput($warningMessage) ?>
         </div>
 
     <?php endif; ?>
@@ -724,7 +731,9 @@ require __DIR__ . '/../includes/header.php';
                                             name="remove_item"
                                             value="1"
                                             class="button button-secondary"
-                                            onclick="return confirm('Remove one unit from this Express order and return it to inventory?');"
+                                            onclick="return confirm(
+                                            'Remove one unit from this Express order and return it to inventory?'
+                                            );"
                                         >
                                             Remove 1
                                         </button>
@@ -777,15 +786,24 @@ require __DIR__ . '/../includes/header.php';
                     id="status"
                     name="status"
                 >
-                    <option value="Received" <?= $order['ExpressStatus'] === 'Received' ? 'selected' : '' ?>>
+                    <option
+                        value="Received"
+                        <?= $order['ExpressStatus'] === 'Received' ? 'selected' : '' ?>
+                    >
                         Received
                     </option>
 
-                    <option value="Picking" <?= $order['ExpressStatus'] === 'Picking' ? 'selected' : '' ?>>
+                    <option
+                        value="Picking"
+                        <?= $order['ExpressStatus'] === 'Picking' ? 'selected' : '' ?>
+                    >
                         Picking
                     </option>
 
-                    <option value="Ready" <?= $order['ExpressStatus'] === 'Ready' ? 'selected' : '' ?>>
+                    <option
+                        value="Ready"
+                        <?= $order['ExpressStatus'] === 'Ready' ? 'selected' : '' ?>
+                    >
                         Ready
                     </option>
                 </select>
@@ -835,7 +853,9 @@ require __DIR__ . '/../includes/header.php';
                         name="cancel_order"
                         value="1"
                         class="button button-secondary"
-                        onclick="return confirm('Cancel this Express order? All picked items will be returned to inventory.');"
+                        onclick="return confirm(
+                        'Cancel this Express order? All picked items will be returned to inventory.'
+                        );"
                     >
                         Cancel Order
                     </button>

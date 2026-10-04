@@ -913,6 +913,7 @@ BEGIN
 		FROM salesreceipt
 		WHERE OperatorID = pOperatorID
 		  AND Status = 'Open'
+		  AND SaleType = 'Regular'
 		LIMIT 1
 		FOR UPDATE;
 		IF openReceiptID IS NOT NULL THEN
@@ -1656,7 +1657,7 @@ BEGIN
 	DECLARE saleOperatorID INT DEFAULT NULL;
 	DECLARE actingOperatorRole VARCHAR(20) DEFAULT NULL;
 	DECLARE saleStatus VARCHAR(20);
-	DECLARE saleType VARCHAR(20);
+	DECLARE currentSaleType VARCHAR(20);
 	DECLARE expressDeliveryFee DECIMAL(10,2) DEFAULT 0.00;
 	DECLARE calculatedGrossSubtotal DECIMAL(10,2);
 	DECLARE calculatedSubtotal DECIMAL(10,2);
@@ -1689,7 +1690,7 @@ BEGIN
 	INTO
 		saleOperatorID,
 		saleStatus,
-		saleType,
+		currentSaleType,
 		calculatedDiscount
 	FROM salesreceipt
 	WHERE ReceiptID = pReceiptID
@@ -1786,7 +1787,7 @@ BEGIN
 			calculatedTaxableSubtotal * 0.0775,
 			2
 		);
-	IF saleType = 'Express' THEN
+	IF currentSaleType = 'Express' THEN
 		SELECT DeliveryFee
 		INTO expressDeliveryFee
 		FROM expressorder
@@ -1839,7 +1840,7 @@ BEGIN
 		AmountTendered = pAmountTendered,
 		ChangeDue = calculatedChange
 	WHERE ReceiptID = pReceiptID;
-	IF saleType = 'Express' THEN
+	IF currentSaleType = 'Express' THEN
 		UPDATE expressorder
 		SET Status = 'Completed'
 		WHERE ReceiptID = pReceiptID;
@@ -1868,7 +1869,7 @@ BEGIN
 	DECLARE saleStoreID INT DEFAULT NULL;
 	DECLARE saleOperatorID INT DEFAULT NULL;
 	DECLARE saleStatus VARCHAR(20);
-	DECLARE saleType VARCHAR(20);
+	DECLARE currentSaleType VARCHAR(20);
 	DECLARE actingStoreID INT DEFAULT NULL;
 	DECLARE actingRole VARCHAR(20);
 	DECLARE actingActive TINYINT DEFAULT 0;
@@ -1894,7 +1895,7 @@ BEGIN
 		saleStoreID,
 		saleOperatorID,
 		saleStatus,
-		saleType,
+		currentSaleType,
 		currentSubtotal,
 		currentDiscount
 	FROM salesreceipt
@@ -1985,7 +1986,7 @@ BEGIN
 		AmountTendered = NULL,
 		ChangeDue = NULL
 	WHERE ReceiptID = pReceiptID;
-	IF saleType = 'Express' THEN
+	IF currentSaleType = 'Express' THEN
 		UPDATE expressorder
 		SET Status = 'Cancelled'
 		WHERE ReceiptID = pReceiptID;
@@ -1995,6 +1996,7 @@ END$$
 DELIMITER ;
 
 -- FnH Express
+-- vw_express_orders
 DROP VIEW IF EXISTS vw_express_orders;
 
 CREATE VIEW vw_express_orders AS
@@ -2051,6 +2053,7 @@ LEFT JOIN customer c
 
 DELIMITER $$
 
+-- sp_get_express_capacity
 DROP PROCEDURE IF EXISTS sp_get_express_capacity$$
 CREATE PROCEDURE sp_get_express_capacity(
 	IN pStoreID INT
@@ -2073,6 +2076,7 @@ BEGIN
 		GREATEST(20 - usedOrders, 0) AS OrdersRemaining;
 END$$
 
+-- sp_create_express_order
 DROP PROCEDURE IF EXISTS sp_create_express_order$$
 CREATE PROCEDURE sp_create_express_order(
 	IN pStoreID INT,
@@ -2101,6 +2105,14 @@ BEGIN
 
 	START TRANSACTION;
 
+	SELECT RegisterID
+	INTO expressRegisterID
+	FROM register
+	WHERE StoreID = pStoreID
+	  AND RegisterNumber = 1
+	  AND Active = 1
+	FOR UPDATE;
+
 	IF NOT EXISTS (
 		SELECT 1
 		FROM store
@@ -2110,14 +2122,6 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The selected store is not active';
 	END IF;
-
-	SELECT RegisterID
-	INTO expressRegisterID
-	FROM register
-	WHERE StoreID = pStoreID
-	  AND RegisterNumber = 1
-	  AND Active = 1
-	FOR UPDATE;
 
 	IF expressRegisterID IS NULL THEN
 		SIGNAL SQLSTATE '45000'
@@ -2314,6 +2318,7 @@ BEGIN
 		GREATEST(20 - (usedOrders + 1), 0) AS OrdersRemaining;
 END$$
 
+-- sp_create_express_customer
 DROP PROCEDURE IF EXISTS sp_create_express_customer$$
 CREATE PROCEDURE sp_create_express_customer(
 	IN pFirstName VARCHAR(60),
@@ -2340,7 +2345,7 @@ BEGIN
 			SET MESSAGE_TEXT = 'Phone number must contain exactly 10 digits or be left blank';
 	END IF;
 
-	/* Insert with a UUID placeholder, then set the real loyalty number from the new ID, same as EmployeeNumber. */
+	/* A temporary loyalty number is saved first, then replaced using the new CustomerID. */
 	INSERT INTO customer (
 		LoyaltyNumber,
 		FirstName,
@@ -2352,7 +2357,7 @@ BEGIN
 		Active
 	)
 	VALUES (
-		UUID(),
+		CONCAT('TEMP', UUID_SHORT()),
 		pFirstName,
 		pLastName,
 		NULLIF(pEmail, ''),
@@ -2372,6 +2377,7 @@ BEGIN
 	SELECT newCustomerID AS CustomerID;
 END$$
 
+-- sp_create_customer_address
 DROP PROCEDURE IF EXISTS sp_create_customer_address$$
 CREATE PROCEDURE sp_create_customer_address(
 	IN pCustomerID INT,
@@ -2453,8 +2459,10 @@ BEGIN
 	SELECT newCustomerAddressID AS CustomerAddressID;
 END$$
 
+-- sp_update_customer_address
 DROP PROCEDURE IF EXISTS sp_update_customer_address$$
 CREATE PROCEDURE sp_update_customer_address(
+	IN pCustomerID INT,
 	IN pCustomerAddressID INT,
 	IN pAddressLine1 VARCHAR(120),
 	IN pAddressLine2 VARCHAR(120),
@@ -2475,6 +2483,7 @@ BEGIN
 		SELECT 1
 		FROM customeraddress
 		WHERE CustomerAddressID = pCustomerAddressID
+		  AND CustomerID = pCustomerID
 		  AND Active = 1
 	) THEN
 		SIGNAL SQLSTATE '45000'
@@ -2496,11 +2505,13 @@ BEGIN
 		City = TRIM(pCity),
 		StateCode = UPPER(TRIM(pStateCode)),
 		PostalCode = TRIM(pPostalCode)
-	WHERE CustomerAddressID = pCustomerAddressID;
+	WHERE CustomerAddressID = pCustomerAddressID
+	  AND CustomerID = pCustomerID;
 
 	COMMIT;
 END$$
 
+-- sp_set_express_order_status
 DROP PROCEDURE IF EXISTS sp_set_express_order_status$$
 CREATE PROCEDURE sp_set_express_order_status(
 	IN pExpressOrderID BIGINT,

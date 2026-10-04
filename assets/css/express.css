@@ -64,6 +64,45 @@
     background: var(--panel-background-color);
 }
 
+
+.express-stock-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border: 0.125rem solid var(--shared-blue-color);
+    border-radius: var(--standard-border-radius);
+    background: var(--theme-primary-light-color);
+}
+
+.express-stock-total-label {
+    color: var(--theme-primary-dark-color);
+    font-weight: bold;
+}
+
+.express-stock-total-value {
+    color: var(--theme-primary-dark-color);
+    font-size: 1.5rem;
+}
+
+.express-stock-out-of-stock td {
+    background: var(--danger-background-color);
+}
+
+.express-out-of-stock-label {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--danger-color);
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.express-stock-table {
+    min-width: 50rem;
+}
+
 .express-empty {
     padding: 1rem;
     border: 0.0625rem dashed var(--standard-border-color);

@@ -11,6 +11,10 @@ define('APPLICATION_URL', '/CSC_680');
 define('DEVELOPER_NAME', 'Brian Phillips');
 define('DEVELOPER_EMAIL', 'B.Phillips958@student.nu.edu');
 
+define('APPLICATION_TIME_ZONE', 'America/Los_Angeles');
+
+date_default_timezone_set(APPLICATION_TIME_ZONE);
+
 
 // Connect to the FnH database
 function connectDatabase()
@@ -51,6 +55,17 @@ function connectDatabase()
         $databaseConnection->setAttribute(
             PDO::ATTR_EMULATE_PREPARES,
             false
+        );
+
+        // Keep database date and time rules aligned with the California store time
+        $databaseTimeZoneOffset =
+            date('P');
+
+        $databaseConnection->exec(
+            'SET time_zone = '
+            . $databaseConnection->quote(
+                $databaseTimeZoneOffset
+            )
         );
 
         return $databaseConnection;

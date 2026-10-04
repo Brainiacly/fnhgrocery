@@ -146,6 +146,12 @@ $headerUsername =
     </title>
 
     <link
+        rel="icon"
+        type="image/png"
+        href="<?= APPLICATION_URL ?>/assets/images/image1.png"
+    >
+
+    <link
         rel="stylesheet"
         href="<?= APPLICATION_URL ?>/assets/css/styles.css"
     >

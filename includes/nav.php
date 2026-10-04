@@ -172,7 +172,13 @@ $showSaleNavigationLink =
 ?>
 
 
-<aside class="<?= operatorIsLoggedIn() ? 'site-navigation site-navigation-logged-in' : 'site-navigation site-navigation-public' ?>">
+<aside
+    class="<?=
+    operatorIsLoggedIn()
+    ? 'site-navigation site-navigation-logged-in'
+    : 'site-navigation site-navigation-public'
+    ?>"
+>
 
     <?php if (!operatorIsLoggedIn()): ?>
 
@@ -262,7 +268,7 @@ $showSaleNavigationLink =
 
 
             <div class="navigation-demo-note">
-                Demo Admin and Operator credentials are listed below
+                Demo Admin, Operator, and Personal Shopper credentials are listed below
             </div>
 
 
@@ -301,6 +307,20 @@ $showSaleNavigationLink =
 
                 <div>
                     Password: Testing123$
+                </div>
+
+
+                <strong>
+                    <br>
+                    Demo Personal Shopper Credentials
+                </strong>
+
+                <div>
+                    Username: DellaVery
+                </div>
+
+                <div>
+                    Password: Shopper#123
                 </div>
 
             </div>
@@ -393,6 +413,14 @@ $showSaleNavigationLink =
                     >
                         Clear Selection
                     </button>
+
+
+                    <a
+                        href="#operatorListHelp"
+                        class="button operator-nav-button operator-nav-help"
+                    >
+                        Help
+                    </a>
 
 
                     <div

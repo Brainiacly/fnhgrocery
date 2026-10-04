@@ -497,7 +497,7 @@
     }
 }
 
-/* Tablet */
+/* Tablet layout */
 
 @media (min-width: 48rem) {
     .sale-product-grid {
@@ -535,7 +535,7 @@
     }
 }
 
-/* Desktop */
+/* Desktop layout */
 
 @media (min-width: 64rem) {
     .sale-workspace {

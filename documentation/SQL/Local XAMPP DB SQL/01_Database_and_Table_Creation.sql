@@ -9,12 +9,14 @@ USE fnh_groceries;
 
 DROP TABLE IF EXISTS transactionjournal;
 DROP TABLE IF EXISTS salesreceiptline;
+DROP TABLE IF EXISTS expressorder;
 DROP TABLE IF EXISTS salesreceipt;
 DROP TABLE IF EXISTS storeinventory;
 DROP TABLE IF EXISTS register;
 DROP TABLE IF EXISTS operator;
 DROP TABLE IF EXISTS product;
 DROP TABLE IF EXISTS department;
+DROP TABLE IF EXISTS customeraddress;
 DROP TABLE IF EXISTS customer;
 DROP TABLE IF EXISTS category;
 DROP TABLE IF EXISTS store;
@@ -229,7 +231,10 @@ CREATE TABLE salesreceiptline (
 	TaxableAtSale tinyint(1) NOT NULL CHECK (TaxableAtSale IN (0,1)),
 	Quantity decimal(12,3) NOT NULL CHECK (Quantity > 0),
 	UnitPrice decimal(10,2) NOT NULL CHECK (UnitPrice >= 0),
-	LineDiscountAmount decimal(10,2) NOT NULL DEFAULT 0.00 CHECK (LineDiscountAmount >= 0 AND LineDiscountAmount <= ROUND(Quantity * UnitPrice, 2)),
+	LineDiscountAmount decimal(10,2) NOT NULL DEFAULT 0.00 CHECK (
+		LineDiscountAmount >= 0
+		AND LineDiscountAmount <= ROUND(Quantity * UnitPrice, 2)
+	),
 	UNIQUE (ReceiptID, LineNumber),
 	INDEX idx_sales_receipt_line_product (ProductID, ReceiptID),
 	FOREIGN KEY (ProductID) REFERENCES product(ProductID),

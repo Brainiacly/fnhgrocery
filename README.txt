@@ -121,6 +121,28 @@ csc680-fnhgroceries_fnh_groceries
 The local XAMPP and Alwaysdata databases began with the same data. Both are updated and tested together as development continues, using the same SQL files.
 
 
+WEEK 3 DATABASE EXTENSIONS
+
+Week 3 extends the Week 1 and Week 2 database instead of replacing it. The following changes support FnH Express:
+
+- The operator Role field includes Personal Shopper so Express access can be separated from regular Point of Sale access.
+- Register 1 is named Express Register and is reserved for Express orders. Regular sales are blocked from using Register 1 in both the PHP interface and the database procedures.
+- The salesreceipt SaleType field identifies Regular and Express receipts.
+- The customeraddress table stores named delivery addresses, such as Home or Work, that can be reused by a customer.
+- The expressorder table stores the Express receipt, customer, personal shopper, fulfillment method, delivery address, delivery fee, order time, and Express status.
+- The vw_express_orders view combines the Express order, receipt, customer, store, register, and personal shopper information used by the Express pages.
+- Express stored procedures enforce the 20-order daily store capacity, reserve Register 1, enforce Personal Shopper access, validate delivery hours, create customers and saved addresses, and update Express order status.
+- The checkout procedures include the $10.00 delivery fee when an Express delivery order is completed.
+- Application database sessions use the California store time so the 8:00 AM through 4:00 PM delivery rule and daily Express capacity are evaluated consistently on XAMPP and Alwaysdata.
+
+A seeded Personal Shopper account is included so the Week 3 access rules can be demonstrated immediately:
+
+    Username: DellaVery
+    Password: Shopper#123
+
+For an existing Week 3 database, run only 02_Views_and_Procedures.sql from the matching Local XAMPP or Alwaysdata folder. It replaces the views and procedures and keeps all existing data.
+
+
 JAVASCRIPT
 
 JavaScript is used only for immediate interface responsiveness and to reduce unnecessary button clicks and page reloads. All security, permissions, validation, sales processing, inventory changes, and database updates are handled by PHP and the database procedures.

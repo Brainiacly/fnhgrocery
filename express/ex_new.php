@@ -11,6 +11,11 @@ requireExpressAccess();
 
 $databaseConnection = connectDatabase();
 $errorMessage = '';
+$addressSaveWarning = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    unset($_SESSION['express_retry_customer']);
+}
 
 $capacityStatement = $databaseConnection->prepare('CALL sp_get_express_capacity(?)');
 $capacityStatement->execute([(int) $_SESSION['store_id']]);
@@ -50,7 +55,7 @@ $deliveryCity = '';
 $deliveryState = '';
 $deliveryPostalCode = '';
 
-// Track the originally-loaded address for comparison on submit
+// Keep the loaded address values so changes can be detected
 $loadedAddressID = 0;
 $loadedAddressLine1 = '';
 $loadedAddressLine2 = '';
@@ -58,7 +63,7 @@ $loadedAddressCity = '';
 $loadedAddressState = '';
 $loadedAddressPostalCode = '';
 
-// Load saved addresses
+// Load the selected customer's saved addresses
 $savedAddresses = [];
 
 if ($selectedCustomerID > 0) {
@@ -73,7 +78,7 @@ if ($selectedCustomerID > 0) {
     $savedAddresses = $addressStatement->fetchAll();
 }
 
-// Load Address button was used - fill the fields from the saved address
+// Load the selected saved address into the delivery fields
 if (
     $_SERVER['REQUEST_METHOD'] === 'GET'
     &&
@@ -145,8 +150,16 @@ if (
         $_POST['fulfillment_method']
         ?? 'Curbside';
 
-    $deliveryAddressLine1 = trim($_POST['delivery_address_1'] ?? '');
-    $deliveryAddressLine2 = trim($_POST['delivery_address_2'] ?? '');
+    $deliveryAddressLine1 =
+        trim(
+            $_POST['delivery_address_1']
+            ?? ''
+        );
+    $deliveryAddressLine2 =
+        trim(
+            $_POST['delivery_address_2']
+            ?? ''
+        );
     $deliveryCity =
         trim(
             $_POST['delivery_city']
@@ -199,26 +212,103 @@ if (
         )
     ) {
         $errorMessage = 'Enter the new customer\'s first and last name.';
+    } elseif (
+        $fulfillmentMethod === 'Delivery'
+        &&
+        $loadedAddressID <= 0
+        &&
+        $saveNewAddress
+        &&
+        $newAddressLabel === ''
+    ) {
+        $errorMessage =
+            'Enter a name for the address you want to save, such as Home or Work.';
     } else {
         try {
             if ($customerMode === 'new') {
-                $customerStatement = $databaseConnection->prepare(
-                    'CALL sp_create_express_customer(?, ?, ?, ?)'
-                );
+                $retryCustomer =
+                    $_SESSION['express_retry_customer']
+                    ?? null;
 
-                $customerStatement->execute([
-                    $newFirstName,
-                    $newLastName,
-                    $newPhone,
-                    $newEmail
-                ]);
+                $canReuseCustomer =
+                    is_array($retryCustomer)
+                    &&
+                    (int) ($retryCustomer['customer_id'] ?? 0) > 0
+                    &&
+                    ($retryCustomer['first_name'] ?? '') === $newFirstName
+                    &&
+                    ($retryCustomer['last_name'] ?? '') === $newLastName
+                    &&
+                    ($retryCustomer['phone'] ?? '') === $newPhone
+                    &&
+                    ($retryCustomer['email'] ?? '') === $newEmail;
 
-                $newCustomer = $customerStatement->fetch();
-                $customerStatement->closeCursor();
+                if ($canReuseCustomer) {
+                    $existingNewCustomerStatement =
+                        $databaseConnection->prepare(
+                            '
+                            SELECT CustomerID
+                            FROM customer
+                            WHERE CustomerID = :customerID
+                              AND Active = 1
+                            LIMIT 1
+                            '
+                        );
 
-                $customerID = (int) $newCustomer['CustomerID'];
+                    $existingNewCustomerStatement->execute([
+                        ':customerID' =>
+                            (int) $retryCustomer['customer_id']
+                    ]);
+
+                    $existingNewCustomer =
+                        $existingNewCustomerStatement->fetch();
+
+                    if (!$existingNewCustomer) {
+                        unset($_SESSION['express_retry_customer']);
+
+                        throw new RuntimeException(
+                            'The customer created for this order could not be found.'
+                        );
+                    }
+
+                    $customerID =
+                        (int) $existingNewCustomer['CustomerID'];
+
+                } else {
+                    $customerStatement =
+                        $databaseConnection->prepare(
+                            'CALL sp_create_express_customer(?, ?, ?, ?)'
+                        );
+
+                    $customerStatement->execute([
+                        $newFirstName,
+                        $newLastName,
+                        $newPhone,
+                        $newEmail
+                    ]);
+
+                    $newCustomer =
+                        $customerStatement->fetch();
+
+                    $customerStatement->closeCursor();
+
+                    $customerID =
+                        (int) $newCustomer['CustomerID'];
+
+                    $_SESSION['express_retry_customer'] = [
+                        'customer_id' => $customerID,
+                        'first_name' => $newFirstName,
+                        'last_name' => $newLastName,
+                        'phone' => $newPhone,
+                        'email' => $newEmail
+                    ];
+                }
+
             } else {
-                $customerID = $selectedCustomerID;
+                unset($_SESSION['express_retry_customer']);
+
+                $customerID =
+                    $selectedCustomerID;
             }
 
             $statement = $databaseConnection->prepare(
@@ -240,7 +330,9 @@ if (
             $created = $statement->fetch();
             $statement->closeCursor();
 
-            // Save or update the address book after the order succeeds
+            unset($_SESSION['express_retry_customer']);
+
+            // Save address-book changes after the order succeeds
             if ($fulfillmentMethod === 'Delivery') {
                 try {
                     if (
@@ -249,10 +341,11 @@ if (
                         $updateAddressOnFile
                     ) {
                         $addressUpdateStatement = $databaseConnection->prepare(
-                            'CALL sp_update_customer_address(?, ?, ?, ?, ?, ?)'
+                            'CALL sp_update_customer_address(?, ?, ?, ?, ?, ?, ?)'
                         );
 
                         $addressUpdateStatement->execute([
+                            $customerID,
                             $loadedAddressID,
                             $deliveryAddressLine1,
                             $deliveryAddressLine2,
@@ -286,8 +379,12 @@ if (
                         $addressCreateStatement->closeCursor();
                     }
                 } catch (PDOException $addressException) {
-                    // Log it, but keep the order either way
-                    error_log($addressException->getMessage());
+                    error_log(
+                        $addressException->getMessage()
+                    );
+
+                    $addressSaveWarning =
+                        '&address_warning=1';
                 }
             }
 
@@ -296,13 +393,18 @@ if (
                 . APPLICATION_URL
                 . '/express/order.php?id='
                 . (int) $created['ExpressOrderID']
+                . ($addressSaveWarning ?? '')
             );
             exit;
         } catch (PDOException $exception) {
-            $errorMessage = getSafeDatabaseErrorMessage(
-                $exception,
-                'The Express order could not be created.'
-            );
+            $errorMessage =
+                getSafeDatabaseErrorMessage(
+                    $exception,
+                    'The Express order could not be created.'
+                );
+        } catch (RuntimeException $exception) {
+            $errorMessage =
+                $exception->getMessage();
         }
     }
 }
@@ -324,16 +426,52 @@ require __DIR__ . '/../includes/header.php';
         <div class="message message-error"><?= escapeOutput($errorMessage) ?></div>
     <?php endif; ?>
 
-    <form method="post" id="expressNewOrderForm">
-        <input type="hidden" name="form_security_token" value="<?= escapeOutput(getFormSecurityToken()) ?>">
+    <form
+        method="post"
+        id="expressNewOrderForm"
+    >
+        <input
+            type="hidden"
+            name="form_security_token"
+            value="<?= escapeOutput(getFormSecurityToken()) ?>"
+        >
 
-        <input type="hidden" name="loaded_address_id" value="<?= (int) $loadedAddressID ?>">
-        <input type="hidden" id="loadedAddressLine1" value="<?= escapeOutput($loadedAddressLine1) ?>">
-        <input type="hidden" id="loadedAddressLine2" value="<?= escapeOutput($loadedAddressLine2) ?>">
-        <input type="hidden" id="loadedAddressCity" value="<?= escapeOutput($loadedAddressCity) ?>">
-        <input type="hidden" id="loadedAddressState" value="<?= escapeOutput($loadedAddressState) ?>">
-        <input type="hidden" id="loadedAddressPostalCode" value="<?= escapeOutput($loadedAddressPostalCode) ?>">
-        <input type="hidden" name="update_address_on_file" id="updateAddressOnFile" value="0">
+        <input
+            type="hidden"
+            name="loaded_address_id"
+            value="<?= (int) $loadedAddressID ?>"
+        >
+        <input
+            type="hidden"
+            id="loadedAddressLine1"
+            value="<?= escapeOutput($loadedAddressLine1) ?>"
+        >
+        <input
+            type="hidden"
+            id="loadedAddressLine2"
+            value="<?= escapeOutput($loadedAddressLine2) ?>"
+        >
+        <input
+            type="hidden"
+            id="loadedAddressCity"
+            value="<?= escapeOutput($loadedAddressCity) ?>"
+        >
+        <input
+            type="hidden"
+            id="loadedAddressState"
+            value="<?= escapeOutput($loadedAddressState) ?>"
+        >
+        <input
+            type="hidden"
+            id="loadedAddressPostalCode"
+            value="<?= escapeOutput($loadedAddressPostalCode) ?>"
+        >
+        <input
+            type="hidden"
+            name="update_address_on_file"
+            id="updateAddressOnFile"
+            value="0"
+        >
 
         <div class="form-grid">
 
@@ -363,9 +501,15 @@ require __DIR__ . '/../includes/header.php';
                 </label>
             </fieldset>
 
-            <div class="form-field express-address" id="existingCustomerField">
+            <div
+                class="form-field express-address"
+                id="existingCustomerField"
+            >
                 <label for="customer_id">Select Customer</label>
-                <select id="customer_id" name="customer_id">
+                <select
+                    id="customer_id"
+                    name="customer_id"
+                >
                     <option value="">Select Customer</option>
                     <?php foreach ($customers as $customer): ?>
                         <option
@@ -383,7 +527,13 @@ require __DIR__ . '/../includes/header.php';
                     <?php endforeach; ?>
                 </select>
 
-                <button type="submit" formmethod="get" name="load_customer" value="1" class="button button-secondary">
+                <button
+                    type="submit"
+                    formmethod="get"
+                    name="load_customer"
+                    value="1"
+                    class="button button-secondary"
+                >
                     Load Customer
                 </button>
 
@@ -394,9 +544,15 @@ require __DIR__ . '/../includes/header.php';
 
             <?php if ($selectedCustomerID > 0 && $savedAddresses): ?>
 
-                <div class="form-field express-address" id="savedAddressField">
+                <div
+                    class="form-field express-address"
+                    id="savedAddressField"
+                >
                     <label for="saved_address_select">Saved Address</label>
-                    <select id="saved_address_select" name="address_id">
+                    <select
+                        id="saved_address_select"
+                        name="address_id"
+                    >
                         <option value="">Select a Saved Address</option>
                         <?php foreach ($savedAddresses as $savedAddress): ?>
                             <option
@@ -411,9 +567,19 @@ require __DIR__ . '/../includes/header.php';
                         <?php endforeach; ?>
                     </select>
 
-                    <input type="hidden" name="customer_id" value="<?= (int) $selectedCustomerID ?>">
+                    <input
+                        type="hidden"
+                        name="customer_id"
+                        value="<?= (int) $selectedCustomerID ?>"
+                    >
 
-                    <button type="submit" formmethod="get" name="load_address" value="1" class="button button-secondary">
+                    <button
+                        type="submit"
+                        formmethod="get"
+                        name="load_address"
+                        value="1"
+                        class="button button-secondary"
+                    >
                         Load Address
                     </button>
 
@@ -424,7 +590,10 @@ require __DIR__ . '/../includes/header.php';
 
             <?php endif; ?>
 
-            <div class="express-new-customer" id="newCustomerFields">
+            <div
+                class="express-new-customer"
+                id="newCustomerFields"
+            >
 
                 <div class="form-field">
                     <label for="new_customer_first_name">First Name</label>
@@ -480,12 +649,22 @@ require __DIR__ . '/../includes/header.php';
                 <legend>Fulfillment *</legend>
 
                 <label>
-                    <input type="radio" name="fulfillment_method" value="Curbside" <?= $fulfillmentMethod === 'Curbside' ? 'checked' : '' ?>>
+                    <input
+                        type="radio"
+                        name="fulfillment_method"
+                        value="Curbside"
+                        <?= $fulfillmentMethod === 'Curbside' ? 'checked' : '' ?>
+                    >
                     Curbside Pickup
                 </label>
 
                 <label>
-                    <input type="radio" name="fulfillment_method" value="Delivery" <?= $fulfillmentMethod === 'Delivery' ? 'checked' : '' ?>>
+                    <input
+                        type="radio"
+                        name="fulfillment_method"
+                        value="Delivery"
+                        <?= $fulfillmentMethod === 'Delivery' ? 'checked' : '' ?>
+                    >
                     Home Delivery (+$10.00)
                 </label>
 
@@ -497,34 +676,72 @@ require __DIR__ . '/../includes/header.php';
 
             <div class="form-field">
                 <label for="delivery_address_1">Delivery Address</label>
-                <input type="text" id="delivery_address_1" name="delivery_address_1" maxlength="120" value="<?= escapeOutput($deliveryAddressLine1) ?>">
+                <input
+                    type="text"
+                    id="delivery_address_1"
+                    name="delivery_address_1"
+                    maxlength="120"
+                    value="<?= escapeOutput($deliveryAddressLine1) ?>"
+                >
             </div>
 
             <div class="form-field">
                 <label for="delivery_address_2">Address Line 2</label>
-                <input type="text" id="delivery_address_2" name="delivery_address_2" maxlength="120" value="<?= escapeOutput($deliveryAddressLine2) ?>">
+                <input
+                    type="text"
+                    id="delivery_address_2"
+                    name="delivery_address_2"
+                    maxlength="120"
+                    value="<?= escapeOutput($deliveryAddressLine2) ?>"
+                >
             </div>
 
             <div class="form-field">
                 <label for="delivery_city">City</label>
-                <input type="text" id="delivery_city" name="delivery_city" maxlength="80" value="<?= escapeOutput($deliveryCity) ?>">
+                <input
+                    type="text"
+                    id="delivery_city"
+                    name="delivery_city"
+                    maxlength="80"
+                    value="<?= escapeOutput($deliveryCity) ?>"
+                >
             </div>
 
             <div class="form-field">
                 <label for="delivery_state">State</label>
-                <input type="text" id="delivery_state" name="delivery_state" maxlength="2" value="<?= escapeOutput($deliveryState) ?>">
+                <input
+                    type="text"
+                    id="delivery_state"
+                    name="delivery_state"
+                    maxlength="2"
+                    value="<?= escapeOutput($deliveryState) ?>"
+                >
             </div>
 
             <div class="form-field">
                 <label for="delivery_postal_code">ZIP Code</label>
-                <input type="text" id="delivery_postal_code" name="delivery_postal_code" maxlength="10" value="<?= escapeOutput($deliveryPostalCode) ?>">
+                <input
+                    type="text"
+                    id="delivery_postal_code"
+                    name="delivery_postal_code"
+                    maxlength="10"
+                    value="<?= escapeOutput($deliveryPostalCode) ?>"
+                >
             </div>
 
             <?php if ($loadedAddressID === 0): ?>
 
-                <div class="form-field express-save-address" id="saveNewAddressField">
+                <div
+                    class="form-field express-save-address"
+                    id="saveNewAddressField"
+                >
                     <label>
-                        <input type="checkbox" name="save_new_address" id="save_new_address" value="1">
+                        <input
+                            type="checkbox"
+                            name="save_new_address"
+                            id="save_new_address"
+                            value="1"
+                        >
                         Save this address for reuse
                     </label>
 
@@ -542,25 +759,26 @@ require __DIR__ . '/../includes/header.php';
         </div>
 
         <div class="form-actions">
-            <button class="button button-primary" type="submit" name="create_order" value="1">Create Express Order</button>
-            <a class="button button-secondary" href="<?= APPLICATION_URL ?>/express/ex_home.php">Cancel</a>
+            <button
+                class="button button-primary"
+                type="submit"
+                name="create_order"
+                value="1"
+            >
+                Create Express Order
+            </button>
+            <a
+                class="button button-secondary"
+                href="<?= APPLICATION_URL ?>/express/ex_home.php"
+            >
+                Cancel
+            </a>
         </div>
     </form>
 </section>
 
 <script>
-/*
-   Two things happen here, both light. First, only the customer
-   section matching the selected mode is shown - purely a display
-   choice, since PHP validates whichever fields are actually
-   submitted no matter what the browser is showing. Second, if an
-   address was loaded from the address book and the shopper then
-   edits it, a confirm() asks whether to update that saved address.
-   The comparison reads values already rendered by PHP into hidden
-   fields on page load - nothing here stores or transports the
-   address itself, that part is handled entirely through normal
-   form submission and page reloads.
-*/
+// Show the fields for the selected customer type and confirm saved-address changes
 (function () {
     var existingRadio =
         document.getElementById('customer_mode_existing');

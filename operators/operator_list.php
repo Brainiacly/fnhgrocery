@@ -263,12 +263,12 @@ require __DIR__ . '/../includes/header.php';
                         <?php foreach ($operatorRecords as $operatorRecord): ?>
                             <?php
                             $isCurrentOperator =
-                                (int)$operatorRecord['OperatorID']
+                                (int) $operatorRecord['OperatorID']
                                 ===
-                                (int)$_SESSION['operator_id'];
+                                (int) $_SESSION['operator_id'];
 
                             $isActiveOperator =
-                                (int)$operatorRecord['Active']
+                                (int) $operatorRecord['Active']
                                 ===
                                 1;
 
@@ -312,13 +312,13 @@ require __DIR__ . '/../includes/header.php';
                                 <td class="operator-select-cell">
                                     <label
                                         class="operator-radio-label"
-                                        for="operator_<?= (int)$operatorRecord['OperatorID'] ?>"
+                                        for="operator_<?= (int) $operatorRecord['OperatorID'] ?>"
                                     >
                                         <input
                                             type="radio"
-                                            id="operator_<?= (int)$operatorRecord['OperatorID'] ?>"
+                                            id="operator_<?= (int) $operatorRecord['OperatorID'] ?>"
                                             name="id"
-                                            value="<?= (int)$operatorRecord['OperatorID'] ?>"
+                                            value="<?= (int) $operatorRecord['OperatorID'] ?>"
                                             class="<?= $radioClass ?>"
                                             data-active="<?= $isActiveOperator ? '1' : '0' ?>"
                                             data-current="<?= $isCurrentOperator ? '1' : '0' ?>"
@@ -399,7 +399,10 @@ require __DIR__ . '/../includes/header.php';
         <?php endif; ?>
     </form>
 
-    <div class="operator-list-help">
+    <div
+        id="operatorListHelp"
+        class="operator-list-help"
+    >
         <h2>
             Using This List
         </h2>

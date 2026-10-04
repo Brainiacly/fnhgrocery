@@ -73,6 +73,7 @@ $openSaleStatement =
            AND r.StoreID = sr.StoreID
         WHERE sr.OperatorID = :operatorID
           AND sr.Status = \'Open\'
+          AND sr.SaleType = \'Regular\'
         LIMIT 1
         '
     );
@@ -440,9 +441,17 @@ require __DIR__ . '/../includes/header.php';
 
     <form method="post">
 
-        <input type="hidden" name="form_security_token" value="<?= escapeOutput(getFormSecurityToken()) ?>">
+        <input
+            type="hidden"
+            name="form_security_token"
+            value="<?= escapeOutput(getFormSecurityToken()) ?>"
+        >
 
-        <input type="hidden" name="id" value="<?= (int) $operatorID ?>">
+        <input
+            type="hidden"
+            name="id"
+            value="<?= (int) $operatorID ?>"
+        >
 
 
         <div class="form-grid">
@@ -453,7 +462,11 @@ require __DIR__ . '/../includes/header.php';
                     Assigned Store *
                 </label>
 
-                <select id="store_id" name="store_id" required>
+                <select
+                    id="store_id"
+                    name="store_id"
+                    required
+                >
 
                     <option value="">
                         Select Store
@@ -462,7 +475,10 @@ require __DIR__ . '/../includes/header.php';
 
                     <?php foreach ($storeRecords as $storeRecord): ?>
 
-                        <option value="<?= (int) $storeRecord['StoreID'] ?>" <?= (string) $selectedStoreID === (string) $storeRecord['StoreID'] ? 'selected' : '' ?>>
+                        <option
+                            value="<?= (int) $storeRecord['StoreID'] ?>"
+                            <?= (string) $selectedStoreID === (string) $storeRecord['StoreID'] ? 'selected' : '' ?>
+                        >
                             <?= escapeOutput($storeRecord['StoreNumber']) ?>
                             -
                             <?= escapeOutput($storeRecord['StoreName']) ?>
@@ -494,8 +510,14 @@ require __DIR__ . '/../includes/header.php';
                     Username *
                 </label>
 
-                <input type="text" id="username" name="username" value="<?= escapeOutput($username) ?>" maxlength="50"
-                    required>
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    value="<?= escapeOutput($username) ?>"
+                    maxlength="50"
+                    required
+                >
 
             </div>
 
@@ -506,21 +528,37 @@ require __DIR__ . '/../includes/header.php';
                     Access *
                 </label>
 
-                <select id="role" name="role" required>
+                <select
+                    id="role"
+                    name="role"
+                    required
+                >
 
-                    <option value="Pending" <?= $selectedRole === 'Pending' ? 'selected' : '' ?>>
+                    <option
+                        value="Pending"
+                        <?= $selectedRole === 'Pending' ? 'selected' : '' ?>
+                    >
                         No Access
                     </option>
 
-                    <option value="Operator" <?= $selectedRole === 'Operator' ? 'selected' : '' ?>>
+                    <option
+                        value="Operator"
+                        <?= $selectedRole === 'Operator' ? 'selected' : '' ?>
+                    >
                         Operator
                     </option>
 
-                    <option value="Administrator" <?= $selectedRole === 'Administrator' ? 'selected' : '' ?>>
+                    <option
+                        value="Administrator"
+                        <?= $selectedRole === 'Administrator' ? 'selected' : '' ?>
+                    >
                         Administrator
                     </option>
 
-                    <option value="Personal Shopper" <?= $selectedRole === 'Personal Shopper' ? 'selected' : '' ?>>
+                    <option
+                        value="Personal Shopper"
+                        <?= $selectedRole === 'Personal Shopper' ? 'selected' : '' ?>
+                    >
                         Personal Shopper
                     </option>
 
@@ -535,8 +573,14 @@ require __DIR__ . '/../includes/header.php';
                     First Name *
                 </label>
 
-                <input type="text" id="first_name" name="first_name" value="<?= escapeOutput($firstName) ?>"
-                    maxlength="60" required>
+                <input
+                    type="text"
+                    id="first_name"
+                    name="first_name"
+                    value="<?= escapeOutput($firstName) ?>"
+                    maxlength="60"
+                    required
+                >
 
             </div>
 
@@ -547,8 +591,14 @@ require __DIR__ . '/../includes/header.php';
                     Middle Initial (Optional)
                 </label>
 
-                <input type="text" id="middle_initial" name="middle_initial" value="<?= escapeOutput($middleInitial) ?>"
-                    maxlength="1" pattern="[A-Za-z]">
+                <input
+                    type="text"
+                    id="middle_initial"
+                    name="middle_initial"
+                    value="<?= escapeOutput($middleInitial) ?>"
+                    maxlength="1"
+                    pattern="[A-Za-z]"
+                >
 
             </div>
 
@@ -559,8 +609,14 @@ require __DIR__ . '/../includes/header.php';
                     Last Name *
                 </label>
 
-                <input type="text" id="last_name" name="last_name" value="<?= escapeOutput($lastName) ?>" maxlength="60"
-                    required>
+                <input
+                    type="text"
+                    id="last_name"
+                    name="last_name"
+                    value="<?= escapeOutput($lastName) ?>"
+                    maxlength="60"
+                    required
+                >
 
             </div>
 
@@ -571,8 +627,14 @@ require __DIR__ . '/../includes/header.php';
                     Email *
                 </label>
 
-                <input type="email" id="email" name="email" value="<?= escapeOutput($email) ?>" maxlength="120"
-                    required>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value="<?= escapeOutput($email) ?>"
+                    maxlength="120"
+                    required
+                >
 
             </div>
 
@@ -583,9 +645,17 @@ require __DIR__ . '/../includes/header.php';
                     Phone
                 </label>
 
-                <input type="tel" id="phone" name="phone" value="<?= escapeOutput($phone) ?>" minlength="10"
-                    maxlength="10" pattern="[0-9]{10}" inputmode="numeric"
-                    title="Enter exactly 10 digits with no spaces or punctuation.">
+                <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value="<?= escapeOutput($phone) ?>"
+                    minlength="10"
+                    maxlength="10"
+                    pattern="[0-9]{10}"
+                    inputmode="numeric"
+                    title="Enter exactly 10 digits with no spaces or punctuation."
+                >
 
             </div>
 
@@ -596,7 +666,12 @@ require __DIR__ . '/../includes/header.php';
                     Hire Date
                 </label>
 
-                <input type="date" id="hire_date" name="hire_date" value="<?= escapeOutput($hireDate) ?>">
+                <input
+                    type="date"
+                    id="hire_date"
+                    name="hire_date"
+                    value="<?= escapeOutput($hireDate) ?>"
+                >
 
             </div>
 
@@ -607,7 +682,13 @@ require __DIR__ . '/../includes/header.php';
                     New Password
                 </label>
 
-                <input type="password" id="new_password" name="new_password" minlength="8" autocomplete="new-password">
+                <input
+                    type="password"
+                    id="new_password"
+                    name="new_password"
+                    minlength="8"
+                    autocomplete="new-password"
+                >
 
                 <div class="field-help">
                     Leave blank to keep the current password. <?= escapeOutput(passwordRequirementText()) ?>
@@ -622,25 +703,39 @@ require __DIR__ . '/../includes/header.php';
                     Confirm New Password
                 </label>
 
-                <input type="password" id="confirm_password" name="confirm_password" minlength="8"
-                    autocomplete="new-password">
+                <input
+                    type="password"
+                    id="confirm_password"
+                    name="confirm_password"
+                    minlength="8"
+                    autocomplete="new-password"
+                >
 
             </div>
 
         </div>
 
         <?php if ($openSaleRecord): ?>
-            <div id="openSaleChangeWarning" class="message message-warning" hidden>
+            <div
+                id="openSaleChangeWarning"
+                class="message message-warning"
+                hidden
+            >
                 This operator currently has an open sale on Register
                 <?= escapeOutput($openSaleRecord['RegisterNumber']) ?>.
-                Changing the assigned store or changing access to No Access will cancel that sale,
+                Changing the assigned store or access role will cancel that regular sale,
                 restore its merchandise to inventory, release the register, and record the
                 administrator action in the transaction journal.
 
                 <div class="form-field">
                     <label>
-                        <input type="checkbox" id="confirm_open_sale_cancel" name="confirm_open_sale_cancel" value="1"
-                            <?= $openSaleCancellationConfirmed ? 'checked' : '' ?>>
+                        <input
+                            type="checkbox"
+                            id="confirm_open_sale_cancel"
+                            name="confirm_open_sale_cancel"
+                            value="1"
+                            <?= $openSaleCancellationConfirmed ? 'checked' : '' ?>
+                        >
                         I understand that this open sale will be cancelled.
                     </label>
                 </div>
@@ -658,12 +753,14 @@ require __DIR__ . '/../includes/header.php';
                         document.getElementById('confirm_open_sale_cancel');
                     const originalStoreID =
                         '<?= (int) $operatorRecord['StoreID'] ?>';
+                    const originalRole =
+                        '<?= escapeOutput($operatorRecord['Role']) ?>';
 
                     function updateOpenSaleWarning() {
                         const mustCancel =
                             storeSelect.value !== originalStoreID
                             ||
-                            roleSelect.value === 'Pending';
+                            roleSelect.value !== originalRole;
 
                         warning.hidden = !mustCancel;
 
@@ -690,11 +787,19 @@ require __DIR__ . '/../includes/header.php';
 
         <div class="form-actions">
 
-            <button type="submit" name="save_update" value="1" class="button button-primary">
+            <button
+                type="submit"
+                name="save_update"
+                value="1"
+                class="button button-primary"
+            >
                 Save Changes
             </button>
 
-            <a href="operator_list.php" class="button button-secondary">
+            <a
+                href="operator_list.php"
+                class="button button-secondary"
+            >
                 Cancel
             </a>
 
