@@ -80,7 +80,7 @@ if (
     !operatorIsAdministrator()
 ) {
     http_response_code(403);
-    exit('You cannot open another personal shopper\'s Express order');
+    exit('You cannot open another personal shopper\'s Express order.');
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

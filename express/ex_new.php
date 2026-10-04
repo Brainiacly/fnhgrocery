@@ -20,7 +20,7 @@ $capacity = [
 ];
 $customers = [];
 
-// Remove a just-created Express customer if order creation fails before the customer is used
+// Remove a new Express customer when the order could not be created
 function removeUnusedExpressCustomer(PDO $databaseConnection, int $customerID)
 {
     if ($customerID <= 0) {
@@ -116,7 +116,7 @@ function loadActiveCustomerAddresses(PDO $databaseConnection, int $customerID): 
     return $addressStatement->fetchAll();
 }
 
-// Find a saved address only within the addresses loaded for the selected customer
+// Find a saved address in this customer's list
 function findLoadedCustomerAddress(array $savedAddresses, int $addressID): ?array
 {
     if ($addressID <= 0) {
@@ -273,7 +273,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Saved addresses are always loaded from the selected customer on the server.
+// Load the saved addresses for the selected customer
 if (
     $customerMode === 'existing'
     &&
@@ -306,7 +306,7 @@ if (
             $errorMessage =
                 'Select the customer you want to load.';
         } else {
-            // A customer change must never retain another customer's address state.
+            // Start over when the customer changes
             $selectedAddressID = 0;
             $loadedAddressID = 0;
             $loadedAddressLine1 = '';
@@ -377,9 +377,7 @@ if (
             }
         }
     } elseif ($requestAction === 'create_order') {
-        // If a saved address is still loaded, prove that it belongs to the
-        // customer being submitted and rebuild the comparison baseline from
-        // the database instead of trusting hidden browser values.
+        // Check that the loaded address belongs to this customer
         if ($customerMode === 'new' && $loadedAddressID > 0) {
             $errorMessage =
                 'A saved address from an existing customer cannot be used for a new customer. Enter the new customer address again.';
@@ -1053,7 +1051,7 @@ require __DIR__ . '/../includes/header.php';
 </section>
 
 <script>
-// Keep customer/address state together and confirm changes to a loaded saved address
+// Reset the address when the customer changes and confirm saved-address edits
 (function () {
     var form =
         document.getElementById('expressNewOrderForm');

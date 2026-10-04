@@ -71,7 +71,7 @@ try {
         http_response_code(403);
 
         exit(
-            "You cannot check out another personal shopper's Express order"
+            "You cannot check out another personal shopper's Express order."
         );
     }
 

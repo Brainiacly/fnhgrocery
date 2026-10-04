@@ -74,7 +74,7 @@ function requireRegularPOSAccess()
 
     if (!operatorCanUseRegularPOS()) {
         http_response_code(403);
-        exit('Point of Sale access is required');
+        exit('Point of Sale access is required.');
     }
 }
 
@@ -85,7 +85,7 @@ function requireExpressAccess()
 
     if (!operatorCanUseExpress()) {
         http_response_code(403);
-        exit('FnH Express access is required');
+        exit('FnH Express access is required.');
     }
 }
 
@@ -121,7 +121,7 @@ function requireAdministrator()
 
     if (!operatorIsAdministrator()) {
         http_response_code(403);
-        exit('Administrator access is required');
+        exit('Administrator access is required.');
     }
 }
 

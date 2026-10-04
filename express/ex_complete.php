@@ -78,7 +78,7 @@ if ($errorMessage === '') {
         http_response_code(403);
 
         exit(
-            "You cannot view another personal shopper's Express receipt"
+            "You cannot view another personal shopper's Express receipt."
         );
     }
 }

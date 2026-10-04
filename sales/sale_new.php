@@ -1234,8 +1234,8 @@ require __DIR__ . '/../includes/header.php';
                             id="quantity"
                             name="quantity"
                             value="1"
-                            min="0.001"
-                            step="0.001"
+                            min="1"
+                            step="1"
                             inputmode="decimal"
                             required
                         >
@@ -2018,15 +2018,15 @@ require __DIR__ . '/../includes/header.php';
                         'Quantity';
 
                     quantityInput.min =
-                        '0.001';
+                        '1';
 
                     quantityInput.step =
-                        '0.001';
+                        '1';
 
                     if (
-                        quantityIsWeighted
-                        &&
-                        quantityInput.value === ''
+                        Number(quantityInput.value) < 1
+                        ||
+                        !Number.isInteger(Number(quantityInput.value))
                     ) {
                         quantityInput.value =
                             '1';

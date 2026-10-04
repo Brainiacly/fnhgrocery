@@ -89,7 +89,14 @@ function getSafeDatabaseErrorMessage(
         &&
         $exception->errorInfo[0] === '45000'
     ) {
-        return $exception->errorInfo[2];
+        $databaseMessage =
+            rtrim($exception->errorInfo[2]);
+
+        if (!preg_match('/[.!?]$/', $databaseMessage)) {
+            $databaseMessage .= '.';
+        }
+
+        return $databaseMessage;
     }
 
     error_log($exception->getMessage());
