@@ -189,11 +189,15 @@
 }
 
 .operator-column-username {
-  width: 25%;
+  width: 22%;
 }
 
 .operator-column-name {
-  width: 25%;
+  width: 22%;
+}
+
+.operator-column-role {
+  width: 6%;
 }
 
 .operator-column-created {
@@ -313,6 +317,30 @@
   font-size: 0.6875rem;
   font-weight: normal;
   line-height: 1.2;
+}
+
+
+.operator-role-code {
+  display: block;
+  text-align: center;
+  font-weight: bold;
+  font-size: 0.9375rem;
+}
+
+
+.operator-role-key {
+  margin-top: 0.75rem;
+  padding: 0.625rem;
+  border: 0.0625rem solid var(--shared-blue-color);
+  border-radius: var(--standard-border-radius);
+  background: var(--theme-primary-light-color);
+  color: var(--main-text-color);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.operator-role-key strong {
+  margin-right: 0.25rem;
 }
 
 .operator-table-empty {

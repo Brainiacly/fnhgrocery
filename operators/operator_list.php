@@ -210,6 +210,7 @@ require __DIR__ . '/../includes/header.php';
                         <col class="operator-column-employee">
                         <col class="operator-column-username">
                         <col class="operator-column-name">
+                        <col class="operator-column-role">
                         <col class="operator-column-created">
                         <col class="operator-column-status">
                     </colgroup>
@@ -242,6 +243,10 @@ require __DIR__ . '/../includes/header.php';
                                 <span class="operator-heading-second-line">
                                     Last, First, MI
                                 </span>
+                            </th>
+
+                            <th>
+                                Type
                             </th>
 
                             <th>
@@ -289,6 +294,18 @@ require __DIR__ . '/../includes/header.php';
                                         )
                                     )
                                     : '';
+
+                            $roleCodes =
+                                [
+                                    'Administrator' => 'A',
+                                    'Operator' => 'O',
+                                    'Personal Shopper' => 'S',
+                                    'Pending' => 'P'
+                                ];
+
+                            $roleCode =
+                                $roleCodes[$operatorRecord['Role']]
+                                ?? '?';
                             ?>
 
                             <tr>
@@ -327,6 +344,15 @@ require __DIR__ . '/../includes/header.php';
                                     <?= escapeOutput($operatorRecord['FullName']) ?>
                                 </td>
 
+                                <td class="operator-role-cell">
+                                    <span
+                                        class="operator-role-code"
+                                        title="<?= escapeOutput($operatorRecord['Role']) ?>"
+                                    >
+                                        <?= escapeOutput($roleCode) ?>
+                                    </span>
+                                </td>
+
                                 <td class="operator-created-cell">
                                     <?= escapeOutput($createdAtDisplay) ?>
                                 </td>
@@ -353,6 +379,16 @@ require __DIR__ . '/../includes/header.php';
                     </tbody>
                 </table>
             </div>
+
+            <p class="operator-role-key">
+                <strong>A</strong> Administrator
+                &nbsp;&nbsp;
+                <strong>O</strong> Operator
+                &nbsp;&nbsp;
+                <strong>S</strong> Personal Shopper
+                &nbsp;&nbsp;
+                <strong>P</strong> Pending
+            </p>
 
             <p class="operator-list-count">
                 <?= count($operatorRecords) ?>
