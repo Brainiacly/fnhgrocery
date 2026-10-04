@@ -27,64 +27,85 @@ $isAdministrator =
     operatorIsAdministrator();
 
 
-$capacityStatement =
-    $databaseConnection->prepare(
-        '
-        CALL sp_get_express_capacity(
-            :storeID
-        )
-        '
-    );
+$loadErrorMessage = '';
+$capacity = [
+    'DailyCapacity' => 20,
+    'OrdersUsed' => 0,
+    'OrdersRemaining' => 0
+];
+$orders = [];
 
-$capacityStatement->execute([
-    ':storeID' => $storeID
-]);
-
-$capacity =
-    $capacityStatement->fetch();
-
-$capacityStatement->closeCursor();
-
-
-if ($isAdministrator) {
-
-    $ordersStatement =
+try {
+    $capacityStatement =
         $databaseConnection->prepare(
             '
-            SELECT *
-            FROM vw_express_orders
-            WHERE StoreID = :storeID
-              AND DATE(OrderPlacedDateTime) = CURDATE()
-            ORDER BY OrderPlacedDateTime DESC
+            CALL sp_get_express_capacity(
+                :storeID
+            )
             '
         );
 
-    $ordersStatement->execute([
+    $capacityStatement->execute([
         ':storeID' => $storeID
     ]);
 
-} else {
+    $capacityRecord =
+        $capacityStatement->fetch();
 
-    $ordersStatement =
-        $databaseConnection->prepare(
-            '
-            SELECT *
-            FROM vw_express_orders
-            WHERE StoreID = :storeID
-              AND PersonalShopperID = :operatorID
-              AND DATE(OrderPlacedDateTime) = CURDATE()
-            ORDER BY OrderPlacedDateTime DESC
-            '
-        );
+    $capacityStatement->closeCursor();
 
-    $ordersStatement->execute([
-        ':storeID' => $storeID,
-        ':operatorID' => $operatorID
-    ]);
+    if ($capacityRecord) {
+        $capacity = $capacityRecord;
+    }
+
+    if ($isAdministrator) {
+        $ordersStatement =
+            $databaseConnection->prepare(
+                '
+                SELECT *
+                FROM vw_express_orders
+                WHERE StoreID = :storeID
+                  AND DATE(OrderPlacedDateTime) = CURDATE()
+                ORDER BY OrderPlacedDateTime DESC
+                '
+            );
+
+        $ordersStatement->execute([
+            ':storeID' => $storeID
+        ]);
+    } else {
+        $ordersStatement =
+            $databaseConnection->prepare(
+                '
+                SELECT *
+                FROM vw_express_orders
+                WHERE StoreID = :storeID
+                  AND PersonalShopperID = :operatorID
+                  AND DATE(OrderPlacedDateTime) = CURDATE()
+                ORDER BY OrderPlacedDateTime DESC
+                '
+            );
+
+        $ordersStatement->execute([
+            ':storeID' => $storeID,
+            ':operatorID' => $operatorID
+        ]);
+    }
+
+    $orders =
+        $ordersStatement->fetchAll();
+
+} catch (PDOException $exception) {
+    error_log($exception->getMessage());
+    $loadErrorMessage =
+        "Today's Express orders could not be loaded. Please try again.";
 }
 
-$orders =
-    $ordersStatement->fetchAll();
+
+$successMessage =
+    isset($_GET['cancelled'])
+        ? 'The Express order was cancelled and any picked inventory was restored.'
+        : '';
 
 
 $pageTitle =
@@ -115,6 +136,24 @@ require __DIR__ . '/../includes/header.php';
         </p>
 
     </div>
+
+
+    <?php if ($loadErrorMessage !== ''): ?>
+
+        <div class="message message-error">
+            <?= escapeOutput($loadErrorMessage) ?>
+        </div>
+
+    <?php endif; ?>
+
+
+    <?php if ($successMessage !== ''): ?>
+
+        <div class="message message-success">
+            <?= escapeOutput($successMessage) ?>
+        </div>
+
+    <?php endif; ?>
 
 
     <div class="express-actions">

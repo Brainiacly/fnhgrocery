@@ -27,120 +27,135 @@ $isAdministrator =
     operatorIsAdministrator();
 
 
-$capacityStatement =
-    $databaseConnection->prepare(
-        '
-        CALL sp_get_express_capacity(
-            :storeID
-        )
-        '
-    );
+$loadErrorMessage = '';
+$capacity = [
+    'DailyCapacity' => 20,
+    'OrdersUsed' => 0,
+    'OrdersRemaining' => 0
+];
+$orders = [];
+$totalStockQuantity = 0.00;
+$stockRows = [];
 
-$capacityStatement->execute([
-    ':storeID' => $storeID
-]);
-
-$capacity =
-    $capacityStatement->fetch();
-
-$capacityStatement->closeCursor();
-
-
-if ($isAdministrator) {
-
-    $ordersStatement =
+try {
+    $capacityStatement =
         $databaseConnection->prepare(
             '
-            SELECT *
-            FROM vw_express_orders
-            WHERE StoreID = :storeID
-              AND DATE(OrderPlacedDateTime) = CURDATE()
-            ORDER BY OrderPlacedDateTime DESC
+            CALL sp_get_express_capacity(
+                :storeID
+            )
             '
         );
 
-    $ordersStatement->execute([
+    $capacityStatement->execute([
         ':storeID' => $storeID
     ]);
 
-} else {
+    $capacityRecord =
+        $capacityStatement->fetch();
 
-    $ordersStatement =
+    $capacityStatement->closeCursor();
+
+    if ($capacityRecord) {
+        $capacity = $capacityRecord;
+    }
+
+    if ($isAdministrator) {
+        $ordersStatement =
+            $databaseConnection->prepare(
+                '
+                SELECT *
+                FROM vw_express_orders
+                WHERE StoreID = :storeID
+                  AND DATE(OrderPlacedDateTime) = CURDATE()
+                ORDER BY OrderPlacedDateTime DESC
+                '
+            );
+
+        $ordersStatement->execute([
+            ':storeID' => $storeID
+        ]);
+    } else {
+        $ordersStatement =
+            $databaseConnection->prepare(
+                '
+                SELECT *
+                FROM vw_express_orders
+                WHERE StoreID = :storeID
+                  AND PersonalShopperID = :operatorID
+                  AND DATE(OrderPlacedDateTime) = CURDATE()
+                ORDER BY OrderPlacedDateTime DESC
+                '
+            );
+
+        $ordersStatement->execute([
+            ':storeID' => $storeID,
+            ':operatorID' => $operatorID
+        ]);
+    }
+
+    $orders =
+        $ordersStatement->fetchAll();
+
+    $totalStockStatement =
         $databaseConnection->prepare(
             '
-            SELECT *
-            FROM vw_express_orders
+            SELECT
+                TotalStockQuantity
+            FROM vw_store_stock_total
             WHERE StoreID = :storeID
-              AND PersonalShopperID = :operatorID
-              AND DATE(OrderPlacedDateTime) = CURDATE()
-            ORDER BY OrderPlacedDateTime DESC
+            LIMIT 1
             '
         );
 
-    $ordersStatement->execute([
-        ':storeID' => $storeID,
-        ':operatorID' => $operatorID
+    $totalStockStatement->execute([
+        ':storeID' => $storeID
     ]);
+
+    $totalStockRecord =
+        $totalStockStatement->fetch();
+
+    $totalStockQuantity =
+        $totalStockRecord
+            ? (float) $totalStockRecord['TotalStockQuantity']
+            : 0.00;
+
+    $stockStatement =
+        $databaseConnection->prepare(
+            '
+            SELECT
+                DepartmentID,
+                DepartmentName,
+                ProductID,
+                UPC,
+                PLUCode,
+                ProductName,
+                UnitType,
+                RetailPrice,
+                StockQuantity,
+                Aisle,
+                SectionName,
+                ShelfLocation
+            FROM vw_store_stock
+            WHERE StoreID = :storeID
+            ORDER BY
+                DepartmentName,
+                ProductName
+            '
+        );
+
+    $stockStatement->execute([
+        ':storeID' => $storeID
+    ]);
+
+    $stockRows =
+        $stockStatement->fetchAll();
+
+} catch (PDOException $exception) {
+    error_log($exception->getMessage());
+    $loadErrorMessage =
+        'Express information could not be loaded completely. Please try again.';
 }
-
-$orders =
-    $ordersStatement->fetchAll();
-
-
-$totalStockStatement =
-    $databaseConnection->prepare(
-        '
-        SELECT
-            TotalStockQuantity
-        FROM vw_store_stock_total
-        WHERE StoreID = :storeID
-        LIMIT 1
-        '
-    );
-
-$totalStockStatement->execute([
-    ':storeID' => $storeID
-]);
-
-$totalStockRecord =
-    $totalStockStatement->fetch();
-
-$totalStockQuantity =
-    $totalStockRecord
-        ? (float) $totalStockRecord['TotalStockQuantity']
-        : 0.00;
-
-
-$stockStatement =
-    $databaseConnection->prepare(
-        '
-        SELECT
-            DepartmentID,
-            DepartmentName,
-            ProductID,
-            UPC,
-            PLUCode,
-            ProductName,
-            UnitType,
-            RetailPrice,
-            StockQuantity,
-            Aisle,
-            SectionName,
-            ShelfLocation
-        FROM vw_store_stock
-        WHERE StoreID = :storeID
-        ORDER BY
-            DepartmentName,
-            ProductName
-        '
-    );
-
-$stockStatement->execute([
-    ':storeID' => $storeID
-]);
-
-$stockRows =
-    $stockStatement->fetchAll();
 
 
 $pageTitle =
@@ -169,6 +184,15 @@ require __DIR__ . '/../includes/header.php';
         </p>
 
     </div>
+
+
+    <?php if ($loadErrorMessage !== ''): ?>
+
+        <div class="message message-error">
+            <?= escapeOutput($loadErrorMessage) ?>
+        </div>
+
+    <?php endif; ?>
 
 
     <div class="express-capacity">
@@ -314,12 +338,18 @@ require __DIR__ . '/../includes/header.php';
                             </td>
 
                             <td>
-                                $<?= escapeOutput(
-                                    number_format(
-                                        (float) $order['TotalAmount'],
-                                        2
-                                    )
-                                ) ?>
+                                <?php if ($order['ExpressStatus'] === 'Cancelled'): ?>
+                                    Cancelled
+                                <?php elseif ($order['ReceiptStatus'] === 'Open'): ?>
+                                    Pending
+                                <?php else: ?>
+                                    $<?= escapeOutput(
+                                        number_format(
+                                            (float) $order['TotalAmount'],
+                                            2
+                                        )
+                                    ) ?>
+                                <?php endif; ?>
                             </td>
 
                             <td>

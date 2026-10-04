@@ -96,10 +96,15 @@ function requireExpressAccess()
     }
 }
 
-// Require login
+// Require login and refresh the current operator before checking privileges
 function requireOperatorLogin()
 {
     if (!operatorIsLoggedIn()) {
+        header('Location: ' . APPLICATION_URL . '/index.php');
+        exit;
+    }
+
+    if (!refreshCurrentOperatorSession()) {
         header('Location: ' . APPLICATION_URL . '/index.php');
         exit;
     }
@@ -234,11 +239,11 @@ function getLoggedInOperatorDisplayName()
     return $username !== '' ? $username : 'User';
 }
 
-// Refresh current session
+// Refresh current session from the database
 function refreshCurrentOperatorSession()
 {
     if (!operatorIsLoggedIn()) {
-        return;
+        return false;
     }
 
     try {
@@ -274,7 +279,7 @@ function refreshCurrentOperatorSession()
         if (!$operatorRecord) {
             $_SESSION = [];
             session_destroy();
-            return;
+            return false;
         }
 
         $_SESSION['operator_id'] =
@@ -315,7 +320,12 @@ function refreshCurrentOperatorSession()
         $_SESSION['role'] =
             $operatorRecord['Role'];
 
+        return true;
+
     } catch (PDOException $exception) {
         error_log($exception->getMessage());
+        $_SESSION = [];
+        session_destroy();
+        return false;
     }
 }

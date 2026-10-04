@@ -30,95 +30,94 @@ $expressOrderID =
 
 $errorMessage = '';
 
-$orderStatement =
-    $databaseConnection->prepare(
-        '
-        SELECT *
-        FROM vw_express_orders
-        WHERE ExpressOrderID = :expressOrderID
-          AND StoreID = :storeID
-        LIMIT 1
-        '
-    );
+try {
+    $orderStatement =
+        $databaseConnection->prepare(
+            '
+            SELECT *
+            FROM vw_express_orders
+            WHERE ExpressOrderID = :expressOrderID
+              AND StoreID = :storeID
+            LIMIT 1
+            '
+        );
 
-$orderStatement->execute([
-    ':expressOrderID' =>
-        $expressOrderID,
+    $orderStatement->execute([
+        ':expressOrderID' =>
+            $expressOrderID,
 
-    ':storeID' =>
-        $storeID
-]);
+        ':storeID' =>
+            $storeID
+    ]);
 
-$order =
-    $orderStatement->fetch();
+    $order =
+        $orderStatement->fetch();
 
+    if (!$order) {
+        header(
+            'Location: '
+            . APPLICATION_URL
+            . '/express/orders.php'
+        );
 
-if (!$order) {
+        exit;
+    }
 
-    header(
-        'Location: '
-        . APPLICATION_URL
-        . '/express/orders.php'
-    );
+    if (
+        (int) $order['PersonalShopperID'] !== $operatorID
+        &&
+        !operatorIsAdministrator()
+    ) {
+        http_response_code(403);
 
-    exit;
+        exit(
+            "You cannot check out another personal shopper's Express order"
+        );
+    }
+
+    if ($order['ReceiptStatus'] !== 'Open') {
+        header(
+            'Location: '
+            . APPLICATION_URL
+            . '/express/ex_complete.php?id='
+            . $expressOrderID
+        );
+
+        exit;
+    }
+
+    $itemStatement =
+        $databaseConnection->prepare(
+            '
+            SELECT
+                ProductName,
+                UnitType,
+                Taxable,
+                Quantity,
+                UnitPrice,
+                LineTotal
+            FROM vw_sale_detail
+            WHERE ReceiptID = :receiptID
+            ORDER BY LineNumber
+            '
+        );
+
+    $itemStatement->execute([
+        ':receiptID' =>
+            (int) $order['ReceiptID']
+    ]);
+
+    $saleItems =
+        $itemStatement->fetchAll();
+
+} catch (PDOException $exception) {
+    error_log($exception->getMessage());
+    http_response_code(500);
+    exit('The Express checkout information could not be loaded.');
 }
-
-
-if (
-    (int) $order['PersonalShopperID'] !== $operatorID
-    &&
-    !operatorIsAdministrator()
-) {
-
-    http_response_code(403);
-
-    exit(
-        'You cannot check out another personal shopper\'s Express order'
-    );
-}
-
-
-if ($order['ReceiptStatus'] !== 'Open') {
-
-    header(
-        'Location: '
-        . APPLICATION_URL
-        . '/express/ex_complete.php?id='
-        . $expressOrderID
-    );
-
-    exit;
-}
-
-
-$itemStatement =
-    $databaseConnection->prepare(
-        '
-        SELECT
-            ProductName,
-            UnitType,
-            Taxable,
-            Quantity,
-            UnitPrice,
-            LineTotal
-        FROM vw_sale_detail
-        WHERE ReceiptID = :receiptID
-        ORDER BY LineNumber
-        '
-    );
-
-$itemStatement->execute([
-    ':receiptID' =>
-        (int) $order['ReceiptID']
-]);
-
-$saleItems =
-    $itemStatement->fetchAll();
 
 
 if (!$saleItems) {
-
     header(
         'Location: '
         . APPLICATION_URL

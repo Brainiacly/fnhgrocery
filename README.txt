@@ -75,7 +75,7 @@ assets/css/express.css
 
 SCREENSHOTS
 
-Screenshots demonstrating the project functionality are included in:
+Screenshots from the completed Week 1 and Week 2 demonstrations are included in:
 documentation/Screenshots
 
 Week 1 screenshots are located in:
@@ -88,7 +88,7 @@ The Week 2 screenshots were taken using the local XAMPP development database.
 
 The local development database and the live Alwaysdata database began with the same data and numbering. Development and testing have since caused the two databases to become out of sync, so transaction numbers, record numbers, and other changing data shown in the screenshots may differ from the live website.
 
-Both the local XAMPP database and the live Alwaysdata database are kept current throughout development. The same SQL files are run against both after each update, so either one can be used for testing.
+The Local XAMPP and Alwaysdata SQL source files are maintained together. After a database update, run the matching SQL file against each environment before using that environment for testing.
 
 
 DATABASE SETUP
@@ -118,7 +118,7 @@ fnh_groceries
 The Alwaysdata database is named:
 csc680-fnhgroceries_fnh_groceries
 
-The local XAMPP and Alwaysdata databases began with the same data. Both are updated and tested together as development continues, using the same SQL files.
+The local XAMPP and Alwaysdata databases began with the same seed data. The matching SQL source files are kept equivalent except for the database name and the local database-creation statement.
 
 
 WEEK 3 DATABASE EXTENSIONS
@@ -131,7 +131,7 @@ Week 3 extends the Week 1 and Week 2 database instead of replacing it. The follo
 - The customeraddress table stores named delivery addresses, such as Home or Work, that can be reused by a customer.
 - The expressorder table stores the Express receipt, customer, personal shopper, fulfillment method, delivery address, delivery fee, order time, and Express status.
 - The vw_express_orders view combines the Express order, receipt, customer, store, register, and personal shopper information used by the Express pages.
-- Express stored procedures enforce the 20-order daily store capacity, reserve Register 1, enforce Personal Shopper access, validate delivery hours, create customers and saved addresses, and update Express order status.
+- Express stored procedures enforce the 20-order daily store capacity, reserve Register 1, enforce Personal Shopper access, validate delivery hours, create customers and saved addresses, and update Express order status. Cancelled orders still count toward the 20 orders accepted by a store that day.
 - The checkout procedures include the $10.00 delivery fee when an Express delivery order is completed.
 - Application database sessions use the California store time so the 8:00 AM through 4:00 PM delivery rule and daily Express capacity are evaluated consistently on XAMPP and Alwaysdata.
 
@@ -140,7 +140,7 @@ A seeded Personal Shopper account is included so the Week 3 access rules can be 
     Username: DellaVery
     Password: Shopper#123
 
-For an existing Week 3 database, run only 02_Views_and_Procedures.sql from the matching Local XAMPP or Alwaysdata folder. It replaces the views and procedures and keeps all existing data.
+For an existing Week 3 database, run only 02_Views_and_Procedures.sql from the matching Local XAMPP or Alwaysdata folder. It normalizes the Express delivery CHECK constraints, replaces the views and procedures, and keeps all existing transaction data.
 
 
 JAVASCRIPT
@@ -150,7 +150,7 @@ JavaScript is used only for immediate interface responsiveness and to reduce unn
 - Automatically refreshes the Operator List when the role filter or Show Inactive option changes.
 - Enables the correct operator action buttons based on the selected operator, including Update, Delete, or Reactivate.
 - Shows the Close Register button only when the selected register can be closed by the current user.
-- Changes the quantity field to a weight field when a product sold by weight is selected.
+- Changes the quantity field to a weight field when a product sold by weight is selected in both the regular Point of Sale and Express order-entry pages.
 - Warns when leaving a sale that contains items and gives the options to stay, save and leave, or close the register and cancel the transaction.
 - Shows the Existing Customer or New Customer fields on the Express order form based on the option selected.
 - Asks whether to update a customer's saved address on file when a loaded address is changed before an Express order is submitted.
@@ -164,7 +164,7 @@ ADDITIONAL FUNCTIONALITY
 
 - Week 2 update: The project now includes register sessions, product selection, barcode and PLU entry, weighted products, inventory updates, transaction cancellation, checkout, and store stock viewing.
 
-- Week 3 update: The project now includes FnH Express, a curbside pickup and home delivery workflow handled by a new Personal Shopper role. Register 1 is reserved exclusively for Express orders and is not available at the regular registers. Each store allows up to 20 Express orders per day, home delivery adds a $10.00 fee and is only available for orders placed between 8:00 AM and 4:00 PM, and each shopper may have only one open Express order at a time. Customers can save multiple named delivery addresses, such as Home or Work, for reuse on future orders, and an Administrator can open and complete another shopper's Express order if needed.
+- Week 3 update: The project now includes FnH Express, a curbside pickup and home delivery workflow handled by a new Personal Shopper role. Register 1 is reserved exclusively for Express orders and is not available at the regular registers. Each store accepts up to 20 Express orders per day, home delivery adds a $10.00 fee and is only available for orders placed between 8:00 AM and 4:00 PM. Customers can save multiple named delivery addresses, such as Home or Work, for reuse on future orders, and an Administrator can open and complete another shopper's Express order if needed. Express weighted items can be removed by weight, item quantities are validated by unit type, and current privileges are refreshed from the database on protected requests.
 
 
 RESPONSIVE AND TOUCH-SCREEN DESIGN
@@ -178,4 +178,4 @@ RESPONSIVE AND TOUCH-SCREEN DESIGN
 
 SUBMISSION
 
-The ZIP includes the original Week 1 project files with the Week 2 and Week 3 additions, one README file, both sets of the three SQL files needed to rebuild the local XAMPP or Alwaysdata database, and screenshots demonstrating the Week 1, Week 2, and Week 3 functionality.
+The ZIP includes the original Week 1 project files with the Week 2 and Week 3 additions, one README file, both sets of the three SQL files needed to rebuild the local XAMPP or Alwaysdata database, and the Week 1 and Week 2 screenshots currently included with the project.

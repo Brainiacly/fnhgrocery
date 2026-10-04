@@ -11,24 +11,88 @@ requireExpressAccess();
 
 $databaseConnection = connectDatabase();
 $errorMessage = '';
+$loadErrorMessage = '';
 $addressSaveWarning = '';
+$capacity = [
+    'DailyCapacity' => 20,
+    'OrdersUsed' => 0,
+    'OrdersRemaining' => 0
+];
+$customers = [];
 
-if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    unset($_SESSION['express_retry_customer']);
+// Remove a just-created Express customer if order creation fails before the customer is used
+function removeUnusedExpressCustomer(PDO $databaseConnection, int $customerID)
+{
+    if ($customerID <= 0) {
+        return;
+    }
+
+    try {
+        $cleanupStatement =
+            $databaseConnection->prepare(
+                '
+                DELETE FROM customer
+                WHERE CustomerID = :customerID
+                  AND LoyaltyNumber LIKE \'EXP%\'
+                  AND NOT EXISTS (
+                        SELECT 1
+                        FROM salesreceipt
+                        WHERE CustomerID = :receiptCustomerID
+                  )
+                  AND NOT EXISTS (
+                        SELECT 1
+                        FROM customeraddress
+                        WHERE CustomerID = :addressCustomerID
+                  )
+                '
+            );
+
+        $cleanupStatement->execute([
+            ':customerID' => $customerID,
+            ':receiptCustomerID' => $customerID,
+            ':addressCustomerID' => $customerID
+        ]);
+
+    } catch (PDOException $cleanupException) {
+        error_log($cleanupException->getMessage());
+    }
 }
 
-$capacityStatement = $databaseConnection->prepare('CALL sp_get_express_capacity(?)');
-$capacityStatement->execute([(int) $_SESSION['store_id']]);
-$capacity = $capacityStatement->fetch();
-$capacityStatement->closeCursor();
+try {
+    $capacityStatement =
+        $databaseConnection->prepare(
+            'CALL sp_get_express_capacity(?)'
+        );
 
-$customerStatement = $databaseConnection->query(
-    'SELECT CustomerID, LoyaltyNumber, FirstName, LastName, Phone
-     FROM customer
-     WHERE Active = 1
-     ORDER BY LastName, FirstName'
-);
-$customers = $customerStatement->fetchAll();
+    $capacityStatement->execute([
+        (int) $_SESSION['store_id']
+    ]);
+
+    $capacityRecord =
+        $capacityStatement->fetch();
+
+    $capacityStatement->closeCursor();
+
+    if ($capacityRecord) {
+        $capacity = $capacityRecord;
+    }
+
+    $customerStatement =
+        $databaseConnection->query(
+            'SELECT CustomerID, LoyaltyNumber, FirstName, LastName, Phone
+             FROM customer
+             WHERE Active = 1
+             ORDER BY LastName, FirstName'
+        );
+
+    $customers =
+        $customerStatement->fetchAll();
+
+} catch (PDOException $exception) {
+    error_log($exception->getMessage());
+    $loadErrorMessage =
+        'Express customer and capacity information could not be loaded completely. Please try again.';
+}
 
 $customerMode = 'existing';
 $selectedCustomerID =
@@ -67,15 +131,27 @@ $loadedAddressPostalCode = '';
 $savedAddresses = [];
 
 if ($selectedCustomerID > 0) {
-    $addressStatement = $databaseConnection->prepare(
-        'SELECT CustomerAddressID, AddressLabel, AddressLine1, AddressLine2, City, StateCode, PostalCode
-         FROM customeraddress
-         WHERE CustomerID = :customerID
-           AND Active = 1
-         ORDER BY AddressLabel'
-    );
-    $addressStatement->execute([':customerID' => $selectedCustomerID]);
-    $savedAddresses = $addressStatement->fetchAll();
+    try {
+        $addressStatement = $databaseConnection->prepare(
+            'SELECT CustomerAddressID, AddressLabel, AddressLine1, AddressLine2, City, StateCode, PostalCode
+             FROM customeraddress
+             WHERE CustomerID = :customerID
+               AND Active = 1
+             ORDER BY AddressLabel'
+        );
+
+        $addressStatement->execute([
+            ':customerID' => $selectedCustomerID
+        ]);
+
+        $savedAddresses =
+            $addressStatement->fetchAll();
+
+    } catch (PDOException $exception) {
+        error_log($exception->getMessage());
+        $loadErrorMessage =
+            "The selected customer's saved addresses could not be loaded. Please try again.";
+    }
 }
 
 // Load the selected saved address into the delivery fields
@@ -213,6 +289,42 @@ if (
     ) {
         $errorMessage = 'Enter the new customer\'s first and last name.';
     } elseif (
+        $customerMode === 'new'
+        &&
+        !phoneNumberIsValid($newPhone)
+    ) {
+        $errorMessage =
+            'Phone number must contain exactly 10 digits or be left blank.';
+    } elseif (
+        $customerMode === 'new'
+        &&
+        $newEmail !== ''
+        &&
+        !filter_var($newEmail, FILTER_VALIDATE_EMAIL)
+    ) {
+        $errorMessage =
+            'Enter a valid email address or leave it blank.';
+    } elseif (
+        !in_array($fulfillmentMethod, ['Curbside', 'Delivery'], true)
+    ) {
+        $errorMessage =
+            'Select curbside pickup or home delivery.';
+    } elseif (
+        $fulfillmentMethod === 'Delivery'
+        &&
+        (
+            $deliveryAddressLine1 === ''
+            ||
+            $deliveryCity === ''
+            ||
+            strlen($deliveryState) !== 2
+            ||
+            $deliveryPostalCode === ''
+        )
+    ) {
+        $errorMessage =
+            'Street address, city, two-letter state, and ZIP code are required for home delivery.';
+    } elseif (
         $fulfillmentMethod === 'Delivery'
         &&
         $loadedAddressID <= 0
@@ -224,89 +336,40 @@ if (
         $errorMessage =
             'Enter a name for the address you want to save, such as Home or Work.';
     } else {
+        $newCustomerCreatedForOrder = 0;
+
         try {
             if ($customerMode === 'new') {
-                $retryCustomer =
-                    $_SESSION['express_retry_customer']
-                    ?? null;
+                $customerStatement =
+                    $databaseConnection->prepare(
+                        'CALL sp_create_express_customer(?, ?, ?, ?)'
+                    );
 
-                $canReuseCustomer =
-                    is_array($retryCustomer)
-                    &&
-                    (int) ($retryCustomer['customer_id'] ?? 0) > 0
-                    &&
-                    ($retryCustomer['first_name'] ?? '') === $newFirstName
-                    &&
-                    ($retryCustomer['last_name'] ?? '') === $newLastName
-                    &&
-                    ($retryCustomer['phone'] ?? '') === $newPhone
-                    &&
-                    ($retryCustomer['email'] ?? '') === $newEmail;
+                $customerStatement->execute([
+                    $newFirstName,
+                    $newLastName,
+                    $newPhone,
+                    $newEmail
+                ]);
 
-                if ($canReuseCustomer) {
-                    $existingNewCustomerStatement =
-                        $databaseConnection->prepare(
-                            '
-                            SELECT CustomerID
-                            FROM customer
-                            WHERE CustomerID = :customerID
-                              AND Active = 1
-                            LIMIT 1
-                            '
-                        );
+                $newCustomer =
+                    $customerStatement->fetch();
 
-                    $existingNewCustomerStatement->execute([
-                        ':customerID' =>
-                            (int) $retryCustomer['customer_id']
-                    ]);
+                $customerStatement->closeCursor();
 
-                    $existingNewCustomer =
-                        $existingNewCustomerStatement->fetch();
-
-                    if (!$existingNewCustomer) {
-                        unset($_SESSION['express_retry_customer']);
-
-                        throw new RuntimeException(
-                            'The customer created for this order could not be found.'
-                        );
-                    }
-
-                    $customerID =
-                        (int) $existingNewCustomer['CustomerID'];
-
-                } else {
-                    $customerStatement =
-                        $databaseConnection->prepare(
-                            'CALL sp_create_express_customer(?, ?, ?, ?)'
-                        );
-
-                    $customerStatement->execute([
-                        $newFirstName,
-                        $newLastName,
-                        $newPhone,
-                        $newEmail
-                    ]);
-
-                    $newCustomer =
-                        $customerStatement->fetch();
-
-                    $customerStatement->closeCursor();
-
-                    $customerID =
-                        (int) $newCustomer['CustomerID'];
-
-                    $_SESSION['express_retry_customer'] = [
-                        'customer_id' => $customerID,
-                        'first_name' => $newFirstName,
-                        'last_name' => $newLastName,
-                        'phone' => $newPhone,
-                        'email' => $newEmail
-                    ];
+                if (!$newCustomer) {
+                    throw new RuntimeException(
+                        'The new Express customer could not be created.'
+                    );
                 }
 
-            } else {
-                unset($_SESSION['express_retry_customer']);
+                $customerID =
+                    (int) $newCustomer['CustomerID'];
 
+                $newCustomerCreatedForOrder =
+                    $customerID;
+
+            } else {
                 $customerID =
                     $selectedCustomerID;
             }
@@ -329,8 +392,6 @@ if (
 
             $created = $statement->fetch();
             $statement->closeCursor();
-
-            unset($_SESSION['express_retry_customer']);
 
             // Save address-book changes after the order succeeds
             if ($fulfillmentMethod === 'Delivery') {
@@ -397,12 +458,26 @@ if (
             );
             exit;
         } catch (PDOException $exception) {
+            if ($newCustomerCreatedForOrder > 0) {
+                removeUnusedExpressCustomer(
+                    $databaseConnection,
+                    $newCustomerCreatedForOrder
+                );
+            }
+
             $errorMessage =
                 getSafeDatabaseErrorMessage(
                     $exception,
                     'The Express order could not be created.'
                 );
         } catch (RuntimeException $exception) {
+            if ($newCustomerCreatedForOrder > 0) {
+                removeUnusedExpressCustomer(
+                    $databaseConnection,
+                    $newCustomerCreatedForOrder
+                );
+            }
+
             $errorMessage =
                 $exception->getMessage();
         }
@@ -421,6 +496,12 @@ require __DIR__ . '/../includes/header.php';
         <h1>New Express Order</h1>
         <p><?= escapeOutput($capacity['OrdersRemaining'] ?? 0) ?> of 20 Express orders remain available today.</p>
     </div>
+
+    <?php if ($loadErrorMessage !== ''): ?>
+        <div class="message message-error">
+            <?= escapeOutput($loadErrorMessage) ?>
+        </div>
+    <?php endif; ?>
 
     <?php if ($errorMessage !== ''): ?>
         <div class="message message-error"><?= escapeOutput($errorMessage) ?></div>
@@ -617,7 +698,11 @@ require __DIR__ . '/../includes/header.php';
                         type="tel"
                         id="new_customer_phone"
                         name="new_customer_phone"
-                        maxlength="20"
+                        minlength="10"
+                        maxlength="10"
+                        pattern="[0-9]{10}"
+                        inputmode="numeric"
+                        title="Enter exactly 10 digits with no spaces or punctuation."
                         value="<?= escapeOutput($newPhone) ?>"
                     >
                 </div>
@@ -753,14 +838,23 @@ require __DIR__ . '/../includes/header.php';
         </div>
 
         <div class="form-actions">
-            <button
-                class="button button-primary"
-                type="submit"
-                name="create_order"
-                value="1"
-            >
-                Create Express Order
-            </button>
+            <?php if ((int) ($capacity['OrdersRemaining'] ?? 0) > 0): ?>
+                <button
+                    class="button button-primary"
+                    type="submit"
+                    name="create_order"
+                    value="1"
+                >
+                    Create Express Order
+                </button>
+            <?php else: ?>
+                <span
+                    class="button button-disabled"
+                    aria-disabled="true"
+                >
+                    Daily Capacity Full
+                </span>
+            <?php endif; ?>
             <a
                 class="button button-secondary"
                 href="<?= APPLICATION_URL ?>/express/ex_home.php"

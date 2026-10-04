@@ -282,3 +282,14 @@
         align-items: end;
     }
 }
+.express-remove-weight-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.express-remove-weight-input {
+    width: 7rem;
+    min-height: var(--minimum-touch-size);
+}

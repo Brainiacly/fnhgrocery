@@ -29,78 +29,90 @@ $expressOrderID =
 
 $errorMessage = '';
 
-$orderStatement =
-    $databaseConnection->prepare(
-        '
-        SELECT *
-        FROM vw_express_orders
-        WHERE ExpressOrderID = :expressOrderID
-          AND StoreID = :storeID
-        LIMIT 1
-        '
-    );
-
-$orderStatement->execute([
-    ':expressOrderID' =>
-        $expressOrderID,
-
-    ':storeID' =>
-        $storeID
-]);
-
-$order =
-    $orderStatement->fetch();
-
-
-if (
-    !$order
-    ||
-    $order['ReceiptStatus'] !== 'Paid'
-) {
-
-    $errorMessage =
-        'The completed Express receipt could not be found.';
-
-} elseif (
-    (int) $order['PersonalShopperID'] !== $operatorID
-    &&
-    !operatorIsAdministrator()
-) {
-
-    http_response_code(403);
-
-    exit(
-        'You cannot view another personal shopper\'s Express receipt'
-    );
-}
-
-
+$order = null;
 $saleItems = [];
 
-if ($errorMessage === '') {
-
-    $itemStatement =
+try {
+    $orderStatement =
         $databaseConnection->prepare(
             '
-            SELECT
-                ProductName,
-                UnitType,
-                Quantity,
-                UnitPrice,
-                LineTotal
-            FROM vw_sale_detail
-            WHERE ReceiptID = :receiptID
-            ORDER BY LineNumber
+            SELECT *
+            FROM vw_express_orders
+            WHERE ExpressOrderID = :expressOrderID
+              AND StoreID = :storeID
+            LIMIT 1
             '
         );
 
-    $itemStatement->execute([
-        ':receiptID' =>
-            (int) $order['ReceiptID']
+    $orderStatement->execute([
+        ':expressOrderID' =>
+            $expressOrderID,
+
+        ':storeID' =>
+            $storeID
     ]);
 
-    $saleItems =
-        $itemStatement->fetchAll();
+    $order =
+        $orderStatement->fetch();
+
+} catch (PDOException $exception) {
+    error_log($exception->getMessage());
+    $errorMessage =
+        'The completed Express receipt could not be loaded. Please try again.';
+}
+
+if ($errorMessage === '') {
+    if (
+        !$order
+        ||
+        $order['ReceiptStatus'] !== 'Paid'
+    ) {
+        $errorMessage =
+            'The completed Express receipt could not be found.';
+
+    } elseif (
+        (int) $order['PersonalShopperID'] !== $operatorID
+        &&
+        !operatorIsAdministrator()
+    ) {
+        http_response_code(403);
+
+        exit(
+            "You cannot view another personal shopper's Express receipt"
+        );
+    }
+}
+
+if ($errorMessage === '') {
+    try {
+        $itemStatement =
+            $databaseConnection->prepare(
+                '
+                SELECT
+                    ProductName,
+                    UnitType,
+                    Quantity,
+                    UnitPrice,
+                    LineTotal
+                FROM vw_sale_detail
+                WHERE ReceiptID = :receiptID
+                ORDER BY LineNumber
+                '
+            );
+
+        $itemStatement->execute([
+            ':receiptID' =>
+                (int) $order['ReceiptID']
+        ]);
+
+        $saleItems =
+            $itemStatement->fetchAll();
+
+    } catch (PDOException $exception) {
+        error_log($exception->getMessage());
+        $errorMessage =
+            'The completed Express receipt items could not be loaded. Please try again.';
+    }
 }
 
 

@@ -189,8 +189,8 @@ CREATE TABLE salesreceipt (
 	CONSTRAINT chk_sales_receipt_taxable_subtotal CHECK (TaxableSubtotalAmount >= 0)
 );
 
--- Express fulfillment and delivery-fee rules are enforced by sp_create_express_order
--- and revalidated by sp_checkout_sale in 02_Views_and_Procedures.sql.
+-- Express fulfillment and delivery-fee rules are enforced by CHECK constraints,
+-- sp_create_express_order, and sp_checkout_sale in 02_Views_and_Procedures.sql.
 
 CREATE TABLE expressorder (
 	ExpressOrderID bigint NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -212,7 +212,28 @@ CREATE TABLE expressorder (
 	INDEX idx_express_order_customer (CustomerID, OrderPlacedDateTime),
 	FOREIGN KEY (ReceiptID) REFERENCES salesreceipt(ReceiptID),
 	FOREIGN KEY (CustomerID) REFERENCES customer(CustomerID),
-	FOREIGN KEY (PersonalShopperID) REFERENCES operator(OperatorID)
+	FOREIGN KEY (PersonalShopperID) REFERENCES operator(OperatorID),
+	CONSTRAINT chk_express_delivery_fee CHECK (DeliveryFee IN (0.00, 10.00)),
+	CONSTRAINT chk_express_order_fulfillment CHECK (
+		(
+			FulfillmentMethod = 'Curbside'
+			AND DeliveryFee = 0.00
+			AND DeliveryAddressLine1 IS NULL
+			AND DeliveryAddressLine2 IS NULL
+			AND DeliveryCity IS NULL
+			AND DeliveryStateCode IS NULL
+			AND DeliveryPostalCode IS NULL
+		)
+		OR
+		(
+			FulfillmentMethod = 'Delivery'
+			AND DeliveryFee = 10.00
+			AND DeliveryAddressLine1 IS NOT NULL
+			AND DeliveryCity IS NOT NULL
+			AND DeliveryStateCode IS NOT NULL
+			AND DeliveryPostalCode IS NOT NULL
+		)
+	)
 );
 
 CREATE TABLE salesreceiptline (

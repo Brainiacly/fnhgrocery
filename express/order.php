@@ -57,11 +57,17 @@ function loadExpressOrder(PDO $databaseConnection, int $expressOrderID, int $sto
     return $statement->fetch();
 }
 
-$order = loadExpressOrder(
-    $databaseConnection,
-    $expressOrderID,
-    $storeID
-);
+try {
+    $order = loadExpressOrder(
+        $databaseConnection,
+        $expressOrderID,
+        $storeID
+    );
+} catch (PDOException $exception) {
+    error_log($exception->getMessage());
+    http_response_code(500);
+    exit('The Express order could not be loaded.');
+}
 
 if (!$order) {
     header('Location: ' . APPLICATION_URL . '/express/orders.php');
@@ -113,15 +119,140 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
 
             try {
+                $productStatement =
+                    $databaseConnection->prepare(
+                        '
+                        SELECT
+                            ProductID,
+                            UnitType
+                        FROM vw_store_stock
+                        WHERE StoreID = :storeID
+                          AND ProductID = :productID
+                        LIMIT 1
+                        '
+                    );
+
+                $productStatement->execute([
+                    ':storeID' => $storeID,
+                    ':productID' => $productID
+                ]);
+
+                $selectedProduct =
+                    $productStatement->fetch();
+
+                if (!$selectedProduct) {
+                    $errorMessage =
+                        'The selected product is not available at this store.';
+                } elseif (
+                    $selectedProduct['UnitType'] === 'Each'
+                    &&
+                    abs((float) $quantity - round((float) $quantity)) > 0.000001
+                ) {
+                    $errorMessage =
+                        'Products sold by the item require a whole-number quantity.';
+                } else {
+                    $statement =
+                        $databaseConnection->prepare(
+                            '
+                            CALL sp_add_sale_item(
+                                :receiptID,
+                                :productID,
+                                :quantity,
+                                :operatorID
+                            )
+                            '
+                        );
+
+                    $statement->execute([
+                        ':receiptID' =>
+                            (int) $order['ReceiptID'],
+
+                        ':productID' =>
+                            $productID,
+
+                        ':quantity' =>
+                            round((float) $quantity, 3),
+
+                        ':operatorID' =>
+                            $operatorID
+                    ]);
+
+                    $statement->closeCursor();
+
+                    header(
+                        'Location: '
+                        . APPLICATION_URL
+                        . '/express/order.php?id='
+                        . $expressOrderID
+                        . '&added=1'
+                    );
+
+                    exit;
+                }
+
+            } catch (PDOException $exception) {
+
+                $errorMessage =
+                    getSafeDatabaseErrorMessage(
+                        $exception,
+                        'The item could not be added to the Express order.'
+                    );
+            }
+        }
+
+    } elseif (
+        isset($_POST['remove_item'])
+        ||
+        isset($_POST['remove_all_item'])
+    ) {
+
+        $receiptLineID =
+            (int) ($_POST['receipt_line_id'] ?? 0);
+
+        $removeQuantityText =
+            trim(
+                (string) (
+                    $_POST['remove_quantity']
+                    ?? ''
+                )
+            );
+
+        if (isset($_POST['remove_all_item'])) {
+            $removeQuantity = 999999;
+        } elseif ($removeQuantityText !== '') {
+            $removeQuantity =
+                filter_var(
+                    $removeQuantityText,
+                    FILTER_VALIDATE_FLOAT
+                );
+        } else {
+            $removeQuantity = null;
+        }
+
+        if (
+            $receiptLineID <= 0
+            ||
+            $removeQuantity === false
+            ||
+            (
+                $removeQuantity !== null
+                &&
+                $removeQuantity <= 0
+            )
+        ) {
+            $errorMessage =
+                'Enter a quantity or weight greater than zero.';
+        } else {
+            try {
 
                 $statement =
                     $databaseConnection->prepare(
                         '
-                        CALL sp_add_sale_item(
+                        CALL sp_remove_sale_item(
                             :receiptID,
-                            :productID,
-                            :quantity,
-                            :operatorID
+                            :receiptLineID,
+                            :operatorID,
+                            :removeQuantity
                         )
                         '
                     );
@@ -130,11 +261,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':receiptID' =>
                         (int) $order['ReceiptID'],
 
-                    ':productID' =>
-                        $productID,
+                    ':receiptLineID' =>
+                        $receiptLineID,
 
-                    ':quantity' =>
-                        $quantity,
+                    ':removeQuantity' =>
+                        $removeQuantity,
 
                     ':operatorID' =>
                         $operatorID
@@ -147,7 +278,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     . APPLICATION_URL
                     . '/express/order.php?id='
                     . $expressOrderID
-                    . '&added=1'
+                    . '&removed=1'
                 );
 
                 exit;
@@ -157,63 +288,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errorMessage =
                     getSafeDatabaseErrorMessage(
                         $exception,
-                        'The item could not be added to the Express order.'
+                        'The item could not be removed from the Express order.'
                     );
             }
-        }
-
-    } elseif (isset($_POST['remove_item'])) {
-
-        $receiptLineID =
-            (int) ($_POST['receipt_line_id'] ?? 0);
-
-        try {
-
-            $statement =
-                $databaseConnection->prepare(
-                    '
-                    CALL sp_remove_sale_item(
-                        :receiptID,
-                        :receiptLineID,
-                        :operatorID,
-                        :removeQuantity
-                    )
-                    '
-                );
-
-            $statement->execute([
-                ':receiptID' =>
-                    (int) $order['ReceiptID'],
-
-                ':receiptLineID' =>
-                    $receiptLineID,
-
-                ':removeQuantity' =>
-                    null,
-
-                ':operatorID' =>
-                    $operatorID
-            ]);
-
-            $statement->closeCursor();
-
-            header(
-                'Location: '
-                . APPLICATION_URL
-                . '/express/order.php?id='
-                . $expressOrderID
-                . '&removed=1'
-            );
-
-            exit;
-
-        } catch (PDOException $exception) {
-
-            $errorMessage =
-                getSafeDatabaseErrorMessage(
-                    $exception,
-                    'The item could not be removed from the Express order.'
-                );
         }
 
     } elseif (isset($_POST['update_status'])) {
@@ -323,62 +400,75 @@ if (isset($_GET['address_warning'])) {
         'The Express order was created, but the saved address could not be updated. The delivery address on this order is still correct.';
 }
 
-$order = loadExpressOrder(
-    $databaseConnection,
-    $expressOrderID,
-    $storeID
-);
-
-$lineStatement =
-    $databaseConnection->prepare(
-        '
-        SELECT
-            ReceiptLineID,
-            LineNumber,
-            ProductID,
-            ProductName,
-            UnitType,
-            Taxable,
-            Quantity,
-            UnitPrice,
-            LineTotal
-        FROM vw_sale_detail
-        WHERE ReceiptID = :receiptID
-        ORDER BY LineNumber
-        '
-    );
-
-$lineStatement->execute([
-    ':receiptID' =>
-        (int) $order['ReceiptID']
-]);
-
-$lines =
-    $lineStatement->fetchAll();
-
-
-$stockStatement =
-    $databaseConnection->prepare(
-        '
-        SELECT
-            ProductID,
-            ProductName,
-            UnitType,
-            RetailPrice,
-            StockQuantity
-        FROM vw_store_stock
-        WHERE StoreID = :storeID
-        ORDER BY ProductName
-        '
-    );
-
-$stockStatement->execute([
-    ':storeID' =>
+try {
+    $order = loadExpressOrder(
+        $databaseConnection,
+        $expressOrderID,
         $storeID
-]);
+    );
 
-$stockRows =
-    $stockStatement->fetchAll();
+    if (!$order) {
+        header('Location: ' . APPLICATION_URL . '/express/orders.php');
+        exit;
+    }
+
+    $lineStatement =
+        $databaseConnection->prepare(
+            '
+            SELECT
+                ReceiptLineID,
+                LineNumber,
+                ProductID,
+                ProductName,
+                UnitType,
+                Taxable,
+                Quantity,
+                UnitPrice,
+                LineTotal
+            FROM vw_sale_detail
+            WHERE ReceiptID = :receiptID
+            ORDER BY LineNumber
+            '
+        );
+
+    $lineStatement->execute([
+        ':receiptID' =>
+            (int) $order['ReceiptID']
+    ]);
+
+    $lines =
+        $lineStatement->fetchAll();
+
+    $stockStatement =
+        $databaseConnection->prepare(
+            '
+            SELECT
+                ProductID,
+                ProductName,
+                UnitType,
+                RetailPrice,
+                StockQuantity
+            FROM vw_store_stock
+            WHERE StoreID = :storeID
+            ORDER BY ProductName
+            '
+        );
+
+    $stockStatement->execute([
+        ':storeID' =>
+            $storeID
+    ]);
+
+    $stockRows =
+        $stockStatement->fetchAll();
+
+} catch (PDOException $exception) {
+    error_log($exception->getMessage());
+    $errorMessage =
+        'Some Express order information could not be loaded. Please try again.';
+    $lines = [];
+    $stockRows = [];
+}
 
 
 $merchandiseSubtotal = 0.00;
@@ -568,7 +658,10 @@ require __DIR__ . '/../includes/header.php';
 
                         <?php foreach ($stockRows as $stockRow): ?>
 
-                            <option value="<?= (int) $stockRow['ProductID'] ?>">
+                            <option
+                                value="<?= (int) $stockRow['ProductID'] ?>"
+                                data-unit-type="<?= escapeOutput($stockRow['UnitType']) ?>"
+                            >
                                 <?= escapeOutput($stockRow['ProductName']) ?>
                                 |
                                 <?= escapeOutput($stockRow['UnitType']) ?>
@@ -593,17 +686,21 @@ require __DIR__ . '/../includes/header.php';
 
                 <div class="form-field">
 
-                    <label for="quantity">
-                        Quantity / Weight
+                    <label
+                        for="quantity"
+                        id="express_quantity_label"
+                    >
+                        Quantity
                     </label>
 
                     <input
                         type="number"
                         id="quantity"
                         name="quantity"
-                        min="0.001"
-                        step="0.001"
+                        min="1"
+                        step="1"
                         value="1"
+                        inputmode="decimal"
                         required
                     >
 
@@ -706,39 +803,126 @@ require __DIR__ . '/../includes/header.php';
 
                                 <td>
 
-                                    <form method="post">
+                                    <?php if ($line['UnitType'] === 'Pound'): ?>
 
-                                        <input
-                                            type="hidden"
-                                            name="form_security_token"
-                                            value="<?= escapeOutput(getFormSecurityToken()) ?>"
+                                        <?php
+                                        $lineWeight =
+                                            (float) $line['Quantity'];
+
+                                        $defaultRemoveWeight =
+                                            min(0.100, $lineWeight);
+                                        ?>
+
+                                        <form
+                                            method="post"
+                                            class="express-remove-weight-form"
                                         >
 
-                                        <input
-                                            type="hidden"
-                                            name="express_order_id"
-                                            value="<?= $expressOrderID ?>"
-                                        >
+                                            <input
+                                                type="hidden"
+                                                name="form_security_token"
+                                                value="<?= escapeOutput(getFormSecurityToken()) ?>"
+                                            >
 
-                                        <input
-                                            type="hidden"
-                                            name="receipt_line_id"
-                                            value="<?= (int) $line['ReceiptLineID'] ?>"
-                                        >
+                                            <input
+                                                type="hidden"
+                                                name="express_order_id"
+                                                value="<?= $expressOrderID ?>"
+                                            >
 
-                                        <button
-                                            type="submit"
-                                            name="remove_item"
-                                            value="1"
-                                            class="button button-secondary"
-                                            onclick="return confirm(
-                                            'Remove one unit from this Express order and return it to inventory?'
-                                            );"
-                                        >
-                                            Remove 1
-                                        </button>
+                                            <input
+                                                type="hidden"
+                                                name="receipt_line_id"
+                                                value="<?= (int) $line['ReceiptLineID'] ?>"
+                                            >
 
-                                    </form>
+                                            <input
+                                                type="number"
+                                                name="remove_quantity"
+                                                value="<?= escapeOutput(
+                                                    number_format(
+                                                        $defaultRemoveWeight,
+                                                        3,
+                                                        '.',
+                                                        ''
+                                                    )
+                                                ) ?>"
+                                                min="0.001"
+                                                max="<?= escapeOutput(
+                                                    number_format(
+                                                        $lineWeight,
+                                                        3,
+                                                        '.',
+                                                        ''
+                                                    )
+                                                ) ?>"
+                                                step="0.001"
+                                                inputmode="decimal"
+                                                class="express-remove-weight-input"
+                                                aria-label="Weight to remove in pounds"
+                                                title="Weight to remove in pounds"
+                                                required
+                                            >
+
+                                            <button
+                                                type="submit"
+                                                name="remove_item"
+                                                value="1"
+                                                class="button button-secondary"
+                                            >
+                                                Remove
+                                            </button>
+
+                                            <button
+                                                type="submit"
+                                                name="remove_all_item"
+                                                value="1"
+                                                class="button button-secondary"
+                                            >
+                                                All
+                                            </button>
+
+                                        </form>
+
+                                    <?php else: ?>
+
+                                        <form method="post">
+
+                                            <input
+                                                type="hidden"
+                                                name="form_security_token"
+                                                value="<?= escapeOutput(getFormSecurityToken()) ?>"
+                                            >
+
+                                            <input
+                                                type="hidden"
+                                                name="express_order_id"
+                                                value="<?= $expressOrderID ?>"
+                                            >
+
+                                            <input
+                                                type="hidden"
+                                                name="receipt_line_id"
+                                                value="<?= (int) $line['ReceiptLineID'] ?>"
+                                            >
+
+                                            <button
+                                                type="submit"
+                                                name="remove_item"
+                                                value="1"
+                                                class="button button-secondary"
+                                                onclick="return confirm('Remove this quantity from the Express order and return it to inventory?');"
+                                            >
+                                                <?=
+                                                    (float) $line['Quantity'] > 1
+                                                    ? 'Remove 1'
+                                                    : 'Remove Item'
+                                                ?>
+                                            </button>
+
+                                        </form>
+
+                                    <?php endif; ?>
 
                                 </td>
 
@@ -881,5 +1065,50 @@ require __DIR__ . '/../includes/header.php';
     </div>
 
 </section>
+
+<script>
+(function () {
+    const productSelect = document.getElementById('product_id');
+    const quantityInput = document.getElementById('quantity');
+    const quantityLabel = document.getElementById('express_quantity_label');
+
+    if (!productSelect || !quantityInput || !quantityLabel) {
+        return;
+    }
+
+    function updateQuantityField() {
+        const selectedOption =
+            productSelect.options[productSelect.selectedIndex];
+
+        const unitType =
+            selectedOption
+                ? selectedOption.dataset.unitType || ''
+                : '';
+
+        if (unitType === 'Pound') {
+            quantityLabel.textContent = 'Weight (lb)';
+            quantityInput.min = '0.001';
+            quantityInput.step = '0.001';
+            if (Number(quantityInput.value) <= 0) {
+                quantityInput.value = '0.100';
+            }
+        } else {
+            quantityLabel.textContent = 'Quantity';
+            quantityInput.min = '1';
+            quantityInput.step = '1';
+            if (
+                Number(quantityInput.value) < 1
+                ||
+                !Number.isInteger(Number(quantityInput.value))
+            ) {
+                quantityInput.value = '1';
+            }
+        }
+    }
+
+    productSelect.addEventListener('change', updateQuantityField);
+    updateQuantityField();
+})();
+</script>
 
 <?php require __DIR__ . '/../includes/footer.php'; ?>

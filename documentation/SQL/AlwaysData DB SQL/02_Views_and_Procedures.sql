@@ -3,6 +3,56 @@
 
 USE `csc680-fnhgroceries_fnh_groceries`;
 
+-- Keep Express CHECK constraints identical on rebuilt and existing databases
+SET @fnh_drop_express_checks = (
+	SELECT GROUP_CONCAT(
+		CONCAT('DROP CONSTRAINT `', CONSTRAINT_NAME, '`')
+		SEPARATOR ', '
+	)
+	FROM information_schema.TABLE_CONSTRAINTS
+	WHERE CONSTRAINT_SCHEMA = DATABASE()
+	  AND TABLE_NAME = 'expressorder'
+	  AND CONSTRAINT_TYPE = 'CHECK'
+);
+
+SET @fnh_express_check_sql = IF(
+	@fnh_drop_express_checks IS NULL,
+	'SELECT 1',
+	CONCAT('ALTER TABLE expressorder ', @fnh_drop_express_checks)
+);
+
+PREPARE fnh_express_check_statement FROM @fnh_express_check_sql;
+EXECUTE fnh_express_check_statement;
+DEALLOCATE PREPARE fnh_express_check_statement;
+
+ALTER TABLE expressorder
+	ADD CONSTRAINT chk_express_delivery_fee
+		CHECK (DeliveryFee IN (0.00, 10.00)),
+	ADD CONSTRAINT chk_express_order_fulfillment
+		CHECK (
+			(
+				FulfillmentMethod = 'Curbside'
+				AND DeliveryFee = 0.00
+				AND DeliveryAddressLine1 IS NULL
+				AND DeliveryAddressLine2 IS NULL
+				AND DeliveryCity IS NULL
+				AND DeliveryStateCode IS NULL
+				AND DeliveryPostalCode IS NULL
+			)
+			OR
+			(
+				FulfillmentMethod = 'Delivery'
+				AND DeliveryFee = 10.00
+				AND DeliveryAddressLine1 IS NOT NULL
+				AND DeliveryCity IS NOT NULL
+				AND DeliveryStateCode IS NOT NULL
+				AND DeliveryPostalCode IS NOT NULL
+			)
+		);
+
+SET @fnh_drop_express_checks = NULL;
+SET @fnh_express_check_sql = NULL;
+
 -- Drop views in reverse dependency order
 
 DROP VIEW IF EXISTS vw_operatoractivity;
@@ -22,8 +72,10 @@ DROP VIEW IF EXISTS vw_pos_products;
 DROP VIEW IF EXISTS vw_operatorlist;
 DROP VIEW IF EXISTS vw_operatorlogin;
 DROP VIEW IF EXISTS vw_storelist;
+
 -- Create views in dependency order
 -- vw_storelist
+
 CREATE VIEW vw_storelist AS
 SELECT
 	store.StoreID AS StoreID,
@@ -1539,6 +1591,7 @@ BEGIN
 	DECLARE actingOperatorRole VARCHAR(20) DEFAULT NULL;
 	DECLARE saleStatus VARCHAR(20);
 	DECLARE lineProductID INT DEFAULT NULL;
+	DECLARE lineUnitType VARCHAR(20);
 	DECLARE currentQuantity DECIMAL(12,3);
 	DECLARE quantityToRemove DECIMAL(12,3);
 	DECLARE EXIT HANDLER FOR SQLEXCEPTION
@@ -1578,9 +1631,11 @@ BEGIN
 	END IF;
 	SELECT
 		ProductID,
+		UnitTypeAtSale,
 		Quantity
 	INTO
 		lineProductID,
+		lineUnitType,
 		currentQuantity
 	FROM salesreceiptline
 	WHERE ReceiptID = pReceiptID
@@ -1589,6 +1644,13 @@ BEGIN
 	IF lineProductID IS NULL THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The selected sale item does not exist';
+	END IF;
+	IF lineUnitType = 'Each'
+	   AND pQuantityToRemove IS NOT NULL
+	   AND pQuantityToRemove > 0
+	   AND pQuantityToRemove <> FLOOR(pQuantityToRemove) THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'This product must use a whole-number quantity';
 	END IF;
 	SET quantityToRemove =
 		LEAST(
@@ -2119,8 +2181,7 @@ BEGIN
 	JOIN salesreceipt sr
 		ON sr.ReceiptID = eo.ReceiptID
 	WHERE sr.StoreID = pStoreID
-	  AND DATE(eo.OrderPlacedDateTime) = CURDATE()
-	  AND eo.Status <> 'Cancelled';
+	  AND DATE(eo.OrderPlacedDateTime) = CURDATE();
 
 	SELECT
 		20 AS DailyCapacity,
@@ -2192,15 +2253,6 @@ BEGIN
 			SET MESSAGE_TEXT = 'The user is not authorized to create an Express order';
 	END IF;
 
-	IF EXISTS (
-		SELECT 1
-		FROM expressorder eo
-		WHERE eo.PersonalShopperID = pPersonalShopperID
-		  AND eo.Status IN ('Received','Picking','Ready')
-	) THEN
-		SIGNAL SQLSTATE '45000'
-			SET MESSAGE_TEXT = 'Finish or cancel your current Express order before starting another';
-	END IF;
 
 	IF pCustomerID IS NOT NULL
 	   AND NOT EXISTS (
@@ -2219,8 +2271,7 @@ BEGIN
 	JOIN salesreceipt sr
 		ON sr.ReceiptID = eo.ReceiptID
 	WHERE sr.StoreID = pStoreID
-	  AND DATE(eo.OrderPlacedDateTime) = CURDATE()
-	  AND eo.Status <> 'Cancelled';
+	  AND DATE(eo.OrderPlacedDateTime) = CURDATE();
 
 	IF usedOrders >= 20 THEN
 		SIGNAL SQLSTATE '45000'
