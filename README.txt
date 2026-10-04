@@ -75,7 +75,7 @@ assets/css/express.css
 
 SCREENSHOTS
 
-Screenshots from the completed Week 1 and Week 2 demonstrations are included in:
+Screenshots from the completed Week 1, Week 2, and Week 3 demonstrations are included in:
 documentation/Screenshots
 
 Week 1 screenshots are located in:
@@ -83,6 +83,9 @@ documentation/Screenshots/Week 1
 
 Week 2 screenshots demonstrating the Week 2 Point of Sale, register, checkout, and inventory functionality are located in:
 documentation/Screenshots/Week 2
+
+Week 3 screenshots demonstrating FnH Express, home delivery, saved addresses, and the Personal Shopper access rules are located in:
+documentation/Screenshots/Week 3
 
 The Week 2 screenshots were taken using the local XAMPP development database.
 
@@ -131,7 +134,7 @@ Week 3 extends the Week 1 and Week 2 database instead of replacing it. The follo
 - The customeraddress table stores named delivery addresses, such as Home or Work, that can be reused by a customer.
 - The expressorder table stores the Express receipt, customer, personal shopper, fulfillment method, delivery address, delivery fee, order time, and Express status.
 - The vw_express_orders view combines the Express order, receipt, customer, store, register, and personal shopper information used by the Express pages.
-- Express stored procedures enforce the 20-order daily store capacity, reserve Register 1, enforce Personal Shopper access, validate delivery hours, create customers and saved addresses, and update Express order status. Cancelled orders still count toward the 20 orders accepted by a store that day.
+- Express stored procedures enforce the 20-order daily store capacity, reserve Register 1, enforce Personal Shopper access, validate delivery hours, create customers and saved addresses, and update Express order status. Cancelling an Express order frees its slot, so only orders that are not cancelled count toward the 20 for the day. A Personal Shopper can have several open orders at once, so an order can wait while the shopper contacts a customer and the shopper continues with another.
 - The checkout procedures include the $10.00 delivery fee when an Express delivery order is completed.
 - Application database sessions use the California store time so the 8:00 AM through 4:00 PM delivery rule and daily Express capacity are evaluated consistently on XAMPP and Alwaysdata.
 
@@ -153,6 +156,7 @@ JavaScript is used only for immediate interface responsiveness and to reduce unn
 - Changes the quantity field to a weight field when a product sold by weight is selected in both the regular Point of Sale and Express order-entry pages.
 - Warns when leaving a sale that contains items and gives the options to stay, save and leave, or close the register and cancel the transaction.
 - Shows the Existing Customer or New Customer fields on the Express order form based on the option selected.
+- Clears a loaded saved address and returns the order to Curbside when a different customer is chosen or New Customer is selected, so one customer's address is never sent with another customer's order.
 - Asks whether to update a customer's saved address on file when a loaded address is changed before an Express order is submitted.
 - Warns on the Operator Update page when the store or role change would cancel the operator's open sale.
 - Confirms before removing an item, cancelling a sale, or closing a register.
@@ -178,4 +182,4 @@ RESPONSIVE AND TOUCH-SCREEN DESIGN
 
 SUBMISSION
 
-The ZIP includes the original Week 1 project files with the Week 2 and Week 3 additions, one README file, both sets of the three SQL files needed to rebuild the local XAMPP or Alwaysdata database, and the Week 1 and Week 2 screenshots currently included with the project.
+The ZIP includes the original Week 1 project files with the Week 2 and Week 3 additions, one README file, both sets of the three SQL files needed to rebuild the local XAMPP or Alwaysdata database, and the Week 1, Week 2, and Week 3 screenshots.

@@ -4,6 +4,10 @@
 USE fnh_groceries;
 
 -- Keep Express CHECK constraints identical on rebuilt and existing databases
+-- Older databases created the DeliveryFee check inside the column, so the column is redefined first
+ALTER TABLE expressorder
+	MODIFY COLUMN DeliveryFee DECIMAL(10,2) NOT NULL DEFAULT 0.00;
+
 SET @fnh_drop_express_checks = (
 	SELECT GROUP_CONCAT(
 		CONCAT('DROP CONSTRAINT `', CONSTRAINT_NAME, '`')
@@ -1414,7 +1418,7 @@ CREATE PROCEDURE sp_add_sale_item(
 BEGIN
 	DECLARE saleStoreID INT DEFAULT NULL;
 	DECLARE saleOperatorID INT DEFAULT NULL;
-	DECLARE saleType VARCHAR(20);
+	DECLARE currentSaleType VARCHAR(20);
 	DECLARE actingOperatorStoreID INT DEFAULT NULL;
 	DECLARE actingOperatorRole VARCHAR(20) DEFAULT NULL;
 	DECLARE actingOperatorActive TINYINT DEFAULT 0;
@@ -1455,7 +1459,7 @@ BEGIN
 	INTO
 		saleStoreID,
 		saleOperatorID,
-		saleType,
+		currentSaleType,
 		saleStatus
 	FROM salesreceipt
 	WHERE ReceiptID = pReceiptID
@@ -1473,11 +1477,11 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The transaction belongs to another store';
 	END IF;
-	IF saleType = 'Regular'
+	IF currentSaleType = 'Regular'
 	   AND actingOperatorRole NOT IN ('Administrator','Operator') THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The operator is not authorized to change a regular sale';
-	ELSEIF saleType = 'Express'
+	ELSEIF currentSaleType = 'Express'
 	   AND actingOperatorRole NOT IN ('Administrator','Personal Shopper') THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The operator is not authorized to change an Express order';
@@ -1617,7 +1621,7 @@ CREATE PROCEDURE sp_remove_sale_item(
 BEGIN
 	DECLARE saleStoreID INT DEFAULT NULL;
 	DECLARE saleOperatorID INT DEFAULT NULL;
-	DECLARE saleType VARCHAR(20);
+	DECLARE currentSaleType VARCHAR(20);
 	DECLARE actingOperatorStoreID INT DEFAULT NULL;
 	DECLARE actingOperatorRole VARCHAR(20) DEFAULT NULL;
 	DECLARE actingOperatorActive TINYINT DEFAULT 0;
@@ -1651,7 +1655,7 @@ BEGIN
 	INTO
 		saleStoreID,
 		saleOperatorID,
-		saleType,
+		currentSaleType,
 		saleStatus
 	FROM salesreceipt
 	WHERE ReceiptID = pReceiptID
@@ -1669,11 +1673,11 @@ BEGIN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The transaction belongs to another store';
 	END IF;
-	IF saleType = 'Regular'
+	IF currentSaleType = 'Regular'
 	   AND actingOperatorRole NOT IN ('Administrator','Operator') THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The operator is not authorized to change a regular sale';
-	ELSEIF saleType = 'Express'
+	ELSEIF currentSaleType = 'Express'
 	   AND actingOperatorRole NOT IN ('Administrator','Personal Shopper') THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The operator is not authorized to change an Express order';
@@ -2277,7 +2281,8 @@ BEGIN
 	JOIN salesreceipt sr
 		ON sr.ReceiptID = eo.ReceiptID
 	WHERE sr.StoreID = pStoreID
-	  AND DATE(eo.OrderPlacedDateTime) = CURDATE();
+	  AND DATE(eo.OrderPlacedDateTime) = CURDATE()
+	  AND eo.Status <> 'Cancelled';
 
 	SELECT
 		20 AS DailyCapacity,
@@ -2367,7 +2372,8 @@ BEGIN
 	JOIN salesreceipt sr
 		ON sr.ReceiptID = eo.ReceiptID
 	WHERE sr.StoreID = pStoreID
-	  AND DATE(eo.OrderPlacedDateTime) = CURDATE();
+	  AND DATE(eo.OrderPlacedDateTime) = CURDATE()
+	  AND eo.Status <> 'Cancelled';
 
 	IF usedOrders >= 20 THEN
 		SIGNAL SQLSTATE '45000'

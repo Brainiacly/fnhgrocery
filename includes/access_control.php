@@ -67,13 +67,6 @@ function operatorCanUseExpress()
         );
 }
 
-// Check personal shopper
-function operatorIsPersonalShopper()
-{
-    return operatorIsLoggedIn()
-        && ($_SESSION['role'] ?? '') === 'Personal Shopper';
-}
-
 // Require regular point-of-sale access
 function requireRegularPOSAccess()
 {

@@ -1013,6 +1013,7 @@ require __DIR__ . '/../includes/header.php';
                         type="text"
                         name="new_address_label"
                         id="new_address_label"
+                        aria-label="Name for this saved address"
                         maxlength="40"
                         placeholder="Label, such as Home or Work"
                         value="<?= escapeOutput($newAddressLabel) ?>"

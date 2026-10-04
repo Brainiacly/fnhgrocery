@@ -15,8 +15,7 @@
 
 /* Register selection and open-session confirmation */
 
-.sale-start-panel,
-.sale-resume-panel {
+.sale-start-panel {
     max-width: 34rem;
     margin: 0 auto;
     padding: 1rem;
@@ -25,27 +24,15 @@
     background: var(--page-background-light-color);
 }
 
-.sale-start-panel h2,
-.sale-resume-panel h2 {
+.sale-start-panel h2 {
     margin: 0 0 1rem;
     color: var(--theme-primary-dark-color);
     text-align: center;
 }
 
-.sale-resume-panel p {
-    margin: 0 0 1rem;
-    line-height: 1.5;
-    text-align: center;
-}
-
-.sale-resume-actions,
 .sale-register-actions {
     display: flex;
     gap: 0.75rem;
-}
-
-.sale-resume-actions {
-    flex-direction: column;
 }
 
 .sale-register-actions {
@@ -53,10 +40,6 @@
     flex-wrap: wrap;
     justify-content: center;
     align-items: center;
-}
-
-.sale-resume-actions .button {
-    width: 100%;
 }
 
 .sale-register-actions .button {
@@ -504,14 +487,12 @@
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
-    .sale-actions,
-    .sale-resume-actions {
+    .sale-actions {
         flex-direction: row;
     }
 
     .sale-actions > *,
-    .sale-actions form,
-    .sale-resume-actions .button {
+    .sale-actions form {
         flex: 1 1 0;
         min-width: 0;
     }
