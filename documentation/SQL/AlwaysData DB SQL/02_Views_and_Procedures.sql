@@ -1414,7 +1414,10 @@ CREATE PROCEDURE sp_add_sale_item(
 BEGIN
 	DECLARE saleStoreID INT DEFAULT NULL;
 	DECLARE saleOperatorID INT DEFAULT NULL;
+	DECLARE saleType VARCHAR(20);
+	DECLARE actingOperatorStoreID INT DEFAULT NULL;
 	DECLARE actingOperatorRole VARCHAR(20) DEFAULT NULL;
+	DECLARE actingOperatorActive TINYINT DEFAULT 0;
 	DECLARE saleStatus VARCHAR(20);
 	DECLARE availableStock DECIMAL(12,3);
 	DECLARE currentPrice DECIMAL(10,2);
@@ -1433,18 +1436,26 @@ BEGIN
 			SET MESSAGE_TEXT = 'Quantity must be greater than zero';
 	END IF;
 	START TRANSACTION;
-	SELECT Role
-	INTO actingOperatorRole
+	SELECT
+		StoreID,
+		Role,
+		Active
+	INTO
+		actingOperatorStoreID,
+		actingOperatorRole,
+		actingOperatorActive
 	FROM operator
 	WHERE OperatorID = pActingOperatorID;
 
 	SELECT
 		StoreID,
 		OperatorID,
+		SaleType,
 		Status
 	INTO
 		saleStoreID,
 		saleOperatorID,
+		saleType,
 		saleStatus
 	FROM salesreceipt
 	WHERE ReceiptID = pReceiptID
@@ -1452,6 +1463,24 @@ BEGIN
 	IF saleStoreID IS NULL THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The sale does not exist';
+	END IF;
+	IF actingOperatorStoreID IS NULL
+	   OR actingOperatorActive <> 1 THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The acting operator is not active';
+	END IF;
+	IF actingOperatorStoreID <> saleStoreID THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The transaction belongs to another store';
+	END IF;
+	IF saleType = 'Regular'
+	   AND actingOperatorRole NOT IN ('Administrator','Operator') THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The operator is not authorized to change a regular sale';
+	ELSEIF saleType = 'Express'
+	   AND actingOperatorRole NOT IN ('Administrator','Personal Shopper') THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The operator is not authorized to change an Express order';
 	END IF;
 	IF saleOperatorID <> pActingOperatorID
 	   AND actingOperatorRole <> 'Administrator' THEN
@@ -1588,7 +1617,10 @@ CREATE PROCEDURE sp_remove_sale_item(
 BEGIN
 	DECLARE saleStoreID INT DEFAULT NULL;
 	DECLARE saleOperatorID INT DEFAULT NULL;
+	DECLARE saleType VARCHAR(20);
+	DECLARE actingOperatorStoreID INT DEFAULT NULL;
 	DECLARE actingOperatorRole VARCHAR(20) DEFAULT NULL;
+	DECLARE actingOperatorActive TINYINT DEFAULT 0;
 	DECLARE saleStatus VARCHAR(20);
 	DECLARE lineProductID INT DEFAULT NULL;
 	DECLARE lineUnitType VARCHAR(20);
@@ -1600,18 +1632,26 @@ BEGIN
 		RESIGNAL;
 	END;
 	START TRANSACTION;
-	SELECT Role
-	INTO actingOperatorRole
+	SELECT
+		StoreID,
+		Role,
+		Active
+	INTO
+		actingOperatorStoreID,
+		actingOperatorRole,
+		actingOperatorActive
 	FROM operator
 	WHERE OperatorID = pActingOperatorID;
 
 	SELECT
 		StoreID,
 		OperatorID,
+		SaleType,
 		Status
 	INTO
 		saleStoreID,
 		saleOperatorID,
+		saleType,
 		saleStatus
 	FROM salesreceipt
 	WHERE ReceiptID = pReceiptID
@@ -1619,6 +1659,24 @@ BEGIN
 	IF saleStoreID IS NULL THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The sale does not exist';
+	END IF;
+	IF actingOperatorStoreID IS NULL
+	   OR actingOperatorActive <> 1 THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The acting operator is not active';
+	END IF;
+	IF actingOperatorStoreID <> saleStoreID THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The transaction belongs to another store';
+	END IF;
+	IF saleType = 'Regular'
+	   AND actingOperatorRole NOT IN ('Administrator','Operator') THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The operator is not authorized to change a regular sale';
+	ELSEIF saleType = 'Express'
+	   AND actingOperatorRole NOT IN ('Administrator','Personal Shopper') THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The operator is not authorized to change an Express order';
 	END IF;
 	IF saleOperatorID <> pActingOperatorID
 	   AND actingOperatorRole <> 'Administrator' THEN
@@ -1719,8 +1777,11 @@ CREATE PROCEDURE sp_checkout_sale(
 	IN pActingOperatorID INT
 )
 BEGIN
+	DECLARE saleStoreID INT DEFAULT NULL;
 	DECLARE saleOperatorID INT DEFAULT NULL;
+	DECLARE actingOperatorStoreID INT DEFAULT NULL;
 	DECLARE actingOperatorRole VARCHAR(20) DEFAULT NULL;
+	DECLARE actingOperatorActive TINYINT DEFAULT 0;
 	DECLARE saleStatus VARCHAR(20);
 	DECLARE currentSaleType VARCHAR(20);
 	DECLARE expressFulfillmentMethod VARCHAR(20) DEFAULT NULL;
@@ -1748,17 +1809,25 @@ BEGIN
 		RESIGNAL;
 	END;
 	START TRANSACTION;
-	SELECT Role
-	INTO actingOperatorRole
+	SELECT
+		StoreID,
+		Role,
+		Active
+	INTO
+		actingOperatorStoreID,
+		actingOperatorRole,
+		actingOperatorActive
 	FROM operator
 	WHERE OperatorID = pActingOperatorID;
 
 	SELECT
+		StoreID,
 		OperatorID,
 		Status,
 		SaleType,
 		ReceiptDiscountAmount
 	INTO
+		saleStoreID,
 		saleOperatorID,
 		saleStatus,
 		currentSaleType,
@@ -1769,6 +1838,24 @@ BEGIN
 	IF saleOperatorID IS NULL THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The sale does not exist';
+	END IF;
+	IF actingOperatorStoreID IS NULL
+	   OR actingOperatorActive <> 1 THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The acting operator is not active';
+	END IF;
+	IF actingOperatorStoreID <> saleStoreID THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The transaction belongs to another store';
+	END IF;
+	IF currentSaleType = 'Regular'
+	   AND actingOperatorRole NOT IN ('Administrator','Operator') THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The operator is not authorized to complete a regular sale';
+	ELSEIF currentSaleType = 'Express'
+	   AND actingOperatorRole NOT IN ('Administrator','Personal Shopper') THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The operator is not authorized to complete an Express order';
 	END IF;
 	IF saleOperatorID <> pActingOperatorID
 	   AND actingOperatorRole <> 'Administrator' THEN
@@ -2037,6 +2124,15 @@ BEGIN
 	IF actingStoreID <> saleStoreID THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The transaction belongs to another store';
+	END IF;
+	IF currentSaleType = 'Regular'
+	   AND actingRole NOT IN ('Administrator','Operator') THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The operator is not authorized to cancel a regular sale';
+	ELSEIF currentSaleType = 'Express'
+	   AND actingRole NOT IN ('Administrator','Personal Shopper') THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The operator is not authorized to cancel an Express order';
 	END IF;
 	IF saleOperatorID <> pActingOperatorID
 	   AND actingRole <> 'Administrator' THEN
@@ -2624,7 +2720,11 @@ CREATE PROCEDURE sp_set_express_order_status(
 BEGIN
 	DECLARE orderShopperID INT DEFAULT NULL;
 	DECLARE receiptID BIGINT DEFAULT NULL;
+	DECLARE orderStoreID INT DEFAULT NULL;
 	DECLARE receiptStatus VARCHAR(20) DEFAULT NULL;
+	DECLARE actingStoreID INT DEFAULT NULL;
+	DECLARE actingRole VARCHAR(20) DEFAULT NULL;
+	DECLARE actingActive TINYINT DEFAULT 0;
 
 	IF pStatus NOT IN ('Received','Picking','Ready') THEN
 		SIGNAL SQLSTATE '45000'
@@ -2634,10 +2734,12 @@ BEGIN
 	SELECT
 		eo.PersonalShopperID,
 		eo.ReceiptID,
+		sr.StoreID,
 		sr.Status
 	INTO
 		orderShopperID,
 		receiptID,
+		orderStoreID,
 		receiptStatus
 	FROM expressorder eo
 	JOIN salesreceipt sr
@@ -2649,14 +2751,32 @@ BEGIN
 			SET MESSAGE_TEXT = 'Express order does not exist';
 	END IF;
 
+	SELECT
+		StoreID,
+		Role,
+		Active
+	INTO
+		actingStoreID,
+		actingRole,
+		actingActive
+	FROM operator
+	WHERE OperatorID = pPersonalShopperID;
+
+	IF actingStoreID IS NULL
+	   OR actingActive <> 1 THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The acting operator is not active';
+	END IF;
+	IF actingStoreID <> orderStoreID THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The Express order belongs to another store';
+	END IF;
+	IF actingRole NOT IN ('Administrator','Personal Shopper') THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The operator is not authorized to update an Express order';
+	END IF;
 	IF orderShopperID <> pPersonalShopperID
-	   AND NOT EXISTS (
-			SELECT 1
-			FROM operator
-			WHERE OperatorID = pPersonalShopperID
-			  AND Active = 1
-			  AND Role = 'Administrator'
-	   ) THEN
+	   AND actingRole <> 'Administrator' THEN
 		SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'You cannot update another personal shopper''s Express order';
 	END IF;

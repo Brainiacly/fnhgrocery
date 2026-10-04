@@ -596,7 +596,11 @@ try {
             if (
                 $removeQuantity === false
                 ||
-                $removeQuantity === 0.0
+                (
+                    $removeQuantity !== null
+                    &&
+                    $removeQuantity <= 0
+                )
             ) {
 
                 $errorMessage =
