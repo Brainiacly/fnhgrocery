@@ -9,8 +9,16 @@ require_once __DIR__ . '/../includes/access_control.php';
 
 requireRegularPOSAccess();
 
-$storeID = (int) ($_SESSION['store_id'] ?? 0);
-$operatorID = (int) ($_SESSION['operator_id'] ?? 0);
+$storeID =
+    (int) (
+        $_SESSION['store_id']
+        ?? 0
+    );
+$operatorID =
+    (int) (
+        $_SESSION['operator_id']
+        ?? 0
+    );
 
 $receiptID =
     isset($_GET['receipt'])
@@ -587,7 +595,11 @@ try {
                 $removeQuantity = null;
             }
 
-            if ($removeQuantity === false || $removeQuantity === 0.0) {
+            if (
+                $removeQuantity === false
+                ||
+                $removeQuantity === 0.0
+            ) {
 
                 $errorMessage =
                     'Enter a weight greater than zero.';

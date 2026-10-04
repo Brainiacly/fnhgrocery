@@ -132,6 +132,8 @@ JavaScript is used only for immediate interface responsiveness and to reduce unn
 - Warns when leaving a sale that contains items and gives the options to stay, save and leave, or close the register and cancel the transaction.
 - Shows the Existing Customer or New Customer fields on the Express order form based on the option selected.
 - Asks whether to update a customer's saved address on file when a loaded address is changed before an Express order is submitted.
+- Warns on the Operator Update page when the store or role change would cancel the operator's open sale.
+- Confirms before removing an item, cancelling a sale, or closing a register.
 
 
 ADDITIONAL FUNCTIONALITY

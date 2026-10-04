@@ -26,8 +26,17 @@ $customerStatement = $databaseConnection->query(
 $customers = $customerStatement->fetchAll();
 
 $customerMode = 'existing';
-$selectedCustomerID = (int) ($_GET['customer_id'] ?? $_POST['customer_id'] ?? 0);
-$selectedAddressID = (int) ($_GET['address_id'] ?? 0);
+$selectedCustomerID =
+    (int) (
+        $_GET['customer_id']
+        ?? $_POST['customer_id']
+        ?? 0
+    );
+$selectedAddressID =
+    (int) (
+        $_GET['address_id']
+        ?? 0
+    );
 
 $newFirstName = '';
 $newLastName = '';
@@ -65,7 +74,11 @@ if ($selectedCustomerID > 0) {
 }
 
 // Load Address button was used - fill the fields from the saved address
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && $selectedAddressID > 0) {
+if (
+    $_SERVER['REQUEST_METHOD'] === 'GET'
+    &&
+    $selectedAddressID > 0
+) {
     foreach ($savedAddresses as $savedAddress) {
         if ((int) $savedAddress['CustomerAddressID'] === $selectedAddressID) {
             $deliveryAddressLine1 = $savedAddress['AddressLine1'];
@@ -88,32 +101,103 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $selectedAddressID > 0) {
     $fulfillmentMethod = 'Delivery';
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_order'])) {
-    $submittedSecurityToken = $_POST['form_security_token'] ?? '';
-    $customerMode = ($_POST['customer_mode'] ?? 'existing') === 'new' ? 'new' : 'existing';
-    $selectedCustomerID = (int) ($_POST['customer_id'] ?? 0);
-    $newFirstName = trim($_POST['new_customer_first_name'] ?? '');
-    $newLastName = trim($_POST['new_customer_last_name'] ?? '');
-    $newPhone = trim($_POST['new_customer_phone'] ?? '');
-    $newEmail = trim($_POST['new_customer_email'] ?? '');
-    $fulfillmentMethod = $_POST['fulfillment_method'] ?? 'Curbside';
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST'
+    &&
+    isset($_POST['create_order'])
+) {
+    $submittedSecurityToken =
+        $_POST['form_security_token']
+        ?? '';
+    $customerMode =
+        (
+            $_POST['customer_mode']
+            ?? 'existing'
+        ) === 'new'
+        ? 'new'
+        : 'existing';
+    $selectedCustomerID =
+        (int) (
+            $_POST['customer_id']
+            ?? 0
+        );
+    $newFirstName =
+        trim(
+            $_POST['new_customer_first_name']
+            ?? ''
+        );
+    $newLastName =
+        trim(
+            $_POST['new_customer_last_name']
+            ?? ''
+        );
+    $newPhone =
+        trim(
+            $_POST['new_customer_phone']
+            ?? ''
+        );
+    $newEmail =
+        trim(
+            $_POST['new_customer_email']
+            ?? ''
+        );
+    $fulfillmentMethod =
+        $_POST['fulfillment_method']
+        ?? 'Curbside';
 
     $deliveryAddressLine1 = trim($_POST['delivery_address_1'] ?? '');
     $deliveryAddressLine2 = trim($_POST['delivery_address_2'] ?? '');
-    $deliveryCity = trim($_POST['delivery_city'] ?? '');
-    $deliveryState = trim($_POST['delivery_state'] ?? '');
-    $deliveryPostalCode = trim($_POST['delivery_postal_code'] ?? '');
+    $deliveryCity =
+        trim(
+            $_POST['delivery_city']
+            ?? ''
+        );
+    $deliveryState =
+        trim(
+            $_POST['delivery_state']
+            ?? ''
+        );
+    $deliveryPostalCode =
+        trim(
+            $_POST['delivery_postal_code']
+            ?? ''
+        );
 
-    $loadedAddressID = (int) ($_POST['loaded_address_id'] ?? 0);
-    $updateAddressOnFile = ($_POST['update_address_on_file'] ?? '') === '1';
-    $saveNewAddress = isset($_POST['save_new_address']);
-    $newAddressLabel = trim($_POST['new_address_label'] ?? '');
+    $loadedAddressID =
+        (int) (
+            $_POST['loaded_address_id']
+            ?? 0
+        );
+    $updateAddressOnFile =
+        (
+            $_POST['update_address_on_file']
+            ?? ''
+        ) === '1';
+    $saveNewAddress =
+        isset($_POST['save_new_address']);
+    $newAddressLabel =
+        trim(
+            $_POST['new_address_label']
+            ?? ''
+        );
 
     if (!formSecurityTokenIsValid($submittedSecurityToken)) {
         $errorMessage = 'The form expired. Please try again.';
-    } elseif ($customerMode === 'existing' && $selectedCustomerID <= 0) {
+    } elseif (
+        $customerMode === 'existing'
+        &&
+        $selectedCustomerID <= 0
+    ) {
         $errorMessage = 'Select the customer placing the Express order.';
-    } elseif ($customerMode === 'new' && ($newFirstName === '' || $newLastName === '')) {
+    } elseif (
+        $customerMode === 'new'
+        &&
+        (
+            $newFirstName === ''
+            ||
+            $newLastName === ''
+        )
+    ) {
         $errorMessage = 'Enter the new customer\'s first and last name.';
     } else {
         try {
@@ -159,7 +243,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_order'])) {
             // Save or update the address book after the order succeeds
             if ($fulfillmentMethod === 'Delivery') {
                 try {
-                    if ($loadedAddressID > 0 && $updateAddressOnFile) {
+                    if (
+                        $loadedAddressID > 0
+                        &&
+                        $updateAddressOnFile
+                    ) {
                         $addressUpdateStatement = $databaseConnection->prepare(
                             'CALL sp_update_customer_address(?, ?, ?, ?, ?, ?)'
                         );
@@ -174,7 +262,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_order'])) {
                         ]);
 
                         $addressUpdateStatement->closeCursor();
-                    } elseif ($loadedAddressID <= 0 && $saveNewAddress && $newAddressLabel !== '') {
+                    } elseif (
+                        $loadedAddressID <= 0
+                        &&
+                        $saveNewAddress
+                        &&
+                        $newAddressLabel !== ''
+                    ) {
                         $addressCreateStatement = $databaseConnection->prepare(
                             'CALL sp_create_customer_address(?, ?, ?, ?, ?, ?, ?)'
                         );
@@ -468,10 +562,14 @@ require __DIR__ . '/../includes/header.php';
    form submission and page reloads.
 */
 (function () {
-    var existingRadio = document.getElementById('customer_mode_existing');
-    var newRadio = document.getElementById('customer_mode_new');
-    var existingField = document.getElementById('existingCustomerField');
-    var newFields = document.getElementById('newCustomerFields');
+    var existingRadio =
+        document.getElementById('customer_mode_existing');
+    var newRadio =
+        document.getElementById('customer_mode_new');
+    var existingField =
+        document.getElementById('existingCustomerField');
+    var newFields =
+        document.getElementById('newCustomerFields');
 
     function updateCustomerFields() {
         var useNew = newRadio.checked;
@@ -483,8 +581,10 @@ require __DIR__ . '/../includes/header.php';
     newRadio.addEventListener('change', updateCustomerFields);
     updateCustomerFields();
 
-    var form = document.getElementById('expressNewOrderForm');
-    var updateFlag = document.getElementById('updateAddressOnFile');
+    var form =
+        document.getElementById('expressNewOrderForm');
+    var updateFlag =
+        document.getElementById('updateAddressOnFile');
 
     form.addEventListener('submit', function (event) {
         var submitter = event.submitter;
@@ -493,17 +593,35 @@ require __DIR__ . '/../includes/header.php';
             return;
         }
 
-        var loadedAddressID = form.querySelector('[name="loaded_address_id"]').value;
+        var loadedAddressID =
+            form.querySelector(
+                '[name="loaded_address_id"]'
+            ).value;
 
         if (!loadedAddressID || loadedAddressID === '0') {
             return;
         }
 
-        var line1 = document.getElementById('delivery_address_1').value;
-        var line2 = document.getElementById('delivery_address_2').value;
-        var city = document.getElementById('delivery_city').value;
-        var state = document.getElementById('delivery_state').value;
-        var zip = document.getElementById('delivery_postal_code').value;
+        var line1 =
+            document.getElementById(
+                'delivery_address_1'
+            ).value;
+        var line2 =
+            document.getElementById(
+                'delivery_address_2'
+            ).value;
+        var city =
+            document.getElementById(
+                'delivery_city'
+            ).value;
+        var state =
+            document.getElementById(
+                'delivery_state'
+            ).value;
+        var zip =
+            document.getElementById(
+                'delivery_postal_code'
+            ).value;
 
         var changed =
             line1 !== document.getElementById('loadedAddressLine1').value

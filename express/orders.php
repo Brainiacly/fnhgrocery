@@ -11,8 +11,16 @@ requireExpressAccess();
 
 $databaseConnection = connectDatabase();
 
-$storeID = (int) ($_SESSION['store_id'] ?? 0);
-$operatorID = (int) ($_SESSION['operator_id'] ?? 0);
+$storeID =
+    (int) (
+        $_SESSION['store_id']
+        ?? 0
+    );
+$operatorID =
+    (int) (
+        $_SESSION['operator_id']
+        ?? 0
+    );
 $isAdministrator = operatorIsAdministrator();
 
 if ($isAdministrator) {

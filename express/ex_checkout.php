@@ -11,9 +11,22 @@ requireExpressAccess();
 
 $databaseConnection = connectDatabase();
 
-$storeID = (int) ($_SESSION['store_id'] ?? 0);
-$operatorID = (int) ($_SESSION['operator_id'] ?? 0);
-$expressOrderID = (int) ($_GET['id'] ?? $_POST['express_order_id'] ?? 0);
+$storeID =
+    (int) (
+        $_SESSION['store_id']
+        ?? 0
+    );
+$operatorID =
+    (int) (
+        $_SESSION['operator_id']
+        ?? 0
+    );
+$expressOrderID =
+    (int) (
+        $_GET['id']
+        ?? $_POST['express_order_id']
+        ?? 0
+    );
 
 $errorMessage = '';
 

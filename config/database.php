@@ -15,10 +15,18 @@ define('DEVELOPER_EMAIL', 'B.Phillips958@student.nu.edu');
 // Connect to the FnH database
 function connectDatabase()
 {
-    $databaseHost = getenv('FNH_DB_HOST') ?: '127.0.0.1';
-    $databaseName = getenv('FNH_DB_NAME') ?: 'fnh_groceries';
-    $databaseUsername = getenv('FNH_DB_USER') ?: 'root';
-    $databasePassword = getenv('FNH_DB_PASSWORD') ?: '';
+    $databaseHost =
+        getenv('FNH_DB_HOST')
+        ?: '127.0.0.1';
+    $databaseName =
+        getenv('FNH_DB_NAME')
+        ?: 'fnh_groceries';
+    $databaseUsername =
+        getenv('FNH_DB_USER')
+        ?: 'root';
+    $databasePassword =
+        getenv('FNH_DB_PASSWORD')
+        ?: '';
 
     $connectionString =
         "mysql:host=$databaseHost;dbname=$databaseName;charset=utf8mb4";

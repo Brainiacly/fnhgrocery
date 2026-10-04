@@ -11,7 +11,9 @@ requireAdministrator();
 
 $databaseConnection = connectDatabase();
 
-$roleFilter = $_GET['role'] ?? 'all';
+$roleFilter =
+    $_GET['role']
+    ?? 'all';
 
 if (
     !in_array(

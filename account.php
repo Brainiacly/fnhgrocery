@@ -65,17 +65,49 @@ if (isset($_GET['updated'])) {
 
 // Process account changes
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
-    $firstName = trim($_POST['first_name'] ?? '');
-    $middleInitial = trim($_POST['middle_initial'] ?? '');
-    $lastName = trim($_POST['last_name'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $phone = trim($_POST['phone'] ?? '');
+    $username =
+        trim(
+            $_POST['username']
+            ?? ''
+        );
+    $firstName =
+        trim(
+            $_POST['first_name']
+            ?? ''
+        );
+    $middleInitial =
+        trim(
+            $_POST['middle_initial']
+            ?? ''
+        );
+    $lastName =
+        trim(
+            $_POST['last_name']
+            ?? ''
+        );
+    $email =
+        trim(
+            $_POST['email']
+            ?? ''
+        );
+    $phone =
+        trim(
+            $_POST['phone']
+            ?? ''
+        );
 
-    $currentPassword = $_POST['current_password'] ?? '';
-    $newPassword = $_POST['new_password'] ?? '';
-    $confirmNewPassword = $_POST['confirm_new_password'] ?? '';
-    $submittedSecurityToken = $_POST['form_security_token'] ?? '';
+    $currentPassword =
+        $_POST['current_password']
+        ?? '';
+    $newPassword =
+        $_POST['new_password']
+        ?? '';
+    $confirmNewPassword =
+        $_POST['confirm_new_password']
+        ?? '';
+    $submittedSecurityToken =
+        $_POST['form_security_token']
+        ?? '';
 
     $isChangingPassword =
         $currentPassword !== ''

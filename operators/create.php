@@ -42,18 +42,54 @@ $storeRecords = $storeListStatement->fetchAll();
 
 // Process the Create Operator form
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $selectedStoreID = $_POST['store_id'] ?? '';
-    $username = trim($_POST['username'] ?? '');
-    $enteredPassword = $_POST['password'] ?? '';
-    $confirmedPassword = $_POST['confirm_password'] ?? '';
-    $firstName = trim($_POST['first_name'] ?? '');
-    $middleInitial = trim($_POST['middle_initial'] ?? '');
-    $lastName = trim($_POST['last_name'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $phone = trim($_POST['phone'] ?? '');
-    $selectedRole = $_POST['role'] ?? 'Operator';
-    $hireDate = $_POST['hire_date'] ?? '';
-    $submittedSecurityToken = $_POST['form_security_token'] ?? '';
+    $selectedStoreID =
+        $_POST['store_id']
+        ?? '';
+    $username =
+        trim(
+            $_POST['username']
+            ?? ''
+        );
+    $enteredPassword =
+        $_POST['password']
+        ?? '';
+    $confirmedPassword =
+        $_POST['confirm_password']
+        ?? '';
+    $firstName =
+        trim(
+            $_POST['first_name']
+            ?? ''
+        );
+    $middleInitial =
+        trim(
+            $_POST['middle_initial']
+            ?? ''
+        );
+    $lastName =
+        trim(
+            $_POST['last_name']
+            ?? ''
+        );
+    $email =
+        trim(
+            $_POST['email']
+            ?? ''
+        );
+    $phone =
+        trim(
+            $_POST['phone']
+            ?? ''
+        );
+    $selectedRole =
+        $_POST['role']
+        ?? 'Operator';
+    $hireDate =
+        $_POST['hire_date']
+        ?? '';
+    $submittedSecurityToken =
+        $_POST['form_security_token']
+        ?? '';
 
     if (!formSecurityTokenIsValid($submittedSecurityToken)) {
         $errorMessage = 'The form expired. Please try again.';

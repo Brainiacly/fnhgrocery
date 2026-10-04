@@ -183,9 +183,27 @@ function phoneNumberIsValid($phone)
 // Get logged-in operator display name
 function getLoggedInOperatorDisplayName()
 {
-    $firstName = trim((string) ($_SESSION['first_name'] ?? ''));
-    $middleInitial = trim((string) ($_SESSION['middle_initial'] ?? ''));
-    $lastName = trim((string) ($_SESSION['last_name'] ?? ''));
+    $firstName =
+        trim(
+            (string) (
+                $_SESSION['first_name']
+                ?? ''
+            )
+        );
+    $middleInitial =
+        trim(
+            (string) (
+                $_SESSION['middle_initial']
+                ?? ''
+            )
+        );
+    $lastName =
+        trim(
+            (string) (
+                $_SESSION['last_name']
+                ?? ''
+            )
+        );
 
     $nameParts = [];
 
@@ -205,7 +223,13 @@ function getLoggedInOperatorDisplayName()
         return implode(' ', $nameParts);
     }
 
-    $username = trim((string) ($_SESSION['username'] ?? ''));
+    $username =
+        trim(
+            (string) (
+                $_SESSION['username']
+                ?? ''
+            )
+        );
 
     return $username !== '' ? $username : 'User';
 }
@@ -295,5 +319,3 @@ function refreshCurrentOperatorSession()
         error_log($exception->getMessage());
     }
 }
-
-refreshCurrentOperatorSession();
