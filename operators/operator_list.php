@@ -380,20 +380,22 @@ require __DIR__ . '/../includes/header.php';
                 </table>
             </div>
 
-            <p class="operator-role-key">
-                <strong>A</strong> Administrator
-                &nbsp;&nbsp;
-                <strong>O</strong> Operator
-                &nbsp;&nbsp;
-                <strong>S</strong> Personal Shopper
-                &nbsp;&nbsp;
-                <strong>P</strong> Pending
-            </p>
+            <div class="operator-role-key">
+                <span class="operator-role-key-items">
+                    <strong>A</strong> Administrator
+                    &nbsp;&nbsp;
+                    <strong>O</strong> Operator
+                    &nbsp;&nbsp;
+                    <strong>S</strong> Personal Shopper
+                    &nbsp;&nbsp;
+                    <strong>P</strong> Pending
+                </span>
 
-            <p class="operator-list-count">
-                <?= count($operatorRecords) ?>
-                operator<?= count($operatorRecords) === 1 ? '' : 's' ?> shown.
-            </p>
+                <span class="operator-list-count">
+                    <?= count($operatorRecords) ?>
+                    operator<?= count($operatorRecords) === 1 ? '' : 's' ?> shown.
+                </span>
+            </div>
         <?php endif; ?>
     </form>
 

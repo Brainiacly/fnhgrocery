@@ -329,6 +329,11 @@
 
 
 .operator-role-key {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
   margin-top: 0.75rem;
   padding: 0.625rem;
   border: 0.0625rem solid var(--shared-blue-color);
@@ -343,6 +348,10 @@
   margin-right: 0.25rem;
 }
 
+.operator-role-key .operator-list-count {
+  margin: 0;
+}
+
 .operator-table-empty {
   padding: 1.5rem;
   background: var(--theme-primary-light-color);
@@ -353,7 +362,6 @@
 }
 
 .operator-list-count {
-  margin: 0.5rem 0 0;
   color: var(--secondary-text-color);
   font-size: 0.875rem;
 }
