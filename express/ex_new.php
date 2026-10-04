@@ -567,12 +567,6 @@ require __DIR__ . '/../includes/header.php';
                         <?php endforeach; ?>
                     </select>
 
-                    <input
-                        type="hidden"
-                        name="customer_id"
-                        value="<?= (int) $selectedCustomerID ?>"
-                    >
-
                     <button
                         type="submit"
                         formmethod="get"

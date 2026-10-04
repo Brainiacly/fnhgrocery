@@ -1,7 +1,10 @@
 -- FnH Groceries
 -- Views and Procedures
+
 USE `csc680-fnhgroceries_fnh_groceries`;
+
 -- Drop views in reverse dependency order
+
 DROP VIEW IF EXISTS vw_operatoractivity;
 DROP VIEW IF EXISTS vw_dailysalessummary;
 DROP VIEW IF EXISTS vw_customerpurchasehistory;
