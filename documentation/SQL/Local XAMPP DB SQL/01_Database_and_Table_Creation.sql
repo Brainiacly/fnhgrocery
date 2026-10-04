@@ -52,10 +52,11 @@ CREATE TABLE customer (
 	Email varchar(120) DEFAULT NULL,
 	Phone varchar(20) DEFAULT NULL,
 	JoinDate date NOT NULL,
-	LoyaltyPoints int NOT NULL DEFAULT 0 CHECK (LoyaltyPoints >= 0),
+	LoyaltyPoints int NOT NULL DEFAULT 0,
 	Active tinyint(1) NOT NULL DEFAULT 1,
 	INDEX idx_customer_name (LastName, FirstName),
-	INDEX idx_customer_email (Email)
+	INDEX idx_customer_email (Email),
+	CONSTRAINT chk_customer_loyalty_points CHECK (LoyaltyPoints >= 0)
 );
 
 CREATE TABLE customeraddress (
@@ -91,14 +92,17 @@ CREATE TABLE product (
 	ProductName varchar(120) NOT NULL,
 	Description varchar(500) DEFAULT NULL,
 	UnitType enum('Each','Pound') NOT NULL DEFAULT 'Each',
-	UnitCost decimal(10,2) DEFAULT NULL CHECK (UnitCost IS NULL OR UnitCost >= 0),
-	RetailPrice decimal(10,2) NOT NULL CHECK (RetailPrice >= 0),
-	Taxable tinyint(1) NOT NULL DEFAULT 0 CHECK (Taxable IN (0,1)),
+	UnitCost decimal(10,2) DEFAULT NULL,
+	RetailPrice decimal(10,2) NOT NULL,
+	Taxable tinyint(1) NOT NULL DEFAULT 0,
 	Active tinyint(1) NOT NULL DEFAULT 1,
 	INDEX idx_product_department (DepartmentID),
 	INDEX idx_product_name (ProductName),
 	INDEX idx_product_active_name (Active, ProductName),
-	FOREIGN KEY (DepartmentID) REFERENCES department(DepartmentID)
+	FOREIGN KEY (DepartmentID) REFERENCES department(DepartmentID),
+	CONSTRAINT chk_product_cost CHECK (UnitCost IS NULL OR UnitCost >= 0),
+	CONSTRAINT chk_product_retail_price CHECK (RetailPrice >= 0),
+	CONSTRAINT chk_product_taxable CHECK (Taxable IN (0,1))
 );
 
 CREATE TABLE operator (
@@ -111,14 +115,15 @@ CREATE TABLE operator (
 	MiddleInitial char(1) DEFAULT NULL,
 	LastName varchar(60) NOT NULL,
 	Email varchar(120) NOT NULL UNIQUE,
-	Phone char(10) DEFAULT NULL CHECK (Phone IS NULL OR Phone REGEXP '^[0-9]{10}$'),
+	Phone char(10) DEFAULT NULL,
 	Role enum('Pending','Administrator','Operator','Personal Shopper') NOT NULL DEFAULT 'Pending',
 	HireDate date DEFAULT NULL,
 	Active tinyint(1) NOT NULL DEFAULT 1,
 	CreatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	INDEX idx_operator_name (LastName, FirstName),
 	INDEX idx_operator_store (StoreID),
-	FOREIGN KEY (StoreID) REFERENCES store(StoreID)
+	FOREIGN KEY (StoreID) REFERENCES store(StoreID),
+	CONSTRAINT chk_operator_phone CHECK (Phone IS NULL OR Phone REGEXP '^[0-9]{10}$')
 );
 
 CREATE TABLE register (
@@ -135,7 +140,7 @@ CREATE TABLE register (
 CREATE TABLE storeinventory (
 	StoreID int NOT NULL,
 	ProductID int NOT NULL,
-	StockQuantity decimal(12,3) NOT NULL DEFAULT 0.000 CHECK (StockQuantity >= 0),
+	StockQuantity decimal(12,3) NOT NULL DEFAULT 0.000,
 	Aisle varchar(20) DEFAULT NULL,
 	SectionName varchar(50) DEFAULT NULL,
 	ShelfLocation varchar(30) DEFAULT NULL,
@@ -144,7 +149,8 @@ CREATE TABLE storeinventory (
 	INDEX idx_store_inventory_product (ProductID, StoreID),
 	INDEX idx_store_inventory_stock (StoreID, StockQuantity),
 	FOREIGN KEY (ProductID) REFERENCES product(ProductID),
-	FOREIGN KEY (StoreID) REFERENCES store(StoreID)
+	FOREIGN KEY (StoreID) REFERENCES store(StoreID),
+	CONSTRAINT chk_store_inventory_quantity CHECK (StockQuantity >= 0)
 );
 
 CREATE TABLE salesreceipt (
@@ -154,18 +160,18 @@ CREATE TABLE salesreceipt (
 	RegisterID int NOT NULL,
 	OperatorID int NOT NULL,
 	CustomerID int DEFAULT NULL,
+	SaleType enum('Regular','Express') NOT NULL DEFAULT 'Regular',
 	TransactionDateTime datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	CheckoutDateTime datetime DEFAULT NULL,
 	Status enum('Open','Paid','Completed','Voided','Refunded') NOT NULL DEFAULT 'Open',
-	ReceiptDiscountAmount decimal(10,2) NOT NULL DEFAULT 0.00 CHECK (ReceiptDiscountAmount >= 0),
-	SubtotalAmount decimal(10,2) NOT NULL DEFAULT 0.00 CHECK (SubtotalAmount >= 0),
-	TaxableSubtotalAmount decimal(10,2) NOT NULL DEFAULT 0.00 CHECK (TaxableSubtotalAmount >= 0),
-	TaxAmount decimal(10,2) NOT NULL DEFAULT 0.00 CHECK (TaxAmount >= 0),
-	TotalAmount decimal(10,2) NOT NULL DEFAULT 0.00 CHECK (TotalAmount >= 0),
+	ReceiptDiscountAmount decimal(10,2) NOT NULL DEFAULT 0.00,
+	SubtotalAmount decimal(10,2) NOT NULL DEFAULT 0.00,
+	TaxableSubtotalAmount decimal(10,2) NOT NULL DEFAULT 0.00,
+	TaxAmount decimal(10,2) NOT NULL DEFAULT 0.00,
+	TotalAmount decimal(10,2) NOT NULL DEFAULT 0.00,
 	PaymentMethod enum('Cash','Credit','Debit','Gift Card','Other') NOT NULL DEFAULT 'Cash',
-	AmountTendered decimal(10,2) DEFAULT NULL CHECK (AmountTendered IS NULL OR AmountTendered >= 0),
-	ChangeDue decimal(10,2) DEFAULT NULL CHECK (ChangeDue IS NULL OR ChangeDue >= 0),
-	SaleType enum('Regular','Express') NOT NULL DEFAULT 'Regular',
+	AmountTendered decimal(10,2) DEFAULT NULL,
+	ChangeDue decimal(10,2) DEFAULT NULL,
 	INDEX idx_sales_receipt_store_date (StoreID, TransactionDateTime),
 	INDEX idx_sales_receipt_register_date (RegisterID, TransactionDateTime),
 	INDEX idx_sales_receipt_operator_date (OperatorID, TransactionDateTime),
@@ -175,8 +181,18 @@ CREATE TABLE salesreceipt (
 	FOREIGN KEY (CustomerID) REFERENCES customer(CustomerID),
 	FOREIGN KEY (OperatorID) REFERENCES operator(OperatorID),
 	FOREIGN KEY (StoreID, RegisterID) REFERENCES register(StoreID, RegisterID),
-	FOREIGN KEY (StoreID) REFERENCES store(StoreID)
+	FOREIGN KEY (StoreID) REFERENCES store(StoreID),
+	CONSTRAINT chk_sales_receipt_tax CHECK (TaxAmount >= 0),
+	CONSTRAINT chk_sales_receipt_tendered CHECK (AmountTendered IS NULL OR AmountTendered >= 0),
+	CONSTRAINT chk_sales_receipt_discount CHECK (ReceiptDiscountAmount >= 0),
+	CONSTRAINT chk_sales_receipt_subtotal CHECK (SubtotalAmount >= 0),
+	CONSTRAINT chk_sales_receipt_total CHECK (TotalAmount >= 0),
+	CONSTRAINT chk_sales_receipt_change CHECK (ChangeDue IS NULL OR ChangeDue >= 0),
+	CONSTRAINT chk_sales_receipt_taxable_subtotal CHECK (TaxableSubtotalAmount >= 0)
 );
+
+-- Express fulfillment and delivery-fee rules are enforced by sp_create_express_order
+-- and revalidated by sp_checkout_sale in 02_Views_and_Procedures.sql.
 
 CREATE TABLE expressorder (
 	ExpressOrderID bigint NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -185,7 +201,7 @@ CREATE TABLE expressorder (
 	PersonalShopperID int NOT NULL,
 	OrderPlacedDateTime datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	FulfillmentMethod enum('Curbside','Delivery') NOT NULL DEFAULT 'Curbside',
-	DeliveryFee decimal(10,2) NOT NULL DEFAULT 0.00 CHECK (DeliveryFee IN (0.00, 10.00)),
+	DeliveryFee decimal(10,2) NOT NULL DEFAULT 0.00,
 	DeliveryAddressLine1 varchar(120) DEFAULT NULL,
 	DeliveryAddressLine2 varchar(120) DEFAULT NULL,
 	DeliveryCity varchar(80) DEFAULT NULL,
@@ -198,27 +214,7 @@ CREATE TABLE expressorder (
 	INDEX idx_express_order_customer (CustomerID, OrderPlacedDateTime),
 	FOREIGN KEY (ReceiptID) REFERENCES salesreceipt(ReceiptID),
 	FOREIGN KEY (CustomerID) REFERENCES customer(CustomerID),
-	FOREIGN KEY (PersonalShopperID) REFERENCES operator(OperatorID),
-	CONSTRAINT chk_express_order_fulfillment CHECK (
-		(
-			FulfillmentMethod = 'Curbside'
-			AND DeliveryFee = 0.00
-			AND DeliveryAddressLine1 IS NULL
-			AND DeliveryAddressLine2 IS NULL
-			AND DeliveryCity IS NULL
-			AND DeliveryStateCode IS NULL
-			AND DeliveryPostalCode IS NULL
-		)
-		OR
-		(
-			FulfillmentMethod = 'Delivery'
-			AND DeliveryFee = 10.00
-			AND DeliveryAddressLine1 IS NOT NULL
-			AND DeliveryCity IS NOT NULL
-			AND DeliveryStateCode IS NOT NULL
-			AND DeliveryPostalCode IS NOT NULL
-		)
-	)
+	FOREIGN KEY (PersonalShopperID) REFERENCES operator(OperatorID)
 );
 
 CREATE TABLE salesreceiptline (
@@ -228,17 +224,21 @@ CREATE TABLE salesreceiptline (
 	ProductID int NOT NULL,
 	ProductNameAtSale varchar(120) NOT NULL,
 	UnitTypeAtSale enum('Each','Pound') NOT NULL,
-	TaxableAtSale tinyint(1) NOT NULL CHECK (TaxableAtSale IN (0,1)),
-	Quantity decimal(12,3) NOT NULL CHECK (Quantity > 0),
-	UnitPrice decimal(10,2) NOT NULL CHECK (UnitPrice >= 0),
-	LineDiscountAmount decimal(10,2) NOT NULL DEFAULT 0.00 CHECK (
-		LineDiscountAmount >= 0
-		AND LineDiscountAmount <= ROUND(Quantity * UnitPrice, 2)
-	),
+	TaxableAtSale tinyint(1) NOT NULL,
+	Quantity decimal(12,3) NOT NULL,
+	UnitPrice decimal(10,2) NOT NULL,
+	LineDiscountAmount decimal(10,2) NOT NULL DEFAULT 0.00,
 	UNIQUE (ReceiptID, LineNumber),
 	INDEX idx_sales_receipt_line_product (ProductID, ReceiptID),
 	FOREIGN KEY (ProductID) REFERENCES product(ProductID),
-	FOREIGN KEY (ReceiptID) REFERENCES salesreceipt(ReceiptID) ON DELETE CASCADE
+	FOREIGN KEY (ReceiptID) REFERENCES salesreceipt(ReceiptID) ON DELETE CASCADE,
+	CONSTRAINT chk_sales_receipt_line_quantity CHECK (Quantity > 0),
+	CONSTRAINT chk_sales_receipt_line_price CHECK (UnitPrice >= 0),
+	CONSTRAINT chk_sales_receipt_line_discount CHECK (
+		LineDiscountAmount >= 0
+		AND LineDiscountAmount <= ROUND(Quantity * UnitPrice, 2)
+	),
+	CONSTRAINT chk_salesreceiptline_taxable CHECK (TaxableAtSale IN (0,1))
 );
 
 CREATE TABLE transactionjournal (
@@ -252,13 +252,13 @@ CREATE TABLE transactionjournal (
 	OpenedDateTime datetime NOT NULL,
 	ClosedDateTime datetime DEFAULT NULL,
 	Status enum('Open','Paid','Cancelled','Cleared') NOT NULL DEFAULT 'Open',
-	LineCount int unsigned NOT NULL DEFAULT 0 CHECK (LineCount >= 0),
-	ItemQuantity decimal(12,3) NOT NULL DEFAULT 0.000 CHECK (ItemQuantity >= 0),
-	SubtotalAmount decimal(10,2) NOT NULL DEFAULT 0.00 CHECK (SubtotalAmount >= 0),
-	DiscountAmount decimal(10,2) NOT NULL DEFAULT 0.00 CHECK (DiscountAmount >= 0),
-	TaxableSubtotalAmount decimal(10,2) NOT NULL DEFAULT 0.00 CHECK (TaxableSubtotalAmount >= 0),
-	TaxAmount decimal(10,2) NOT NULL DEFAULT 0.00 CHECK (TaxAmount >= 0),
-	TotalAmount decimal(10,2) NOT NULL DEFAULT 0.00 CHECK (TotalAmount >= 0),
+	LineCount int unsigned NOT NULL DEFAULT 0,
+	ItemQuantity decimal(12,3) NOT NULL DEFAULT 0.000,
+	SubtotalAmount decimal(10,2) NOT NULL DEFAULT 0.00,
+	DiscountAmount decimal(10,2) NOT NULL DEFAULT 0.00,
+	TaxableSubtotalAmount decimal(10,2) NOT NULL DEFAULT 0.00,
+	TaxAmount decimal(10,2) NOT NULL DEFAULT 0.00,
+	TotalAmount decimal(10,2) NOT NULL DEFAULT 0.00,
 	PaymentMethod varchar(20) DEFAULT NULL,
 	AmountTendered decimal(10,2) DEFAULT NULL,
 	ChangeDue decimal(10,2) DEFAULT NULL,
@@ -271,5 +271,12 @@ CREATE TABLE transactionjournal (
 	FOREIGN KEY (OpenedByOperatorID) REFERENCES operator(OperatorID),
 	FOREIGN KEY (ReceiptID) REFERENCES salesreceipt(ReceiptID),
 	FOREIGN KEY (RegisterID) REFERENCES register(RegisterID),
-	FOREIGN KEY (StoreID) REFERENCES store(StoreID)
+	FOREIGN KEY (StoreID) REFERENCES store(StoreID),
+	CONSTRAINT chk_transactionjournal_line_count CHECK (LineCount >= 0),
+	CONSTRAINT chk_transactionjournal_quantity CHECK (ItemQuantity >= 0),
+	CONSTRAINT chk_transactionjournal_subtotal CHECK (SubtotalAmount >= 0),
+	CONSTRAINT chk_transactionjournal_discount CHECK (DiscountAmount >= 0),
+	CONSTRAINT chk_transactionjournal_taxable CHECK (TaxableSubtotalAmount >= 0),
+	CONSTRAINT chk_transactionjournal_tax CHECK (TaxAmount >= 0),
+	CONSTRAINT chk_transactionjournal_total CHECK (TotalAmount >= 0)
 );

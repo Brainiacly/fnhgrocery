@@ -1,7 +1,10 @@
 -- FnH Groceries
 -- Views and Procedures
+
 USE fnh_groceries;
+
 -- Drop views in reverse dependency order
+
 DROP VIEW IF EXISTS vw_operatoractivity;
 DROP VIEW IF EXISTS vw_dailysalessummary;
 DROP VIEW IF EXISTS vw_customerpurchasehistory;
@@ -19,8 +22,10 @@ DROP VIEW IF EXISTS vw_pos_products;
 DROP VIEW IF EXISTS vw_operatorlist;
 DROP VIEW IF EXISTS vw_operatorlogin;
 DROP VIEW IF EXISTS vw_storelist;
+
 -- Create views in dependency order
 -- vw_storelist
+
 CREATE VIEW vw_storelist AS
 SELECT
 	store.StoreID AS StoreID,
@@ -1658,7 +1663,13 @@ BEGIN
 	DECLARE actingOperatorRole VARCHAR(20) DEFAULT NULL;
 	DECLARE saleStatus VARCHAR(20);
 	DECLARE currentSaleType VARCHAR(20);
+	DECLARE expressFulfillmentMethod VARCHAR(20) DEFAULT NULL;
 	DECLARE expressDeliveryFee DECIMAL(10,2) DEFAULT 0.00;
+	DECLARE expressDeliveryAddressLine1 VARCHAR(120) DEFAULT NULL;
+	DECLARE expressDeliveryAddressLine2 VARCHAR(120) DEFAULT NULL;
+	DECLARE expressDeliveryCity VARCHAR(80) DEFAULT NULL;
+	DECLARE expressDeliveryStateCode CHAR(2) DEFAULT NULL;
+	DECLARE expressDeliveryPostalCode VARCHAR(10) DEFAULT NULL;
 	DECLARE calculatedGrossSubtotal DECIMAL(10,2);
 	DECLARE calculatedSubtotal DECIMAL(10,2);
 	DECLARE calculatedGrossTaxable DECIMAL(10,2);
@@ -1788,11 +1799,54 @@ BEGIN
 			2
 		);
 	IF currentSaleType = 'Express' THEN
-		SELECT DeliveryFee
-		INTO expressDeliveryFee
+		SELECT
+			FulfillmentMethod,
+			DeliveryFee,
+			DeliveryAddressLine1,
+			DeliveryAddressLine2,
+			DeliveryCity,
+			DeliveryStateCode,
+			DeliveryPostalCode
+		INTO
+			expressFulfillmentMethod,
+			expressDeliveryFee,
+			expressDeliveryAddressLine1,
+			expressDeliveryAddressLine2,
+			expressDeliveryCity,
+			expressDeliveryStateCode,
+			expressDeliveryPostalCode
 		FROM expressorder
 		WHERE ReceiptID = pReceiptID
 		FOR UPDATE;
+
+		IF expressFulfillmentMethod IS NULL THEN
+			SIGNAL SQLSTATE '45000'
+				SET MESSAGE_TEXT = 'Express order details are missing';
+		END IF;
+
+		IF expressFulfillmentMethod = 'Curbside' THEN
+			IF expressDeliveryFee <> 0.00
+			   OR expressDeliveryAddressLine1 IS NOT NULL
+			   OR expressDeliveryAddressLine2 IS NOT NULL
+			   OR expressDeliveryCity IS NOT NULL
+			   OR expressDeliveryStateCode IS NOT NULL
+			   OR expressDeliveryPostalCode IS NOT NULL THEN
+				SIGNAL SQLSTATE '45000'
+					SET MESSAGE_TEXT = 'Curbside Express order delivery data is invalid';
+			END IF;
+		ELSEIF expressFulfillmentMethod = 'Delivery' THEN
+			IF expressDeliveryFee <> 10.00
+			   OR NULLIF(TRIM(expressDeliveryAddressLine1), '') IS NULL
+			   OR NULLIF(TRIM(expressDeliveryCity), '') IS NULL
+			   OR NULLIF(TRIM(expressDeliveryStateCode), '') IS NULL
+			   OR NULLIF(TRIM(expressDeliveryPostalCode), '') IS NULL THEN
+				SIGNAL SQLSTATE '45000'
+					SET MESSAGE_TEXT = 'Delivery Express order delivery data is invalid';
+			END IF;
+		ELSE
+			SIGNAL SQLSTATE '45000'
+				SET MESSAGE_TEXT = 'Express order fulfillment method is invalid';
+		END IF;
 	END IF;
 	SET calculatedTotal =
 		ROUND(
