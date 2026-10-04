@@ -258,7 +258,8 @@ button {
 .inventory-panel > .page-intro h1,
 .operator-list-panel .page-intro h1,
 .form-panel > .page-intro h1,
-.delete-panel > .page-intro h1 {
+.delete-panel > .page-intro h1,
+.express-panel > .page-intro h1 {
     display: none;
 }
 
