@@ -80,7 +80,7 @@ if (
     !operatorIsAdministrator()
 ) {
     http_response_code(403);
-    exit('You cannot open another personal shopper\'s Express order.');
+    exit('You cannot open another Personal Shopper\'s Express order.');
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -397,7 +397,8 @@ if (isset($_GET['added'])) {
 
 if (isset($_GET['address_warning'])) {
     $warningMessage =
-        'The Express order was created, but the saved address could not be updated. The delivery address on this order is still correct.';
+        'The Express order was created, but the saved address could not be updated. '
+        . 'The delivery address on this order is still correct.';
 }
 
 try {
@@ -911,7 +912,10 @@ require __DIR__ . '/../includes/header.php';
                                                 name="remove_item"
                                                 value="1"
                                                 class="button button-secondary"
-                                                onclick="return confirm('Remove this quantity from the Express order and return it to inventory?');"
+                                                onclick="return confirm(
+                                                    'Remove this quantity from the Express order '
+                                                    + 'and return it to inventory?'
+                                                );"
                                             >
                                                 <?=
                                                     (float) $line['Quantity'] > 1

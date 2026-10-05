@@ -2784,7 +2784,7 @@ BEGIN
 	IF orderShopperID <> pPersonalShopperID
 	   AND actingRole <> 'Administrator' THEN
 		SIGNAL SQLSTATE '45000'
-			SET MESSAGE_TEXT = 'You cannot update another personal shopper''s Express order';
+			SET MESSAGE_TEXT = 'You cannot update another Personal Shopper''s Express order';
 	END IF;
 
 	IF receiptStatus <> 'Open' THEN

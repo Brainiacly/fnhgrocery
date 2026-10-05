@@ -276,7 +276,8 @@ require __DIR__ . '/../includes/header.php';
             </div>
         <?php else: ?>
             <div class="message message-warning">
-                This action makes the operator inactive so historical sales information remains connected to the correct employee.
+                This action makes the operator inactive so historical sales information
+                remains connected to the correct employee.
             </div>
         <?php endif; ?>
 

@@ -11,7 +11,7 @@ Brian Phillips
 
 WEBSITES
 
-Live website on Alwaysdata:
+Live website on AlwaysData:
 https://csc680-fnhgroceries.alwaysdata.net/CSC_680/index.php
 
 GitHub source:
@@ -89,9 +89,9 @@ documentation/Screenshots/Week 3
 
 The Week 2 and Week 3 screenshots were taken using the local XAMPP development database.
 
-The local development database and the live Alwaysdata database began with the same data and numbering. Development and testing have since caused the two databases to become out of sync, so transaction numbers, record numbers, and other changing data shown in the screenshots may differ from the live website.
+The local development database and the live AlwaysData database began with the same data and numbering. Development and testing have since caused the two databases to become out of sync, so transaction numbers, record numbers, and other changing data shown in the screenshots may differ from the live website.
 
-The Local XAMPP and Alwaysdata SQL source files are maintained together. After a database update, run the matching SQL file against each environment before using that environment for testing.
+The Local XAMPP and AlwaysData SQL source files are maintained together. After a database update, run the matching SQL file against each environment before using that environment for testing.
 
 
 DATABASE SETUP
@@ -101,12 +101,12 @@ The database and SQL were updated. To rebuild the database, run the SQL files in
 The SQL files are located in:
 documentation/SQL
 
-There are two sets of the SQL files, one for the local XAMPP database and one for the Alwaysdata database. The SQL is the same in both sets except for the database name and the database creation statement required by the local XAMPP version.
+There are two sets of the SQL files, one for the local XAMPP database and one for the AlwaysData database. The SQL is the same in both sets except for the database name and the database creation statement required by the local XAMPP version.
 
 The local XAMPP SQL files are located in:
 documentation/SQL/Local XAMPP DB SQL
 
-The Alwaysdata SQL files are located in:
+The AlwaysData SQL files are located in:
 documentation/SQL/AlwaysData DB SQL
 
 Each set contains:
@@ -118,10 +118,10 @@ Each set contains:
 The local XAMPP database is named:
 fnh_groceries
 
-The Alwaysdata database is named:
+The AlwaysData database is named:
 csc680-fnhgroceries_fnh_groceries
 
-The local XAMPP and Alwaysdata databases began with the same seed data. The matching SQL source files are kept equivalent except for the database name and the local database-creation statement.
+The local XAMPP and AlwaysData databases began with the same seed data. The matching SQL source files are kept equivalent except for the database name and the local database-creation statement.
 
 
 WEEK 3 DATABASE EXTENSIONS
@@ -132,18 +132,18 @@ Week 3 extends the Week 1 and Week 2 database instead of replacing it. The follo
 - Register 1 is named Express Register and is reserved for Express orders. Regular sales are blocked from using Register 1 in both the PHP interface and the database procedures.
 - The salesreceipt SaleType field identifies Regular and Express receipts.
 - The customeraddress table stores named delivery addresses, such as Home or Work, that can be reused by a customer.
-- The expressorder table stores the Express receipt, customer, personal shopper, fulfillment method, delivery address, delivery fee, order time, and Express status.
-- The vw_express_orders view combines the Express order, receipt, customer, store, register, and personal shopper information used by the Express pages.
+- The expressorder table stores the Express receipt, customer, Personal Shopper, fulfillment method, delivery address, delivery fee, order time, and Express status.
+- The vw_express_orders view combines the Express order, receipt, customer, store, register, and Personal Shopper information used by the Express pages.
 - Express stored procedures enforce the 20-order daily store capacity, reserve Register 1, enforce Personal Shopper access, validate delivery hours, create customers and saved addresses, and update Express order status. Cancelling an Express order frees its slot, so only orders that are not cancelled count toward the 20 for the day. A Personal Shopper can have several open orders at once, so an order can wait while the shopper contacts a customer and the shopper continues with another.
 - The checkout procedures include the $10.00 delivery fee when an Express delivery order is completed.
-- Application database sessions use the California store time so the 8:00 AM through 4:00 PM delivery rule and daily Express capacity are evaluated consistently on XAMPP and Alwaysdata.
+- Application database sessions use the California store time so the 8:00 AM through 4:00 PM delivery rule and daily Express capacity are evaluated consistently on XAMPP and AlwaysData.
 
 A seeded Personal Shopper account is included so the Week 3 access rules can be demonstrated immediately:
 
     Username: DellaVery
     Password: Shopper#123
 
-For an existing Week 3 database, run only 02_Views_and_Procedures.sql from the matching Local XAMPP or Alwaysdata folder. It normalizes the Express delivery CHECK constraints, replaces the views and procedures, and keeps all existing transaction data.
+For an existing Week 3 database, run only 02_Views_and_Procedures.sql from the matching Local XAMPP or AlwaysData folder. It normalizes the Express delivery CHECK constraints, replaces the views and procedures, and keeps all existing transaction data.
 
 
 JAVASCRIPT
@@ -182,4 +182,4 @@ RESPONSIVE AND TOUCH-SCREEN DESIGN
 
 SUBMISSION
 
-The ZIP includes the original Week 1 project files with the Week 2 and Week 3 additions, one README file, both sets of the three SQL files needed to rebuild the local XAMPP or Alwaysdata database, and the Week 1, Week 2, and Week 3 screenshots.
+The ZIP includes the original Week 1 project files with the Week 2 and Week 3 additions, one README file, both sets of the three SQL files needed to rebuild the local XAMPP or AlwaysData database, and the Week 1, Week 2, and Week 3 screenshots.

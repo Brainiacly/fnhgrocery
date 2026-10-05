@@ -198,7 +198,8 @@ require __DIR__ . '/includes/header.php';
                     </h2>
 
                     <p>
-                        Employees are responsible for protecting the privacy of customer, employee, and company information they access while using this system.
+                        Employees are responsible for protecting the privacy of customer, employee, and company
+                        information they access while using this system.
                     </p>
 
                 </section>
@@ -211,7 +212,8 @@ require __DIR__ . '/includes/header.php';
                     </h2>
 
                     <p>
-                        Be careful when entering your password, never share it with another person, and change your password regularly to help keep your account secure.
+                        Be careful when entering your password, never share it with another person,
+                        and change your password regularly to help keep your account secure.
                     </p>
 
                 </section>
@@ -224,7 +226,8 @@ require __DIR__ . '/includes/header.php';
                     </h2>
 
                     <p>
-                        Never leave a signed-in workstation unattended. Log out before stepping away and report anything unusual to an administrator.
+                        Never leave a signed-in workstation unattended. Log out before stepping away
+                        and report anything unusual to an administrator.
                     </p>
 
                 </section>

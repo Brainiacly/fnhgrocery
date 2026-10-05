@@ -1064,7 +1064,9 @@ require __DIR__ . '/../includes/header.php';
 
             const confirmed =
                 window.confirm(
-                    'Close this register? The current transaction will be cancelled and all scanned items will be returned to inventory.'
+                    'Close this register? '
+                    + 'The current transaction will be cancelled '
+                    + 'and all scanned items will be returned to inventory.'
                 );
 
             if (!confirmed) {

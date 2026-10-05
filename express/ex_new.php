@@ -380,7 +380,8 @@ if (
         // Check that the loaded address belongs to this customer
         if ($customerMode === 'new' && $loadedAddressID > 0) {
             $errorMessage =
-                'A saved address from an existing customer cannot be used for a new customer. Enter the new customer address again.';
+                'A saved address from an existing customer cannot be used for a new customer. '
+                . 'Enter the new customer address again.';
 
             $loadedAddressID = 0;
             $selectedAddressID = 0;
@@ -406,7 +407,8 @@ if (
 
             if (!$loadedAddress) {
                 $errorMessage =
-                    'The loaded saved address does not belong to the selected customer. Load the customer and choose the address again.';
+                    'The loaded saved address does not belong to the selected customer. '
+                    . 'Load the customer and choose the address again.';
 
                 $loadedAddressID = 0;
                 $selectedAddressID = 0;

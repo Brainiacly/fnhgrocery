@@ -1117,7 +1117,11 @@ require __DIR__ . '/../includes/header.php';
                         value="1"
                         class="button button-danger"
                         hidden
-                        onclick="return window.confirm('Close this register? Any open transaction will be cancelled and its items will be returned to inventory.');"
+                        onclick="return window.confirm(
+                            'Close this register? '
+                            + 'Any open transaction will be cancelled '
+                            + 'and its items will be returned to inventory.'
+                        );"
                     >
                         Close Register
                     </button>
@@ -1684,7 +1688,10 @@ require __DIR__ . '/../includes/header.php';
                                 name="cancel_sale"
                                 value="1"
                                 class="button button-danger"
-                                onclick="return window.confirm('Cancel this sale? All scanned items will be returned to inventory.');"
+                                onclick="return window.confirm(
+                                    'Cancel this sale? '
+                                    + 'All scanned items will be returned to inventory.'
+                                );"
                             >
                                 Cancel Sale
                             </button>
@@ -1729,7 +1736,11 @@ require __DIR__ . '/../includes/header.php';
                             name="close_register"
                             value="1"
                             class="button button-secondary"
-                            onclick="return window.confirm('Close this register? The current transaction will be cancelled and all scanned items will be returned to inventory.');"
+                            onclick="return window.confirm(
+                                'Close this register? '
+                                + 'The current transaction will be cancelled '
+                                + 'and all scanned items will be returned to inventory.'
+                            );"
                         >
                             Close Register
                         </button>
@@ -2237,7 +2248,9 @@ require __DIR__ . '/../includes/header.php';
 
                     const confirmed =
                         window.confirm(
-                            'Close this register? The current transaction will be cancelled and all scanned items will be returned to inventory.'
+                            'Close this register? '
+                            + 'The current transaction will be cancelled '
+                            + 'and all scanned items will be returned to inventory.'
                         );
 
                     if (!confirmed) {
