@@ -84,10 +84,10 @@ documentation/Screenshots/Week 1
 Week 2 screenshots demonstrating the Week 2 Point of Sale, register, checkout, and inventory functionality are located in:
 documentation/Screenshots/Week 2
 
-Week 3 screenshots demonstrating FnH Express, home delivery, saved addresses, and the Personal Shopper access rules are located in:
+Week 3 screenshots demonstrating the Personal Shopper menu, Express capacity and stock information, the home delivery form, the delivery hours restriction, curbside orders, and the regular register list without Register 1 are located in:
 documentation/Screenshots/Week 3
 
-The Week 2 screenshots were taken using the local XAMPP development database.
+The Week 2 and Week 3 screenshots were taken using the local XAMPP development database.
 
 The local development database and the live Alwaysdata database began with the same data and numbering. Development and testing have since caused the two databases to become out of sync, so transaction numbers, record numbers, and other changing data shown in the screenshots may differ from the live website.
 
