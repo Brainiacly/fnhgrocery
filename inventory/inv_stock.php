@@ -117,10 +117,7 @@ require __DIR__ . '/../includes/header.php';
 
     <?php else: ?>
 
-        <section
-            class="inventory-total"
-            aria-label="Store stock totals"
-        >
+        <section class="inventory-total" aria-label="Store stock totals">
             <span class="inventory-total-label">Total Stock on Hand</span>
             <strong class="inventory-total-value">
                 <?= escapeOutput(number_format($totalStockWeight, 3)) ?> lb
@@ -185,7 +182,7 @@ require __DIR__ . '/../includes/header.php';
                             '';
 
                         $stockQuantity =
-                            (float)$inventoryRecord[
+                            (float) $inventoryRecord[
                                 'StockQuantity'
                             ];
 
@@ -204,13 +201,11 @@ require __DIR__ . '/../includes/header.php';
 
                         ?>
 
-                        <tr
-                            class="<?=
-                                $stockQuantity <= 0
-                                    ? 'inventory-out-of-stock'
-                                    : ''
-                            ?>"
-                        >
+                        <tr class="<?=
+                            $stockQuantity <= 0
+                            ? 'inventory-out-of-stock'
+                            : ''
+                            ?>">
 
                             <td>
                                 <?= escapeOutput(
@@ -237,7 +232,7 @@ require __DIR__ . '/../includes/header.php';
                             <td>
                                 $<?= escapeOutput(
                                     number_format(
-                                        (float)$inventoryRecord[
+                                        (float) $inventoryRecord[
                                             'RetailPrice'
                                         ],
                                         2
@@ -250,15 +245,15 @@ require __DIR__ . '/../includes/header.php';
                                 <strong>
                                     <?= escapeOutput(
                                         $inventoryRecord['UnitType'] === 'Each'
-                                            ? number_format(
-                                                $stockQuantity,
-                                                0
-                                            )
-                                            : number_format(
-                                                $stockQuantity,
-                                                3
-                                            )
-                                    ) ?> <?= $inventoryRecord['UnitType'] === 'Each' ? 'each' : 'lb' ?>
+                                        ? number_format(
+                                            $stockQuantity,
+                                            0
+                                        )
+                                        : number_format(
+                                            $stockQuantity,
+                                            3
+                                        )
+                                    ) ?>         <?= $inventoryRecord['UnitType'] === 'Each' ? 'each' : 'lb' ?>
                                 </strong>
 
                                 <?php if ($stockQuantity <= 0): ?>

@@ -175,16 +175,9 @@ require __DIR__ . '/../includes/header.php';
 
     <?php endif; ?>
 
-    <form
-        method="post"
-        class="coupon-form"
-    >
+    <form method="post" class="coupon-form">
 
-        <input
-            type="hidden"
-            name="form_security_token"
-            value="<?= escapeOutput(formToken()) ?>"
-        >
+        <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
 
         <div class="form-field coupon-product-field">
 
@@ -192,27 +185,31 @@ require __DIR__ . '/../includes/header.php';
                 Product
             </label>
 
-            <select
-                id="product_id"
-                name="product_id"
-                required
-            >
+            <select id="product_id" name="product_id" required>
 
                 <option value="">
                     Choose a product
                 </option>
 
-                <?php foreach ($productRecords as $productRecord): ?>
+                <?php
+                foreach ($productRecords as $productRecord) {
+                    $couponProductSelectedAttribute =
+                        (string) $productRecord['ProductID'] === $form['product_id']
+                        ? ' selected="selected"'
+                        : '';
+                    $couponProductPrice = number_format((float) $productRecord['RetailPrice'], 2);
 
-                    <option
-                        value="<?= (int) $productRecord['ProductID'] ?>"
-                        <?= (string) $productRecord['ProductID'] === $form['product_id'] ? 'selected' : '' ?>
-                    >
-                        <?= escapeOutput($productRecord['ProductName']) ?>
-                        ($<?= escapeOutput(number_format((float) $productRecord['RetailPrice'], 2)) ?>)
-                    </option>
-
-                <?php endforeach; ?>
+                    echo '<option value="'
+                        . (int) $productRecord['ProductID']
+                        . '"'
+                        . $couponProductSelectedAttribute
+                        . '>'
+                        . escapeOutput($productRecord['ProductName'])
+                        . ' ($'
+                        . escapeOutput($couponProductPrice)
+                        . ')</option>';
+                }
+                ?>
 
             </select>
 
@@ -224,16 +221,8 @@ require __DIR__ . '/../includes/header.php';
                 Items needed
             </label>
 
-            <input
-                type="number"
-                id="required_quantity"
-                name="required_quantity"
-                value="<?= escapeOutput($form['required_quantity']) ?>"
-                min="1"
-                max="99"
-                step="1"
-                required
-            >
+            <input type="number" id="required_quantity" name="required_quantity"
+                value="<?= escapeOutput($form['required_quantity']) ?>" min="1" max="99" step="1" required>
 
         </div>
 
@@ -243,22 +232,13 @@ require __DIR__ . '/../includes/header.php';
                 Type
             </label>
 
-            <select
-                id="discount_kind"
-                name="discount_kind"
-            >
+            <select id="discount_kind" name="discount_kind">
 
-                <option
-                    value="Dollar"
-                    <?= $form['discount_kind'] === 'Dollar' ? 'selected' : '' ?>
-                >
+                <option value="Dollar" <?= $form['discount_kind'] === 'Dollar' ? 'selected' : '' ?>>
                     Dollar amount off ($)
                 </option>
 
-                <option
-                    value="Percent"
-                    <?= $form['discount_kind'] === 'Percent' ? 'selected' : '' ?>
-                >
+                <option value="Percent" <?= $form['discount_kind'] === 'Percent' ? 'selected' : '' ?>>
                     Percent off (%)
                 </option>
 
@@ -272,15 +252,8 @@ require __DIR__ . '/../includes/header.php';
                 Amount
             </label>
 
-            <input
-                type="number"
-                id="discount_value"
-                name="discount_value"
-                value="<?= escapeOutput($form['discount_value']) ?>"
-                min="0.01"
-                step="0.01"
-                required
-            >
+            <input type="number" id="discount_value" name="discount_value"
+                value="<?= escapeOutput($form['discount_value']) ?>" min="0.01" step="0.01" required>
 
         </div>
 
@@ -290,14 +263,8 @@ require __DIR__ . '/../includes/header.php';
                 Description
             </label>
 
-            <input
-                type="text"
-                id="description"
-                name="description"
-                value="<?= escapeOutput($form['description']) ?>"
-                maxlength="120"
-                required
-            >
+            <input type="text" id="description" name="description" value="<?= escapeOutput($form['description']) ?>"
+                maxlength="120" required>
 
         </div>
 
@@ -307,12 +274,7 @@ require __DIR__ . '/../includes/header.php';
                 Starts (optional)
             </label>
 
-            <input
-                type="date"
-                id="start_date"
-                name="start_date"
-                value="<?= escapeOutput($form['start_date']) ?>"
-            >
+            <input type="date" id="start_date" name="start_date" value="<?= escapeOutput($form['start_date']) ?>">
 
         </div>
 
@@ -322,21 +284,11 @@ require __DIR__ . '/../includes/header.php';
                 Ends (optional)
             </label>
 
-            <input
-                type="date"
-                id="end_date"
-                name="end_date"
-                value="<?= escapeOutput($form['end_date']) ?>"
-            >
+            <input type="date" id="end_date" name="end_date" value="<?= escapeOutput($form['end_date']) ?>">
 
         </div>
 
-        <button
-            type="submit"
-            name="create_coupon"
-            value="1"
-            class="button button-primary"
-        >
+        <button type="submit" name="create_coupon" value="1" class="button button-primary">
             Create Coupon
         </button>
 
@@ -417,30 +369,14 @@ require __DIR__ . '/../includes/header.php';
 
                                 <form method="post">
 
-                                    <input
-                                        type="hidden"
-                                        name="form_security_token"
-                                        value="<?= escapeOutput(formToken()) ?>"
-                                    >
+                                    <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
 
-                                    <input
-                                        type="hidden"
-                                        name="coupon_id"
-                                        value="<?= (int) $couponRecord['CouponID'] ?>"
-                                    >
+                                    <input type="hidden" name="coupon_id" value="<?= (int) $couponRecord['CouponID'] ?>">
 
-                                    <input
-                                        type="hidden"
-                                        name="active"
-                                        value="<?= (int) $couponRecord['Active'] === 1 ? 0 : 1 ?>"
-                                    >
+                                    <input type="hidden" name="active"
+                                        value="<?= (int) $couponRecord['Active'] === 1 ? 0 : 1 ?>">
 
-                                    <button
-                                        type="submit"
-                                        name="set_active"
-                                        value="1"
-                                        class="button button-secondary"
-                                    >
+                                    <button type="submit" name="set_active" value="1" class="button button-secondary">
                                         <?= (int) $couponRecord['Active'] === 1 ? 'Turn Off' : 'Turn On' ?>
                                     </button>
 

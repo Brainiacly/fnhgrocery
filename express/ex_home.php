@@ -229,29 +229,20 @@ require __DIR__ . '/../includes/header.php';
 
         <?php if ((int) ($capacity['OrdersRemaining'] ?? 0) > 0): ?>
 
-            <a
-                class="button button-primary"
-                href="<?= APPLICATION_URL ?>/express/ex_new.php"
-            >
+            <a class="button button-primary" href="<?= APPLICATION_URL ?>/express/ex_new.php">
                 Take New Order
             </a>
 
         <?php else: ?>
 
-            <span
-                class="button button-disabled"
-                aria-disabled="true"
-            >
+            <span class="button button-disabled" aria-disabled="true">
                 Daily Capacity Full
             </span>
 
         <?php endif; ?>
 
 
-        <a
-            class="button button-secondary"
-            href="<?= APPLICATION_URL ?>/express/ex_orders.php"
-        >
+        <a class="button button-secondary" href="<?= APPLICATION_URL ?>/express/ex_orders.php">
             View Today&apos;s Orders
         </a>
 
@@ -301,12 +292,12 @@ require __DIR__ . '/../includes/header.php';
                     // A supervisor opening someone else's order chooses View, Assist, or Take Over first
                     $orderURL =
                         $isSupervisor && !$belongsToCurrentShopper
-                            ? APPLICATION_URL
-                                . '/transactions/tr_view.php?receipt='
-                                . (int) $order['ReceiptID']
-                            : APPLICATION_URL
-                                . '/express/ex_order.php?id='
-                                . (int) $order['ExpressOrderID'];
+                        ? APPLICATION_URL
+                        . '/transactions/tr_view.php?receipt='
+                        . (int) $order['ReceiptID']
+                        : APPLICATION_URL
+                        . '/express/ex_order.php?id='
+                        . (int) $order['ExpressOrderID'];
 
                     $customerName = trim(
                         ($order['CustomerFirstName'] ?? '')
@@ -341,10 +332,7 @@ require __DIR__ . '/../includes/header.php';
 
                         <?php endif; ?>
 
-                        <a
-                            class="button button-secondary"
-                            href="<?= $orderURL ?>"
-                        >
+                        <a class="button button-secondary" href="<?= $orderURL ?>">
                             Open
                         </a>
 
@@ -427,10 +415,7 @@ require __DIR__ . '/../includes/header.php';
                             </td>
 
                             <td>
-                                <a
-                                    class="button button-secondary"
-                                    href="<?= $orderURL ?>"
-                                >
+                                <a class="button button-secondary" href="<?= $orderURL ?>">
                                     View
                                 </a>
                             </td>
@@ -536,13 +521,11 @@ require __DIR__ . '/../includes/header.php';
                     $shelfText = trim((string) $stock['ShelfLocation']);
                     ?>
 
-                    <tr
-                        class="<?=
+                    <tr class="<?=
                         $stockQuantity <= 0
                         ? 'express-stock-out-of-stock'
                         : ''
-                        ?>"
-                    >
+                        ?>">
 
                         <td>
                             <?= escapeOutput($stock['DepartmentName']) ?>
@@ -569,15 +552,15 @@ require __DIR__ . '/../includes/header.php';
                             <strong>
                                 <?= escapeOutput(
                                     $stock['UnitType'] === 'Each'
-                                        ? number_format(
-                                            $stockQuantity,
-                                            0
-                                        )
-                                        : number_format(
-                                            $stockQuantity,
-                                            3
-                                        )
-                                ) ?> <?= $stock['UnitType'] === 'Each' ? 'each' : 'lb' ?>
+                                    ? number_format(
+                                        $stockQuantity,
+                                        0
+                                    )
+                                    : number_format(
+                                        $stockQuantity,
+                                        3
+                                    )
+                                ) ?>     <?= $stock['UnitType'] === 'Each' ? 'each' : 'lb' ?>
                             </strong>
 
                             <?php if ($stockQuantity <= 0): ?>

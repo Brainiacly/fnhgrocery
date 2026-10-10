@@ -6,233 +6,231 @@
 */
 
 .express-panel {
-    overflow: hidden;
+  overflow: hidden;
 }
 
 .express-capacity {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-    padding: 1rem;
-    border: 0.125rem solid var(--shared-blue-color);
-    border-radius: var(--standard-border-radius);
-    background: var(--theme-primary-light-color);
-    text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 0.125rem solid var(--shared-blue-color);
+  border-radius: var(--standard-border-radius);
+  background: var(--theme-primary-light-color);
+  text-align: center;
 }
 
 .express-capacity strong {
-    font-size: 2rem;
-    color: var(--theme-primary-dark-color);
+  font-size: 2rem;
+  color: var(--theme-primary-dark-color);
 }
 
 .express-actions {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.75rem;
-    margin: 1rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 1rem 0;
 }
 
 .express-table-container {
-    width: 100%;
-    overflow-x: auto;
-    margin-bottom: 1.25rem;
+  width: 100%;
+  overflow-x: auto;
+  margin-bottom: 1.25rem;
 }
 
 .express-table {
-    width: 100%;
-    min-width: 42rem;
-    border-collapse: collapse;
+  width: 100%;
+  min-width: 42rem;
+  border-collapse: collapse;
 }
 
 .express-table th,
 .express-table td {
-    padding: 0.75rem;
-    border: 0.0625rem solid var(--standard-border-color);
-    text-align: left;
-    vertical-align: middle;
+  padding: 0.75rem;
+  border: 0.0625rem solid var(--standard-border-color);
+  text-align: left;
+  vertical-align: middle;
 }
 
 .express-table th {
-    background: var(--theme-primary-dark-color);
-    color: white;
+  background: var(--theme-primary-dark-color);
+  color: white;
 }
 
 .express-table tbody tr:nth-child(even) {
-    background: var(--panel-background-color);
+  background: var(--panel-background-color);
 }
 
-
 .express-stock-total {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    padding: 1rem;
-    border: 0.125rem solid var(--shared-blue-color);
-    border-radius: var(--standard-border-radius);
-    background: var(--theme-primary-light-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 0.125rem solid var(--shared-blue-color);
+  border-radius: var(--standard-border-radius);
+  background: var(--theme-primary-light-color);
 }
 
 .express-stock-total-label {
-    color: var(--theme-primary-dark-color);
-    font-weight: bold;
+  color: var(--theme-primary-dark-color);
+  font-weight: bold;
 }
 
 .express-stock-total-value {
-    color: var(--theme-primary-dark-color);
-    font-size: 1.5rem;
+  color: var(--theme-primary-dark-color);
+  font-size: 1.5rem;
 }
 
 .express-stock-out-of-stock td {
-    background: var(--danger-background-color);
+  background: var(--danger-background-color);
 }
 
 .express-out-of-stock-label {
-    display: block;
-    margin-top: 0.25rem;
-    color: var(--danger-color);
-    font-size: 0.75rem;
-    font-weight: bold;
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--danger-color);
+  font-size: 0.75rem;
+  font-weight: bold;
 }
 
 .express-stock-table {
-    min-width: 50rem;
+  min-width: 50rem;
 }
 
 .express-empty {
-    padding: 1rem;
-    border: 0.0625rem dashed var(--standard-border-color);
-    border-radius: var(--standard-border-radius);
-    text-align: center;
+  padding: 1rem;
+  border: 0.0625rem dashed var(--standard-border-color);
+  border-radius: var(--standard-border-radius);
+  text-align: center;
 }
 
 .express-method-delivery,
 .express-method-curbside {
-    display: inline-block;
-    padding: 0.25rem 0.625rem;
-    border-radius: var(--standard-border-radius);
-    font-weight: bold;
-    font-size: 0.875rem;
+  display: inline-block;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--standard-border-radius);
+  font-weight: bold;
+  font-size: 0.875rem;
 }
 
 .express-method-delivery {
-    border: 0.125rem solid var(--theme-orange-color);
-    background: var(--theme-light-green-color);
-    color: var(--theme-primary-dark-color);
+  border: 0.125rem solid var(--theme-orange-color);
+  background: var(--theme-light-green-color);
+  color: var(--theme-primary-dark-color);
 }
 
 .express-method-curbside {
-    border: 0.0625rem solid var(--standard-border-color);
-    background: var(--panel-background-color);
-    color: var(--main-text-color);
+  border: 0.0625rem solid var(--standard-border-color);
+  background: var(--panel-background-color);
+  color: var(--main-text-color);
 }
 
 .express-fulfillment,
 .express-customer-mode {
-    grid-column: 1 / -1;
-    display: grid;
-    gap: 0.75rem;
-    padding: 1rem;
-    border: 0.0625rem solid var(--standard-border-color);
-    border-radius: var(--standard-border-radius);
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 0.0625rem solid var(--standard-border-color);
+  border-radius: var(--standard-border-radius);
 }
 
 .express-new-customer {
-    grid-column: 1 / -1;
-    display: grid;
-    gap: 0.75rem;
-    padding: 1rem;
-    border: 0.0625rem solid var(--standard-border-color);
-    border-radius: var(--standard-border-radius);
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 0.0625rem solid var(--standard-border-color);
+  border-radius: var(--standard-border-radius);
 }
 
 .express-fulfillment label,
 .express-customer-mode label {
-    min-height: var(--minimum-touch-size);
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
+  min-height: var(--minimum-touch-size);
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
 }
 
 .express-fulfillment input[type="radio"],
 .express-customer-mode input[type="radio"] {
-    width: 1.125rem;
-    height: 1.125rem;
-    min-width: 1.125rem;
-    min-height: 1.125rem;
-    margin: 0;
-    padding: 0;
-    cursor: pointer;
-    accent-color: var(--shared-blue-color);
+  width: 1.125rem;
+  height: 1.125rem;
+  min-width: 1.125rem;
+  min-height: 1.125rem;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  accent-color: var(--shared-blue-color);
 }
 
 .express-order-summary {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.625rem;
-    margin-bottom: 1rem;
-    padding: 1rem;
-    border: 0.0625rem solid var(--shared-blue-color);
-    border-radius: var(--standard-border-radius);
-    background: var(--theme-primary-light-color);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.625rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 0.0625rem solid var(--shared-blue-color);
+  border-radius: var(--standard-border-radius);
+  background: var(--theme-primary-light-color);
 }
 
 .express-address {
-    grid-column: 1 / -1;
+  grid-column: 1 / -1;
 }
 
 .express-address .button {
-    margin-top: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 .express-save-address {
-    grid-column: 1 / -1;
-    display: grid;
-    gap: 0.5rem;
-    padding: 1rem;
-    border: 0.0625rem solid var(--standard-border-color);
-    border-radius: var(--standard-border-radius);
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 0.0625rem solid var(--standard-border-color);
+  border-radius: var(--standard-border-radius);
 }
 
 .express-save-address label {
-    min-height: var(--minimum-touch-size);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+  min-height: var(--minimum-touch-size);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .express-save-address input[type="checkbox"] {
-    width: 1.125rem;
-    height: 1.125rem;
-    min-width: 1.125rem;
-    min-height: 1.125rem;
-    margin: 0;
-    padding: 0;
-    cursor: pointer;
-    accent-color: var(--shared-blue-color);
+  width: 1.125rem;
+  height: 1.125rem;
+  min-width: 1.125rem;
+  min-height: 1.125rem;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  accent-color: var(--shared-blue-color);
 }
 
 .express-status-form {
-    max-width: 30rem;
-    display: grid;
-    gap: 0.75rem;
-    margin: 1rem auto;
+  max-width: 30rem;
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem auto;
 }
 
 .express-status-form select {
-    min-height: var(--minimum-touch-size);
+  min-height: var(--minimum-touch-size);
 }
 
 @media (min-width: 48rem) {
-    .express-order-summary {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+  .express-order-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
-
 
 /* Express item entry and checkout */
 
@@ -240,157 +238,172 @@
 .express-checkout-totals,
 .express-checkout-form,
 .express-order-footer {
-    margin-top: 1rem;
-    padding: 1rem;
-    border: 0.0625rem solid var(--standard-border-color);
-    border-radius: var(--standard-border-radius);
-    background: var(--panel-background-color);
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 0.0625rem solid var(--standard-border-color);
+  border-radius: var(--standard-border-radius);
+  background: var(--panel-background-color);
 }
 
 .express-item-form {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
 }
 
 .express-checkout-totals {
-    display: grid;
-    gap: 0.625rem;
+  display: grid;
+  gap: 0.625rem;
 }
 
 .express-checkout-totals > div {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 .express-checkout-grand-total {
-    padding-top: 0.75rem;
-    border-top: 0.125rem solid var(--shared-blue-color);
-    font-size: 1.125rem;
+  padding-top: 0.75rem;
+  border-top: 0.125rem solid var(--shared-blue-color);
+  font-size: 1.125rem;
 }
 
 .express-checkout-form {
-    max-width: 36rem;
-    margin-right: auto;
-    margin-left: auto;
+  max-width: 36rem;
+  margin-right: auto;
+  margin-left: auto;
 }
 
 @media (min-width: 48rem) {
-    .express-item-form {
-        grid-template-columns: minmax(0, 2fr) minmax(8rem, 1fr) auto;
-        align-items: end;
-    }
+  .express-item-form {
+    grid-template-columns: minmax(0, 2fr) minmax(8rem, 1fr) auto;
+    align-items: end;
+  }
 }
 .express-remove-weight-form {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .express-remove-weight-input {
-    width: 7rem;
-    min-height: var(--minimum-touch-size);
+  width: 7rem;
+  min-height: var(--minimum-touch-size);
 }
 
 /* Narrow desktop and tablet: compact cells so the tables still fit */
 
 @media (max-width: 79.99rem) {
-    .express-table th,
-    .express-table td {
-        padding: 0.375rem 0.5rem;
-        font-size: 0.8125rem;
-    }
+  .express-table th,
+  .express-table td {
+    padding: 0.375rem 0.5rem;
+    font-size: 0.8125rem;
+  }
 
-    .express-table td:first-child {
-        overflow-wrap: anywhere;
-    }
+  .express-table td:first-child {
+    overflow-wrap: anywhere;
+  }
 }
 
 /* Desktop layout */
 
 @media (min-width: 64rem) {
-    .express-table,
-    .express-stock-table {
-        min-width: 0;
-    }
+  .express-table,
+  .express-stock-table {
+    min-width: 0;
+  }
 }
 
 /* Order board: open orders by status */
 
 .express-steps {
-    margin: 0 0 0.75rem;
-    color: var(--secondary-text-color);
-    font-size: 0.875rem;
+  margin: 0 0 0.75rem;
+  color: var(--secondary-text-color);
+  font-size: 0.875rem;
 }
 
 .express-board {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  align-items: stretch;
 }
 
 .express-board-column {
-    padding: 0.625rem;
-    border: 0.0625rem solid var(--standard-border-color);
-    border-radius: var(--standard-border-radius);
-    background: var(--panel-background-color);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  padding: 0.625rem;
+  border: 0.0625rem solid var(--standard-border-color);
+  border-radius: var(--standard-border-radius);
+  background: var(--panel-background-color);
 }
 
 .express-board-column h3 {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin: 0 0 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 0.25rem;
 }
 
 .express-board-count {
-    min-width: 1.75rem;
-    padding: 0.125rem 0.5rem;
-    border-radius: 1rem;
-    background: var(--theme-primary-dark-color);
-    color: white;
-    font-size: 0.875rem;
-    text-align: center;
+  min-width: 1.75rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 1rem;
+  background: var(--theme-primary-dark-color);
+  color: white;
+  font-size: 0.875rem;
+  text-align: center;
 }
 
 .express-board-hint {
-    margin: 0 0 0.5rem;
-    color: var(--secondary-text-color);
-    font-size: 0.8125rem;
+  min-height: 2.6em;
+  margin: 0 0 0.5rem;
+  color: var(--secondary-text-color);
+  font-size: 0.8125rem;
 }
 
 .express-card {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
-    margin-bottom: 0.5rem;
-    padding: 0.625rem;
-    border: 0.0625rem solid var(--standard-border-color);
-    border-radius: var(--standard-border-radius);
-    background: white;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+  padding: 0.625rem;
+  border: 0.0625rem solid var(--standard-border-color);
+  border-radius: var(--standard-border-radius);
+  background: white;
 }
 
 @media (min-width: 48rem) {
-    .express-board {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        align-items: start;
-    }
+  .express-board {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+  }
+}
+
+/* Keep empty order placeholders aligned and the same visual height. */
+.express-board-column > .express-empty {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
 }
 
 /* Next step on the order page, and the charge note on payment */
 
 .express-next-step,
 .express-charge-note {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    margin: 0 0 0.75rem;
-    padding: 0.5rem 0.75rem;
-    border: 0.0625rem solid var(--shared-blue-color);
-    border-radius: var(--standard-border-radius);
-    background: var(--information-background-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 0.0625rem solid var(--shared-blue-color);
+  border-radius: var(--standard-border-radius);
+  background: var(--information-background-color);
 }

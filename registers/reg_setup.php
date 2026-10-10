@@ -157,10 +157,7 @@ require __DIR__ . '/../includes/header.php';
 
     <?php if ($successMessage !== ''): ?>
 
-        <div
-            class="message message-success"
-            role="status"
-        >
+        <div class="message message-success" role="status">
             <?= escapeOutput($successMessage) ?>
         </div>
 
@@ -168,30 +165,19 @@ require __DIR__ . '/../includes/header.php';
 
     <?php if ($errorMessage !== ''): ?>
 
-        <div
-            class="message message-error"
-            role="alert"
-        >
+        <div class="message message-error" role="alert">
             <?= escapeOutput($errorMessage) ?>
         </div>
 
     <?php endif; ?>
 
-    <form
-        method="get"
-        class="register-picker"
-        action="<?= APPLICATION_URL ?>/registers/reg_setup.php"
-    >
+    <form method="get" class="register-picker" action="<?= APPLICATION_URL ?>/registers/reg_setup.php">
 
         <label for="registerPicker">
             Register
         </label>
 
-        <select
-            id="registerPicker"
-            name="register"
-            onchange="this.form.submit()"
-        >
+        <select id="registerPicker" name="register" onchange="this.form.submit()">
 
             <option value="">
                 Choose a register
@@ -210,29 +196,17 @@ require __DIR__ . '/../includes/header.php';
                     . ($register['TransactionNumber'] ? ' - in use by ' . $register['OperatorName'] : '');
                 ?>
 
-                <option
-                    value="<?= (int) $register['RegisterID'] ?>"
-                    <?= $optionSelected ? 'selected' : '' ?>
-                >
-                    <?= escapeOutput($optionText) ?>
-                </option>
+                <option value="<?= (int) $register['RegisterID'] ?>" <?= $optionSelected ? 'selected' : '' ?>>
+                    <?= escapeOutput($optionText) ?> </option>
 
-            <?php endforeach; ?>
+                <?php endforeach; ?>
 
-            <option
-                value="new"
-                <?= $adding ? 'selected' : '' ?>
-            >
-                Add New Register
-            </option>
+            <option value="new" <?= $adding ? 'selected' : '' ?>> Add New Register </option>
 
         </select>
 
         <noscript>
-            <button
-                type="submit"
-                class="button button-secondary"
-            >
+            <button type="submit" class="button button-secondary">
                 Open
             </button>
         </noscript>
@@ -241,119 +215,64 @@ require __DIR__ . '/../includes/header.php';
 
     <?php if ($selected || $adding): ?>
 
-        <form
-            method="post"
-            class="register-form"
-        >
+        <form method="post" class="register-form">
 
             <h2>
                 <?= $adding ? 'Add New Register' : 'Register ' . (int) $form['number'] ?>
             </h2>
 
-            <input
-                type="hidden"
-                name="form_security_token"
-                value="<?= escapeOutput(formToken()) ?>"
-            >
+            <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
 
-            <input
-                type="hidden"
-                name="register_id"
-                value="<?= (int) $form['id'] ?>"
-            >
+            <input type="hidden" name="register_id" value="<?= (int) $form['id'] ?>">
 
             <div class="register-fields">
 
                 <div class="form-field">
                     <label for="register_number">Number</label>
-                    <input
-                        type="number"
-                        id="register_number"
-                        name="register_number"
-                        min="1"
-                        max="999"
-                        value="<?= (int) $form['number'] ?>"
-                        <?= $isRegisterOne ? 'readonly' : '' ?>
-                        required
-                    >
+                    <input type="number" id="register_number" name="register_number" min="1" max="999"
+                        value="<?= (int) $form['number'] ?>" <?= $isRegisterOne ? 'readonly' : '' ?> required> </div>
+
+                    <div class="form-field">
+                        <label for="register_name">Name</label>
+                        <input type="text" id="register_name" name="register_name" maxlength="50"
+                            value="<?= escapeOutput($form['name']) ?>" required>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="register_type">Type</label>
+                        <select id="register_type" name="register_type">
+                            <option value="Express" <?= $form['type'] === 'Express' ? 'selected' : '' ?>> Express </option>
+                            <option value="Regular" <?= $form['type'] === 'Regular' ? 'selected' : '' ?>> Regular </option>
+                        </select>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="register_active">Status</label>
+                        <select id="register_active" name="active">
+                            <option value="1" <?= (int) $form['active'] === 1 ? 'selected' : '' ?>> Active </option>
+                            <option value="0" <?= (int) $form['active'] === 0 ? 'selected' : '' ?>> Inactive </option>
+                        </select>
+                    </div>
+
                 </div>
 
-                <div class="form-field">
-                    <label for="register_name">Name</label>
-                    <input
-                        type="text"
-                        id="register_name"
-                        name="register_name"
-                        maxlength="50"
-                        value="<?= escapeOutput($form['name']) ?>"
-                        required
-                    >
+                <?php if ($selected && $selected['TransactionNumber']): ?>
+
+                    <p class="field-help">
+                        In use by <?= escapeOutput($selected['OperatorName']) ?>,
+                        transaction <?= transactionNumberHtml($selected['TransactionNumber']) ?>.
+                        A register in use cannot be changed.
+                    </p>
+
+                <?php endif; ?>
+
+                <div class="form-actions">
+
+                    <button type="submit" class="button button-primary">
+                        <?= $adding ? 'Add Register' : 'Save Register' ?>
+                    </button>
+
                 </div>
-
-                <div class="form-field">
-                    <label for="register_type">Type</label>
-                    <select
-                        id="register_type"
-                        name="register_type"
-                    >
-                        <option
-                            value="Express"
-                            <?= $form['type'] === 'Express' ? 'selected' : '' ?>
-                        >
-                            Express
-                        </option>
-                        <option
-                            value="Regular"
-                            <?= $form['type'] === 'Regular' ? 'selected' : '' ?>
-                        >
-                            Regular
-                        </option>
-                    </select>
-                </div>
-
-                <div class="form-field">
-                    <label for="register_active">Status</label>
-                    <select
-                        id="register_active"
-                        name="active"
-                    >
-                        <option
-                            value="1"
-                            <?= (int) $form['active'] === 1 ? 'selected' : '' ?>
-                        >
-                            Active
-                        </option>
-                        <option
-                            value="0"
-                            <?= (int) $form['active'] === 0 ? 'selected' : '' ?>
-                        >
-                            Inactive
-                        </option>
-                    </select>
-                </div>
-
-            </div>
-
-            <?php if ($selected && $selected['TransactionNumber']): ?>
-
-                <p class="field-help">
-                    In use by <?= escapeOutput($selected['OperatorName']) ?>,
-                    transaction <?= transactionNumberHtml($selected['TransactionNumber']) ?>.
-                    A register in use cannot be changed.
-                </p>
-
-            <?php endif; ?>
-
-            <div class="form-actions">
-
-                <button
-                    type="submit"
-                    class="button button-primary"
-                >
-                    <?= $adding ? 'Add Register' : 'Save Register' ?>
-                </button>
-
-            </div>
 
         </form>
 

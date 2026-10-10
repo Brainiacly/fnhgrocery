@@ -308,10 +308,7 @@ require __DIR__ . '/../includes/header.php';
             <?php if ($ownsIt): ?>
                 <p>This open transaction is yours.</p>
                 <div class="form-actions">
-                    <a
-                        href="<?= transactionWorkUrl($transactionRecord) ?>"
-                        class="button button-primary"
-                    >
+                    <a href="<?= transactionWorkUrl($transactionRecord) ?>" class="button button-primary">
                         Resume
                     </a>
                 </div>
@@ -333,79 +330,33 @@ require __DIR__ . '/../includes/header.php';
                         You can hand it back.
                     </li>
                 </ul>
-                <form
-                    method="post"
-                    class="form-actions"
-                >
-                    <input
-                        type="hidden"
-                        name="form_security_token"
-                        value="<?= escapeOutput(formToken()) ?>"
-                    >
-                    <button
-                        type="submit"
-                        name="action"
-                        value="view"
-                        class="button button-secondary"
-                    >
+                <form method="post" class="form-actions">
+                    <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
+                    <button type="submit" name="action" value="view" class="button button-secondary">
                         View Only
                     </button>
-                    <button
-                        type="submit"
-                        name="action"
-                        value="assist"
-                        class="button button-secondary"
-                    >
+                    <button type="submit" name="action" value="assist" class="button button-secondary">
                         Assist
                     </button>
-                    <button
-                        type="submit"
-                        name="action"
-                        value="takeover"
-                        class="button button-primary"
-                        onclick="return confirm('Take over this transaction? It will be assigned to you.');"
-                    >
+                    <button type="submit" name="action" value="takeover" class="button button-primary"
+                        onclick="return confirm('Take over this transaction? It will be assigned to you.');">
                         Take Over
                     </button>
                 </form>
             <?php endif; ?>
             <?php if ($ownsIt && $canHandBack && canSupervise()): ?>
-                <form
-                    method="post"
-                    class="form-actions"
-                >
-                    <input
-                        type="hidden"
-                        name="form_security_token"
-                        value="<?= escapeOutput(formToken()) ?>"
-                    >
-                    <button
-                        type="submit"
-                        name="action"
-                        value="handback"
-                        class="button button-secondary"
-                    >
+                <form method="post" class="form-actions">
+                    <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
+                    <button type="submit" name="action" value="handback" class="button button-secondary">
                         Hand Back to <?= escapeOutput($lastTakeOver['PreviousName']) ?>
                     </button>
                 </form>
             <?php endif; ?>
             <?php if (canSupervise()): ?>
-                <form
-                    method="post"
-                    class="form-actions"
-                >
-                    <input
-                        type="hidden"
-                        name="form_security_token"
-                        value="<?= escapeOutput(formToken()) ?>"
-                    >
-                    <button
-                        type="submit"
-                        name="action"
-                        value="cancel"
-                        class="button button-secondary"
-                        onclick="return confirm('Cancel this open transaction? Its items go back in stock.');"
-                    >
+                <form method="post" class="form-actions">
+                    <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
+                    <button type="submit" name="action" value="cancel" class="button button-secondary"
+                        onclick="return confirm('Cancel this open transaction? Its items go back in stock.');">
                         Cancel Transaction
                     </button>
                 </form>
@@ -512,10 +463,7 @@ require __DIR__ . '/../includes/header.php';
             </section>
         <?php endif; ?>
 
-        <div
-            class="transaction-table-container"
-            tabindex="0"
-        >
+        <div class="transaction-table-container" tabindex="0">
             <table class="transaction-table transaction-line-table">
                 <thead>
                     <tr>
@@ -532,10 +480,7 @@ require __DIR__ . '/../includes/header.php';
                 <tbody>
                     <?php if (!$lineRecords): ?>
                         <tr>
-                            <td
-                                colspan="8"
-                                class="transaction-empty-row"
-                            >No items are recorded on this transaction.</td>
+                            <td colspan="8" class="transaction-empty-row">No items are recorded on this transaction.</td>
                         </tr>
                     <?php endif; ?>
 
@@ -557,10 +502,7 @@ require __DIR__ . '/../includes/header.php';
 
         <?php if (!empty($couponRecords)): ?>
             <h2 class="transaction-subheading">Coupons</h2>
-            <div
-                class="transaction-table-container"
-                tabindex="0"
-            >
+            <div class="transaction-table-container" tabindex="0">
                 <table class="transaction-table transaction-discount-table">
                     <thead>
                         <tr>
@@ -590,10 +532,7 @@ require __DIR__ . '/../includes/header.php';
         <?php if (!empty($discountRecords)): ?>
             <h2 class="transaction-subheading">Discounts</h2>
 
-            <div
-                class="transaction-table-container"
-                tabindex="0"
-            >
+            <div class="transaction-table-container" tabindex="0">
                 <table class="transaction-table transaction-discount-table">
                     <thead>
                         <tr>
@@ -677,23 +616,20 @@ require __DIR__ . '/../includes/header.php';
                 </strong>
             </div>
             <?php if ($transactionRecord['PaymentMethod'] !== 'Charge'): ?>
-            <div>
-                <span>Change Due</span>
-                <strong>
-                    <?= $transactionRecord['ChangeDue'] === null
-                        ? 'None'
-                        : '$' . escapeOutput(number_format((float) $transactionRecord['ChangeDue'], 2)) ?>
-                </strong>
-            </div>
+                <div>
+                    <span>Change Due</span>
+                    <strong>
+                        <?= $transactionRecord['ChangeDue'] === null
+                            ? 'None'
+                            : '$' . escapeOutput(number_format((float) $transactionRecord['ChangeDue'], 2)) ?>
+                    </strong>
+                </div>
             <?php endif; ?>
         </section>
 
         <?php if ($accessRecords): ?>
             <h2 class="transaction-subheading">Who Worked On This Transaction</h2>
-            <div
-                class="transaction-table-container"
-                tabindex="0"
-            >
+            <div class="transaction-table-container" tabindex="0">
                 <table class="transaction-table transaction-discount-table">
                     <thead>
                         <tr>
@@ -726,10 +662,7 @@ require __DIR__ . '/../includes/header.php';
         <?php endif; ?>
 
         <div class="page-main-actions transaction-detail-actions">
-            <a
-                href="<?= APPLICATION_URL ?>/transactions/tr_list.php"
-                class="button button-secondary"
-            >
+            <a href="<?= APPLICATION_URL ?>/transactions/tr_list.php" class="button button-secondary">
                 Back to Transactions
             </a>
         </div>

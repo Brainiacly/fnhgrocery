@@ -17,7 +17,7 @@ $operatorID =
     signedInOperatorID();
 
 $receiptID =
-    (int)(
+    (int) (
         $_GET['receipt']
         ??
         0
@@ -120,9 +120,9 @@ try {
         $couponRecords = fetchSaleCoupons($db, $receiptID);
         $couponTotal = array_sum(array_map('floatval', array_column($couponRecords, 'AppliedAmount')));
         $discountRecords = fetchSaleDiscounts(
-                $db,
-                $receiptID
-            );
+            $db,
+            $receiptID
+        );
     }
 
 } catch (PDOException $exception) {
@@ -151,13 +151,13 @@ require __DIR__ . '/../includes/header.php';
 
 <section class="content-panel sale-complete-panel">
 
-<div class="page-intro">
+    <div class="page-intro">
 
-    <p>
-        The transaction has been recorded.
-    </p>
+        <p>
+            The transaction has been recorded.
+        </p>
 
-</div>
+    </div>
 
 
     <?php if ($errorMessage !== ''): ?>
@@ -254,37 +254,37 @@ require __DIR__ . '/../includes/header.php';
                             <td>
                                 <?= escapeOutput(
                                     $saleItem['UnitType'] === 'Each'
-                                        ? number_format(
-                                            (float)$saleItem['Quantity'],
-                                            0
-                                        )
-                                        : number_format(
-                                            (float)$saleItem['Quantity'],
-                                            3
-                                        )
+                                    ? number_format(
+                                        (float) $saleItem['Quantity'],
+                                        0
+                                    )
+                                    : number_format(
+                                        (float) $saleItem['Quantity'],
+                                        3
+                                    )
                                 ) ?>
                             </td>
 
                             <td>
                                 $<?= escapeOutput(
                                     number_format(
-                                        (float)$saleItem['UnitPrice'],
+                                        (float) $saleItem['UnitPrice'],
                                         2
                                     )
                                 ) ?>
                             </td>
 
                             <td>
-                                <?= (int)$saleItem['Taxable'] === 1
+                                <?= (int) $saleItem['Taxable'] === 1
                                     ? 'Taxable'
                                     : 'No Tax'
-                                ?>
+                                    ?>
                             </td>
 
                             <td>
                                 $<?= escapeOutput(
                                     number_format(
-                                        (float)$saleItem['LineTotal'],
+                                        (float) $saleItem['LineTotal'],
                                         2
                                     )
                                 ) ?>
@@ -303,28 +303,28 @@ require __DIR__ . '/../includes/header.php';
 
         <section class="checkout-totals">
             <?php if (!empty($couponRecords)): ?>
-            <div class="checkout-total-row">
-                <span>
-                    Items
-                </span>
-                <strong>
-                    $<?= escapeOutput(number_format((float) $saleRecord['SubtotalAmount'] + $couponTotal, 2)) ?>
-                </strong>
-            </div>
-            <?php foreach ($couponRecords as $couponRecord): ?>
-                <div class="checkout-total-row checkout-discount-row">
+                <div class="checkout-total-row">
                     <span>
-                        Coupon
-                        <small>
-                            <?= escapeOutput($couponRecord['Description']) ?>
-                        </small>
+                        Items
                     </span>
                     <strong>
-                        -$<?= escapeOutput(number_format((float) $couponRecord['AppliedAmount'], 2)) ?>
+                        $<?= escapeOutput(number_format((float) $saleRecord['SubtotalAmount'] + $couponTotal, 2)) ?>
                     </strong>
                 </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
+                <?php foreach ($couponRecords as $couponRecord): ?>
+                    <div class="checkout-total-row checkout-discount-row">
+                        <span>
+                            Coupon
+                            <small>
+                                <?= escapeOutput($couponRecord['Description']) ?>
+                            </small>
+                        </span>
+                        <strong>
+                            -$<?= escapeOutput(number_format((float) $couponRecord['AppliedAmount'], 2)) ?>
+                        </strong>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
             <div class="checkout-total-row">
                 <span>
                     Subtotal
@@ -333,7 +333,7 @@ require __DIR__ . '/../includes/header.php';
                 <strong>
                     $<?= escapeOutput(
                         number_format(
-                            (float)$saleRecord['SubtotalAmount'],
+                            (float) $saleRecord['SubtotalAmount'],
                             2
                         )
                     ) ?>
@@ -380,7 +380,7 @@ require __DIR__ . '/../includes/header.php';
                 <strong>
                     $<?= escapeOutput(
                         number_format(
-                            (float)$saleRecord['TaxableSubtotalAmount'],
+                            (float) $saleRecord['TaxableSubtotalAmount'],
                             2
                         )
                     ) ?>
@@ -398,7 +398,7 @@ require __DIR__ . '/../includes/header.php';
                 <strong>
                     $<?= escapeOutput(
                         number_format(
-                            (float)$saleRecord['TaxAmount'],
+                            (float) $saleRecord['TaxAmount'],
                             2
                         )
                     ) ?>
@@ -445,7 +445,7 @@ require __DIR__ . '/../includes/header.php';
                 <strong>
                     $<?= escapeOutput(
                         number_format(
-                            (float)$saleRecord['TotalAmount'],
+                            (float) $saleRecord['TotalAmount'],
                             2
                         )
                     ) ?>
@@ -479,40 +479,40 @@ require __DIR__ . '/../includes/header.php';
                     </strong>
                 </div>
             <?php else: ?>
-            <div class="checkout-total-row">
+                <div class="checkout-total-row">
 
-                <span>
-                    Cash Tendered
-                </span>
+                    <span>
+                        Cash Tendered
+                    </span>
 
-                <strong>
-                    $<?= escapeOutput(
-                        number_format(
-                            (float)$saleRecord['AmountTendered'],
-                            2
-                        )
-                    ) ?>
-                </strong>
+                    <strong>
+                        $<?= escapeOutput(
+                            number_format(
+                                (float) $saleRecord['AmountTendered'],
+                                2
+                            )
+                        ) ?>
+                    </strong>
 
-            </div>
+                </div>
 
 
-            <div class="checkout-total-row checkout-change">
+                <div class="checkout-total-row checkout-change">
 
-                <span>
-                    Change Due
-                </span>
+                    <span>
+                        Change Due
+                    </span>
 
-                <strong>
-                    $<?= escapeOutput(
-                        number_format(
-                            (float)$saleRecord['ChangeDue'],
-                            2
-                        )
-                    ) ?>
-                </strong>
+                    <strong>
+                        $<?= escapeOutput(
+                            number_format(
+                                (float) $saleRecord['ChangeDue'],
+                                2
+                            )
+                        ) ?>
+                    </strong>
 
-            </div>
+                </div>
             <?php endif; ?>
 
         </section>
@@ -520,17 +520,11 @@ require __DIR__ . '/../includes/header.php';
 
         <div class="page-main-actions">
 
-            <a
-                href="<?= APPLICATION_URL ?>/sales/sale_new.php"
-                class="button button-primary"
-            >
+            <a href="<?= APPLICATION_URL ?>/sales/sale_new.php" class="button button-primary">
                 Start New Sale
             </a>
 
-            <a
-                href="<?= APPLICATION_URL ?>/index.php"
-                class="button button-secondary"
-            >
+            <a href="<?= APPLICATION_URL ?>/index.php" class="button button-secondary">
                 Main Menu
             </a>
 

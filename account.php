@@ -267,11 +267,7 @@ require __DIR__ . '/includes/header.php';
 
     <form method="post">
 
-        <input
-            type="hidden"
-            name="form_security_token"
-            value="<?= escapeOutput(formToken()) ?>"
-        >
+        <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
 
         <div class="form-grid">
 
@@ -293,15 +289,8 @@ require __DIR__ . '/includes/header.php';
                     </span>
                 </label>
 
-                <input
-                    type="text"
-                    id="username"
-                    name="username"
-                    value="<?= escapeOutput($username) ?>"
-                    maxlength="50"
-                    required
-                    autocomplete="username"
-                >
+                <input type="text" id="username" name="username" value="<?= escapeOutput($username) ?>" maxlength="50"
+                    required autocomplete="username">
             </div>
             <div class="form-field">
                 <label>
@@ -343,14 +332,8 @@ require __DIR__ . '/includes/header.php';
                     First Name *
                 </label>
 
-                <input
-                    type="text"
-                    id="first_name"
-                    name="first_name"
-                    value="<?= escapeOutput($firstName) ?>"
-                    maxlength="60"
-                    required
-                >
+                <input type="text" id="first_name" name="first_name" value="<?= escapeOutput($firstName) ?>"
+                    maxlength="60" required>
             </div>
 
             <div class="form-field">
@@ -358,14 +341,8 @@ require __DIR__ . '/includes/header.php';
                     Middle Initial (Optional)
                 </label>
 
-                <input
-                    type="text"
-                    id="middle_initial"
-                    name="middle_initial"
-                    value="<?= escapeOutput($middleInitial) ?>"
-                    maxlength="1"
-                    pattern="[A-Za-z]"
-                >
+                <input type="text" id="middle_initial" name="middle_initial" value="<?= escapeOutput($middleInitial) ?>"
+                    maxlength="1" pattern="[A-Za-z]">
             </div>
 
             <div class="form-field">
@@ -373,14 +350,8 @@ require __DIR__ . '/includes/header.php';
                     Last Name *
                 </label>
 
-                <input
-                    type="text"
-                    id="last_name"
-                    name="last_name"
-                    value="<?= escapeOutput($lastName) ?>"
-                    maxlength="60"
-                    required
-                >
+                <input type="text" id="last_name" name="last_name" value="<?= escapeOutput($lastName) ?>" maxlength="60"
+                    required>
             </div>
 
             <div class="form-field">
@@ -388,33 +359,17 @@ require __DIR__ . '/includes/header.php';
                     Email *
                 </label>
 
-                <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value="<?= escapeOutput($email) ?>"
-                    maxlength="120"
-                    required
-                    autocomplete="email"
-                >
+                <input type="email" id="email" name="email" value="<?= escapeOutput($email) ?>" maxlength="120" required
+                    autocomplete="email">
             </div>
 
             <div class="form-field">
                 <label for="phone">
                     Phone
                 </label>
-                <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value="<?= escapeOutput($phone) ?>"
-                    minlength="10"
-                    maxlength="10"
-                    pattern="[0-9]{10}"
-                    inputmode="numeric"
-                    title="Enter exactly 10 digits with no spaces or punctuation."
-                    autocomplete="tel"
-                >
+                <input type="tel" id="phone" name="phone" value="<?= escapeOutput($phone) ?>" minlength="10"
+                    maxlength="10" pattern="[0-9]{10}" inputmode="numeric"
+                    title="Enter exactly 10 digits with no spaces or punctuation." autocomplete="tel">
             </div>
 
             <div class="form-field">
@@ -422,12 +377,7 @@ require __DIR__ . '/includes/header.php';
                     Current Password
                 </label>
 
-                <input
-                    type="password"
-                    id="current_password"
-                    name="current_password"
-                    autocomplete="current-password"
-                >
+                <input type="password" id="current_password" name="current_password" autocomplete="current-password">
 
                 <div class="field-help">
                     Required only when changing your password.
@@ -439,13 +389,7 @@ require __DIR__ . '/includes/header.php';
                     New Password
                 </label>
 
-                <input
-                    type="password"
-                    id="new_password"
-                    name="new_password"
-                    minlength="8"
-                    autocomplete="new-password"
-                >
+                <input type="password" id="new_password" name="new_password" minlength="8" autocomplete="new-password">
 
                 <div class="field-help">
                     Leave blank to keep your current password. <?= escapeOutput(passwordRules()) ?>
@@ -457,30 +401,19 @@ require __DIR__ . '/includes/header.php';
                     Confirm New Password
                 </label>
 
-                <input
-                    type="password"
-                    id="confirm_new_password"
-                    name="confirm_new_password"
-                    minlength="8"
-                    autocomplete="new-password"
-                >
+                <input type="password" id="confirm_new_password" name="confirm_new_password" minlength="8"
+                    autocomplete="new-password">
             </div>
 
         </div>
 
         <div class="form-actions">
 
-            <button
-                type="submit"
-                class="button button-primary"
-            >
+            <button type="submit" class="button button-primary">
                 Save Changes
             </button>
 
-            <a
-                href="<?= APPLICATION_URL ?>/index.php"
-                class="button button-secondary"
-            >
+            <a href="<?= APPLICATION_URL ?>/index.php" class="button button-secondary">
                 Cancel
             </a>
 

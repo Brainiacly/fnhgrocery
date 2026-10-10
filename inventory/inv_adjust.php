@@ -198,52 +198,26 @@ require __DIR__ . '/../includes/header.php';
         </section>
 
         <form method="post">
-            <input
-                type="hidden"
-                name="form_security_token"
-                value="<?= escapeOutput(formToken()) ?>"
-            >
-            <input
-                type="hidden"
-                name="product_id"
-                value="<?= (int) $productID ?>"
-            >
+            <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
+            <input type="hidden" name="product_id" value="<?= (int) $productID ?>">
 
             <div class="form-grid">
                 <div class="form-field">
                     <label for="adjustment_type">Adjustment *</label>
-                    <select
-                        id="adjustment_type"
-                        name="adjustment_type"
-                        required
-                    >
-                        <option
-                            value="Add"
-                            <?= $adjustmentType === 'Add' ? 'selected' : '' ?>
-                        >Add to current stock</option>
-                        <option
-                            value="Remove"
-                            <?= $adjustmentType === 'Remove' ? 'selected' : '' ?>
-                        >Remove from current stock</option>
-                        <option
-                            value="Set"
-                            <?= $adjustmentType === 'Set' ? 'selected' : '' ?>
-                        >Set exact on-hand quantity</option>
+                    <select id="adjustment_type" name="adjustment_type" required>
+                        <option value="Add" <?= $adjustmentType === 'Add' ? 'selected' : '' ?>>Add to current stock</option>
+                        <option value="Remove" <?= $adjustmentType === 'Remove' ? 'selected' : '' ?>>Remove from current stock
+                        </option>
+                        <option value="Set" <?= $adjustmentType === 'Set' ? 'selected' : '' ?>>Set exact on-hand quantity
+                        </option>
                     </select>
                 </div>
 
                 <div class="form-field">
                     <label for="quantity">Quantity *</label>
-                    <input
-                        type="number"
-                        id="quantity"
-                        name="quantity"
-                        min="0"
+                    <input type="number" id="quantity" name="quantity" min="0"
                         step="<?= $productRecord['UnitType'] === 'Each' ? '1' : '0.001' ?>"
-                        value="<?= escapeOutput($quantity) ?>"
-                        required
-                        inputmode="decimal"
-                    >
+                        value="<?= escapeOutput($quantity) ?>" required inputmode="decimal">
                     <div class="field-help">
                         <?= $productRecord['UnitType'] === 'Each'
                             ? 'Enter whole units for this product.'
@@ -253,62 +227,33 @@ require __DIR__ . '/../includes/header.php';
 
                 <div class="form-field form-field-full-width">
                     <label for="reason">Reason *</label>
-                    <input
-                        type="text"
-                        id="reason"
-                        name="reason"
-                        maxlength="255"
-                        value="<?= escapeOutput($reason) ?>"
-                        placeholder="Example: Delivery received, damaged item, cycle count correction"
-                        required
-                    >
+                    <input type="text" id="reason" name="reason" maxlength="255" value="<?= escapeOutput($reason) ?>"
+                        placeholder="Example: Delivery received, damaged item, cycle count correction" required>
                 </div>
 
                 <div class="form-field">
                     <label for="aisle">Aisle</label>
-                    <input
-                        type="text"
-                        id="aisle"
-                        name="aisle"
-                        maxlength="20"
-                        value="<?= escapeOutput($aisle) ?>"
-                    >
+                    <input type="text" id="aisle" name="aisle" maxlength="20" value="<?= escapeOutput($aisle) ?>">
                 </div>
 
                 <div class="form-field">
                     <label for="section_name">Section</label>
-                    <input
-                        type="text"
-                        id="section_name"
-                        name="section_name"
-                        maxlength="50"
-                        value="<?= escapeOutput($sectionName) ?>"
-                    >
+                    <input type="text" id="section_name" name="section_name" maxlength="50"
+                        value="<?= escapeOutput($sectionName) ?>">
                 </div>
 
                 <div class="form-field">
                     <label for="shelf_location">Shelf Location</label>
-                    <input
-                        type="text"
-                        id="shelf_location"
-                        name="shelf_location"
-                        maxlength="30"
-                        value="<?= escapeOutput($shelfLocation) ?>"
-                    >
+                    <input type="text" id="shelf_location" name="shelf_location" maxlength="30"
+                        value="<?= escapeOutput($shelfLocation) ?>">
                 </div>
             </div>
 
             <div class="form-actions">
-                <button
-                    type="submit"
-                    class="button button-primary"
-                >
+                <button type="submit" class="button button-primary">
                     Save Adjustment
                 </button>
-                <a
-                    href="<?= APPLICATION_URL ?>/inventory/inv_manage.php"
-                    class="button button-secondary"
-                >
+                <a href="<?= APPLICATION_URL ?>/inventory/inv_manage.php" class="button button-secondary">
                     Back to Inventory
                 </a>
             </div>

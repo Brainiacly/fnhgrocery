@@ -98,8 +98,8 @@ try {
 
 $successMessage =
     isset($_GET['cancelled'])
-        ? 'The Express order was cancelled and any picked inventory was restored.'
-        : '';
+    ? 'The Express order was cancelled and any picked inventory was restored.'
+    : '';
 
 
 $pageTitle =
@@ -154,29 +154,20 @@ require __DIR__ . '/../includes/header.php';
 
         <?php if ((int) ($capacity['OrdersRemaining'] ?? 0) > 0): ?>
 
-            <a
-                class="button button-primary"
-                href="<?= APPLICATION_URL ?>/express/ex_new.php"
-            >
+            <a class="button button-primary" href="<?= APPLICATION_URL ?>/express/ex_new.php">
                 Take New Order
             </a>
 
         <?php else: ?>
 
-            <span
-                class="button button-disabled"
-                aria-disabled="true"
-            >
+            <span class="button button-disabled" aria-disabled="true">
                 Daily Capacity Full
             </span>
 
         <?php endif; ?>
 
 
-        <a
-            class="button button-secondary"
-            href="<?= APPLICATION_URL ?>/express/ex_home.php"
-        >
+        <a class="button button-secondary" href="<?= APPLICATION_URL ?>/express/ex_home.php">
             Express Home
         </a>
 
@@ -241,12 +232,12 @@ require __DIR__ . '/../includes/header.php';
 
                         $orderURL =
                             canSupervise() && !$belongsToCurrentShopper
-                                ? APPLICATION_URL
-                                    . '/transactions/tr_view.php?receipt='
-                                    . (int) $order['ReceiptID']
-                                : APPLICATION_URL
-                                    . '/express/ex_order.php?id='
-                                    . (int) $order['ExpressOrderID'];
+                            ? APPLICATION_URL
+                            . '/transactions/tr_view.php?receipt='
+                            . (int) $order['ReceiptID']
+                            : APPLICATION_URL
+                            . '/express/ex_order.php?id='
+                            . (int) $order['ExpressOrderID'];
                         ?>
 
                         <tr>
@@ -303,10 +294,7 @@ require __DIR__ . '/../includes/header.php';
                             </td>
 
                             <td>
-                                <a
-                                    class="button button-secondary"
-                                    href="<?= escapeOutput($orderURL) ?>"
-                                >
+                                <a class="button button-secondary" href="<?= escapeOutput($orderURL) ?>">
                                     Open
                                 </a>
                             </td>

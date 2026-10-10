@@ -13,7 +13,7 @@ if (basename($_SERVER['SCRIPT_NAME']) === basename(__FILE__)) {
 
 ?>
 
-    </main>
+</main>
 
 </div>
 
@@ -29,9 +29,7 @@ if (basename($_SERVER['SCRIPT_NAME']) === basename(__FILE__)) {
         |
     </span>
 
-    <a
-        href="mailto:<?= escapeOutput(DEVELOPER_EMAIL) ?>?subject=FnH%20Groceries%20Feedback"
-    >
+    <a href="mailto:<?= escapeOutput(DEVELOPER_EMAIL) ?>?subject=FnH%20Groceries%20Feedback">
         Send Feedback
     </a>
 

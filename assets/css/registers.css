@@ -10,50 +10,50 @@ Registers: one dropdown, and the form for the chosen register beneath it
 */
 
 .registers-panel {
-    max-width: 40rem;
-    margin-inline: auto;
+  max-width: 40rem;
+  margin-inline: auto;
 }
 
 .register-picker {
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
-    margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-bottom: 1rem;
 }
 
 .register-picker label {
-    font-weight: bold;
+  font-weight: bold;
 }
 
 .register-picker select {
-    width: 100%;
+  width: 100%;
 }
 
 .register-form {
-    padding: 0.75rem 1rem;
-    border: 0.0625rem solid var(--standard-border-color);
-    border-radius: var(--standard-border-radius);
-    background: var(--panel-background-color);
+  padding: 0.75rem 1rem;
+  border: 0.0625rem solid var(--standard-border-color);
+  border-radius: var(--standard-border-radius);
+  background: var(--panel-background-color);
 }
 
 .register-form h2 {
-    margin: 0 0 0.5rem;
-    font-size: 1.125rem;
+  margin: 0 0 0.5rem;
+  font-size: 1.125rem;
 }
 
 .register-fields {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.5rem 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 0.75rem;
 }
 
 .register-form .form-actions {
-    justify-content: flex-start;
-    margin-top: 0.75rem;
+  justify-content: flex-start;
+  margin-top: 0.75rem;
 }
 
 @media (max-width: 36rem) {
-    .register-fields {
-        grid-template-columns: minmax(0, 1fr);
-    }
+  .register-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

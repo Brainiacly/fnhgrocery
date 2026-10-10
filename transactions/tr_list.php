@@ -204,100 +204,65 @@ require __DIR__ . '/../includes/header.php';
         <div class="message message-error"><?= escapeOutput($errorMessage) ?></div>
     <?php endif; ?>
 
-    <form
-        method="get"
-        class="transaction-filter-form"
-    >
+    <form method="get" class="transaction-filter-form">
         <?php if ($filteredOperator): ?>
-            <input
-                type="hidden"
-                name="employee"
-                value="<?= (int) $filteredOperator['OperatorID'] ?>"
-            >
+            <input type="hidden" name="employee" value="<?= (int) $filteredOperator['OperatorID'] ?>">
         <?php endif; ?>
 
         <div class="transaction-filter-field transaction-filter-search">
             <label for="search">Search</label>
-            <input
-                type="search"
-                id="search"
-                name="search"
-                value="<?= escapeOutput($searchTerm) ?>"
-                placeholder="Transaction, customer, or employee"
-            >
+            <input type="search" id="search" name="search" value="<?= escapeOutput($searchTerm) ?>"
+                placeholder="Transaction, customer, or employee">
         </div>
 
         <?php if (canSupervise()): ?>
             <div class="transaction-filter-field">
                 <label for="type">Type</label>
-                <select
-                    id="type"
-                    name="type"
-                >
-                    <option
-                        value="all"
-                        <?= $typeFilter === 'all' ? 'selected' : '' ?>
-                    >All</option>
-                    <option
-                        value="Regular"
-                        <?= $typeFilter === 'Regular' ? 'selected' : '' ?>
-                    >Regular</option>
-                    <option
-                        value="Express"
-                        <?= $typeFilter === 'Express' ? 'selected' : '' ?>
-                    >Express</option>
+                <select id="type" name="type">
+                    <option value="all" <?= $typeFilter === 'all' ? 'selected' : '' ?>>All</option>
+                    <option value="Regular" <?= $typeFilter === 'Regular' ? 'selected' : '' ?>>Regular</option>
+                    <option value="Express" <?= $typeFilter === 'Express' ? 'selected' : '' ?>>Express</option>
                 </select>
             </div>
         <?php endif; ?>
 
         <div class="transaction-filter-field">
             <label for="status">Status</label>
-            <select
-                id="status"
-                name="status"
-            >
-                <?php foreach ($validStatuses as $statusOption): ?>
-                    <option
-                        value="<?= escapeOutput($statusOption) ?>"
-                        <?= $statusFilter === $statusOption ? 'selected' : '' ?>
-                    >
-                        <?= $statusOption === 'all' ? 'All' : escapeOutput($statusOption) ?>
-                    </option>
-                <?php endforeach; ?>
+            <select id="status" name="status">
+                <?php
+                foreach ($validStatuses as $statusOption) {
+                    $statusSelectedAttribute = $statusFilter === $statusOption
+                        ? ' selected="selected"'
+                        : '';
+                    $statusOptionLabel = $statusOption === 'all' ? 'All' : $statusOption;
+
+                    echo '<option value="'
+                        . escapeOutput($statusOption)
+                        . '"'
+                        . $statusSelectedAttribute
+                        . '>'
+                        . escapeOutput($statusOptionLabel)
+                        . '</option>';
+                }
+                ?>
             </select>
         </div>
 
         <div class="transaction-filter-field">
             <label for="date_from">From</label>
-            <input
-                type="date"
-                id="date_from"
-                name="date_from"
-                value="<?= escapeOutput($dateFrom) ?>"
-            >
+            <input type="date" id="date_from" name="date_from" value="<?= escapeOutput($dateFrom) ?>">
         </div>
 
         <div class="transaction-filter-field">
             <label for="date_to">To</label>
-            <input
-                type="date"
-                id="date_to"
-                name="date_to"
-                value="<?= escapeOutput($dateTo) ?>"
-            >
+            <input type="date" id="date_to" name="date_to" value="<?= escapeOutput($dateTo) ?>">
         </div>
 
         <div class="transaction-filter-actions">
-            <button
-                type="submit"
-                class="button button-primary"
-            >
+            <button type="submit" class="button button-primary">
                 Apply
             </button>
-            <a
-                href="<?= APPLICATION_URL ?>/transactions/tr_list.php"
-                class="button button-secondary"
-            >
+            <a href="<?= APPLICATION_URL ?>/transactions/tr_list.php" class="button button-secondary">
                 Clear
             </a>
         </div>
@@ -308,10 +273,7 @@ require __DIR__ . '/../includes/header.php';
         Showing up to 100 most recent matching transactions.
     </div>
 
-    <div
-        class="transaction-table-container"
-        tabindex="0"
-    >
+    <div class="transaction-table-container" tabindex="0">
         <table class="transaction-table">
             <thead>
                 <tr>
@@ -329,10 +291,7 @@ require __DIR__ . '/../includes/header.php';
             <tbody>
                 <?php if (!$transactionRecords): ?>
                     <tr>
-                        <td
-                            colspan="9"
-                            class="transaction-empty-row"
-                        >No transactions match the selected filters.</td>
+                        <td colspan="9" class="transaction-empty-row">No transactions match the selected filters.</td>
                     </tr>
                 <?php endif; ?>
 
@@ -367,9 +326,7 @@ require __DIR__ . '/../includes/header.php';
                             ) ?>
                         </td>
                         <td>
-                            <span
-                                class="<?= escapeOutput($typeClass) ?>"
-                            >
+                            <span class="<?= escapeOutput($typeClass) ?>">
                                 <?= escapeOutput($transactionRecord['SaleType']) ?>
                             </span>
                             <?php if (
@@ -377,8 +334,7 @@ require __DIR__ . '/../includes/header.php';
                                 && $transactionRecord['FulfillmentMethod']
                             ): ?>
                                 <span
-                                    class="transaction-substatus"
-                                ><?= escapeOutput($transactionRecord['FulfillmentMethod']) ?></span>
+                                    class="transaction-substatus"><?= escapeOutput($transactionRecord['FulfillmentMethod']) ?></span>
                             <?php endif; ?>
                         </td>
                         <td><?= escapeOutput($customerName) ?></td>
@@ -387,17 +343,14 @@ require __DIR__ . '/../includes/header.php';
                         <td>
                             <?= escapeOutput($transactionRecord['ReceiptStatus']) ?>
                             <?php if ($transactionRecord['ExpressStatus']): ?>
-                                <span
-                                    class="transaction-substatus"
-                                >Express: <?= escapeOutput($transactionRecord['ExpressStatus']) ?></span>
+                                <span class="transaction-substatus">Express:
+                                    <?= escapeOutput($transactionRecord['ExpressStatus']) ?></span>
                             <?php endif; ?>
                         </td>
                         <td>$<?= escapeOutput(number_format((float) $transactionRecord['TotalAmount'], 2)) ?></td>
                         <td>
-                            <a
-                                href="<?= escapeOutput($viewAddress) ?>"
-                                class="button button-primary transaction-view-button"
-                            >
+                            <a href="<?= escapeOutput($viewAddress) ?>"
+                                class="button button-primary transaction-view-button">
                                 Open
                             </a>
                         </td>

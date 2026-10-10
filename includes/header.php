@@ -27,8 +27,8 @@ if (!isLoggedIn()) {
 
 $siteHeaderClass =
     isLoggedIn()
-        ? 'site-header site-header-logged-in'
-        : 'site-header site-header-public';
+    ? 'site-header site-header-logged-in'
+    : 'site-header site-header-public';
 
 
 // Select the stylesheet needed by the current page
@@ -170,7 +170,7 @@ if ($currentSection === 'access') {
 
 // Get the logged-in username for the header
 $headerUsername =
-    (string)($_SESSION['username'] ?? '');
+    (string) ($_SESSION['username'] ?? '');
 
 ?>
 <!DOCTYPE html>
@@ -181,10 +181,7 @@ $headerUsername =
 
     <meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>
         <?= escapeOutput(APPLICATION_NAME) ?>
@@ -192,166 +189,116 @@ $headerUsername =
         <?= escapeOutput($headerPageTitle) ?>
     </title>
 
-    <link
-        rel="icon"
-        type="image/png"
-        href="<?= APPLICATION_URL ?>/assets/images/image1.png"
-    >
+    <link rel="icon" type="image/png" href="<?= APPLICATION_URL ?>/assets/images/image1.png">
 
-    <link
-        rel="stylesheet"
-        href="<?= APPLICATION_URL ?>/assets/css/styles.css"
-    >
+    <link rel="stylesheet" href="<?= APPLICATION_URL ?>/assets/css/styles.css">
 
-    <link
-        rel="stylesheet"
-        href="<?= APPLICATION_URL ?>/assets/css/layout.css"
-    >
+    <link rel="stylesheet" href="<?= APPLICATION_URL ?>/assets/css/layout.css">
 
     <?php if ($sharedStylesheet !== ''): ?>
 
-        <link
-            rel="stylesheet"
-            href="<?= APPLICATION_URL ?>/assets/css/<?= escapeOutput($sharedStylesheet) ?>"
-        >
+        <link rel="stylesheet" href="<?= APPLICATION_URL ?>/assets/css/<?= escapeOutput($sharedStylesheet) ?>">
 
     <?php endif; ?>
 
     <?php if ($pageStylesheet !== ''): ?>
 
-        <link
-            rel="stylesheet"
-            href="<?= APPLICATION_URL ?>/assets/css/<?= escapeOutput($pageStylesheet) ?>"
-        >
+        <link rel="stylesheet" href="<?= APPLICATION_URL ?>/assets/css/<?= escapeOutput($pageStylesheet) ?>">
 
     <?php endif; ?>
 
-    <link
-        rel="stylesheet"
-        href="<?= APPLICATION_URL ?>/assets/css/print.css"
-        media="print"
-    >
+    <link rel="stylesheet" href="<?= APPLICATION_URL ?>/assets/css/print.css" media="print">
 
 </head>
 
 <body>
 
-<header class="<?= $siteHeaderClass ?>">
+    <header class="<?= $siteHeaderClass ?>">
 
-    <div
-        class="header-image-group header-image-group-left"
-        aria-hidden="true"
-    >
+        <div class="header-image-group header-image-group-left" aria-hidden="true">
 
-        <div class="header-image-space">
-            <img
-                src="<?= APPLICATION_URL ?>/assets/images/image1.png"
-                alt=""
-            >
-        </div>
-
-        <div class="header-image-space">
-            <img
-                src="<?= APPLICATION_URL ?>/assets/images/image2.png"
-                alt=""
-            >
-        </div>
-
-        <div class="header-image-space">
-            <img
-                src="<?= APPLICATION_URL ?>/assets/images/image3.png"
-                alt=""
-            >
-        </div>
-
-        <div class="header-image-space">
-            <img
-                src="<?= APPLICATION_URL ?>/assets/images/image4.png"
-                alt=""
-            >
-        </div>
-
-    </div>
-
-
-    <div class="header-content">
-
-        <div class="application-title">
-
-            <div class="application-name">
-                FnH Groceries
+            <div class="header-image-space">
+                <img src="<?= APPLICATION_URL ?>/assets/images/image1.png" alt="">
             </div>
 
-            <div class="application-page-name">
-                <?= escapeOutput($headerPageTitle) ?>
+            <div class="header-image-space">
+                <img src="<?= APPLICATION_URL ?>/assets/images/image2.png" alt="">
+            </div>
+
+            <div class="header-image-space">
+                <img src="<?= APPLICATION_URL ?>/assets/images/image3.png" alt="">
+            </div>
+
+            <div class="header-image-space">
+                <img src="<?= APPLICATION_URL ?>/assets/images/image4.png" alt="">
             </div>
 
         </div>
 
-    </div>
 
+        <div class="header-content">
 
-    <div
-        class="header-image-group header-image-group-right"
-        aria-hidden="true"
-    >
+            <div class="application-title">
 
-        <div class="header-image-space">
-            <img
-                src="<?= APPLICATION_URL ?>/assets/images/image5.png"
-                alt=""
-            >
-        </div>
+                <div class="application-name">
+                    FnH Groceries
+                </div>
 
-        <div class="header-image-space">
-            <img
-                src="<?= APPLICATION_URL ?>/assets/images/image6.png"
-                alt=""
-            >
-        </div>
-
-        <div class="header-image-space">
-            <img
-                src="<?= APPLICATION_URL ?>/assets/images/image7.png"
-                alt=""
-            >
-        </div>
-
-    </div>
-
-
-    <?php if (isLoggedIn()): ?>
-
-        <div class="header-user-controls">
-
-            <div class="header-logged-in-user">
-
-                <span>
-                    Logged in as:
-                </span>
-
-                <strong>
-                    <?= escapeOutput($headerUsername) ?>
-                </strong>
+                <div class="application-page-name">
+                    <?= escapeOutput($headerPageTitle) ?>
+                </div>
 
             </div>
 
-            <a
-                href="<?= APPLICATION_URL ?>/logout.php"
-                class="header-logout-button"
-            >
-                Logout
-            </a>
+        </div>
+
+
+        <div class="header-image-group header-image-group-right" aria-hidden="true">
+
+            <div class="header-image-space">
+                <img src="<?= APPLICATION_URL ?>/assets/images/image5.png" alt="">
+            </div>
+
+            <div class="header-image-space">
+                <img src="<?= APPLICATION_URL ?>/assets/images/image6.png" alt="">
+            </div>
+
+            <div class="header-image-space">
+                <img src="<?= APPLICATION_URL ?>/assets/images/image7.png" alt="">
+            </div>
 
         </div>
 
-    <?php endif; ?>
 
-</header>
+        <?php if (isLoggedIn()): ?>
+
+            <div class="header-user-controls">
+
+                <div class="header-logged-in-user">
+
+                    <span>
+                        Logged in as:
+                    </span>
+
+                    <strong>
+                        <?= escapeOutput($headerUsername) ?>
+                    </strong>
+
+                </div>
+
+                <a href="<?= APPLICATION_URL ?>/logout.php" class="header-logout-button">
+                    Logout
+                </a>
+
+            </div>
+
+        <?php endif; ?>
+
+    </header>
 
 
-<div class="<?= $siteLayoutClass ?>">
+    <div class="<?= $siteLayoutClass ?>">
 
-    <?php require __DIR__ . '/nav.php'; ?>
+        <?php require __DIR__ . '/nav.php'; ?>
 
-    <main class="page-content">
+        <main class="page-content">

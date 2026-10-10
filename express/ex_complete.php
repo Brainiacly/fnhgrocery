@@ -320,29 +320,29 @@ require __DIR__ . '/../includes/header.php';
                     <strong>Charge, paid in advance</strong>
                 </div>
             <?php else: ?>
-            <div>
-                <span>Cash Tendered</span>
-                <strong>
-                    $<?= escapeOutput(
-                        number_format(
-                            (float) $order['AmountTendered'],
-                            2
-                        )
-                    ) ?>
-                </strong>
-            </div>
+                <div>
+                    <span>Cash Tendered</span>
+                    <strong>
+                        $<?= escapeOutput(
+                            number_format(
+                                (float) $order['AmountTendered'],
+                                2
+                            )
+                        ) ?>
+                    </strong>
+                </div>
 
-            <div>
-                <span>Change Due</span>
-                <strong>
-                    $<?= escapeOutput(
-                        number_format(
-                            (float) $order['ChangeDue'],
-                            2
-                        )
-                    ) ?>
-                </strong>
-            </div>
+                <div>
+                    <span>Change Due</span>
+                    <strong>
+                        $<?= escapeOutput(
+                            number_format(
+                                (float) $order['ChangeDue'],
+                                2
+                            )
+                        ) ?>
+                    </strong>
+                </div>
             <?php endif; ?>
 
         </div>
@@ -350,17 +350,11 @@ require __DIR__ . '/../includes/header.php';
 
         <div class="express-actions">
 
-            <a
-                href="<?= APPLICATION_URL ?>/express/ex_home.php"
-                class="button button-primary"
-            >
+            <a href="<?= APPLICATION_URL ?>/express/ex_home.php" class="button button-primary">
                 Express Home
             </a>
 
-            <a
-                href="<?= APPLICATION_URL ?>/express/ex_orders.php"
-                class="button button-secondary"
-            >
+            <a href="<?= APPLICATION_URL ?>/express/ex_orders.php" class="button button-secondary">
                 Today&apos;s Orders
             </a>
 

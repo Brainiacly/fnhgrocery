@@ -11,12 +11,12 @@ html,
 body,
 body .site-layout,
 body .page-content {
-    display: block;
-    width: auto;
-    height: auto;
-    overflow: visible;
-    background: #fff;
-    color: #000;
+  display: block;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  background: #fff;
+  color: #000;
 }
 
 body .site-header,
@@ -40,53 +40,53 @@ body .page-content .sale-register-actions,
 body .page-content .training-topic-actions,
 body .page-content .transaction-detail-actions,
 body .page-content .transaction-filter-form {
-    display: none;
+  display: none;
 }
 
 body .page-content::before {
-    content: "FnH Groceries";
-    display: block;
-    margin-bottom: 0.5rem;
-    font-size: 1.25rem;
-    font-weight: bold;
+  content: "FnH Groceries";
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: bold;
 }
 
 body .page-content .page-intro h1 {
-    display: block;
+  display: block;
 }
 
 body .page-content .content-panel {
-    max-width: none;
-    margin: 0;
-    padding: 0;
-    border: none;
-    box-shadow: none;
-    background: #fff;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  background: #fff;
 }
 
 body .page-content [class*="table-container"] {
-    max-height: none;
-    overflow: visible;
+  max-height: none;
+  overflow: visible;
 }
 
 body .page-content table {
-    min-width: 0;
+  min-width: 0;
 }
 
 body .page-content th {
-    background: #fff;
-    color: #000;
-    border-bottom: 0.125rem solid #000;
+  background: #fff;
+  color: #000;
+  border-bottom: 0.125rem solid #000;
 }
 
 body .page-content .checkout-grand-total {
-    background: #fff;
-    color: #000;
-    border-top: 0.125rem solid #000;
+  background: #fff;
+  color: #000;
+  border-top: 0.125rem solid #000;
 }
 
 body .page-content tr,
 body .page-content .checkout-totals > div,
 body .page-content .transaction-payment-summary > div {
-    break-inside: avoid;
+  break-inside: avoid;
 }

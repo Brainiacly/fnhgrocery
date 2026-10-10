@@ -27,19 +27,20 @@ if (!in_array($role, $topic['roles'], true)) {
 }
 
 $movie = $trainingData['movies'][$topic['movie']];
-$movieStart = (int) $topic['start'];
 $movieAvailable = is_file(__DIR__ . '/movies/' . $movie['file']);
 
-$movieStartText =
-    floor($movieStart / 60)
-    . ':'
-    . str_pad((string) ($movieStart % 60), 2, '0', STR_PAD_LEFT);
+// The segment time is unknown until the full lesson has been recorded and edited.
+$segmentSecond = $topic['start'] ?? null;
+$hasSegmentTime = is_int($segmentSecond) && $segmentSecond >= 0;
+$movieStartText = $hasSegmentTime
+    ? floor($segmentSecond / 60) . ':'
+    . str_pad((string) ($segmentSecond % 60), 2, '0', STR_PAD_LEFT)
+    : '';
 
-$movieAddress =
-    APPLICATION_URL
-    . '/training/movies/'
-    . rawurlencode($movie['file'])
-    . ($movieStart > 0 ? '#t=' . $movieStart : '');
+$movieAddress = APPLICATION_URL
+    . '/training/movies/' . rawurlencode($movie['file']);
+$topicMovieAddress = $movieAddress
+    . ($hasSegmentTime ? '#t=' . $segmentSecond : '');
 
 $pageTitle = $topic['title'];
 $currentSection = 'training';
@@ -84,31 +85,25 @@ require __DIR__ . '/../includes/header.php';
 
         <?php if ($movieAvailable): ?>
 
-            <video
-                controls
-                preload="metadata"
-                class="training-video"
-            >
-                <source
-                    src="<?= escapeOutput($movieAddress) ?>"
-                    type="video/mp4"
-                >
+            <video controls preload="metadata" class="training-video">
+                <source src="<?= escapeOutput($topicMovieAddress) ?>" type="video/mp4">
                 Your browser does not support the video player.
             </video>
 
-            <?php if ($movieStart > 0): ?>
+            <?php if ($hasSegmentTime): ?>
                 <p class="training-start-note">
-                    This topic starts at
-                    <?= escapeOutput($movieStartText) ?>
-                    in the movie.
+                    This topic begins at <?= escapeOutput($movieStartText) ?>
+                    in the video.
+                </p>
+            <?php else: ?>
+                <p class="training-start-note">
+                    This topic's timestamp will be added after recording.
+                    Until then, the video plays from the beginning.
                 </p>
             <?php endif; ?>
 
-            <a
-                href="<?= escapeOutput($movieAddress) ?>"
-                class="button button-primary"
-            >
-                Open Training Movie
+            <a href="<?= escapeOutput($topicMovieAddress) ?>" class="button button-primary">
+                Watch This Topic
             </a>
 
         <?php else: ?>
@@ -121,10 +116,7 @@ require __DIR__ . '/../includes/header.php';
     </section>
 
     <div class="page-main-actions training-topic-actions">
-        <a
-            href="<?= APPLICATION_URL ?>/training/tc_home.php"
-            class="button button-secondary"
-        >
+        <a href="<?= APPLICATION_URL ?>/training/tc_home.php" class="button button-secondary">
             Training Center
         </a>
     </div>

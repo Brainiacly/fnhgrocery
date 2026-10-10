@@ -33,8 +33,9 @@ require __DIR__ . '/../includes/header.php';
     <div class="page-intro training-compact-intro">
         <h1>Training Center</h1>
         <p>
-            Watch a training movie, or open a single topic to read the steps
-            and jump to the part of the movie that shows it.
+            Choose one of seven full training videos or select an individual use case.
+            Each topic will jump to its matching video segment once the
+            timestamps are added after recording.
         </p>
     </div>
 
@@ -73,11 +74,8 @@ require __DIR__ . '/../includes/header.php';
 
                     <?php if ($movieAvailable): ?>
 
-                        <a
-                            href="<?= escapeOutput($movieAddress) ?>"
-                            class="button button-primary"
-                        >
-                            Watch Movie
+                        <a href="<?= escapeOutput($movieAddress) ?>" class="button button-primary">
+                            Watch Full Video
                         </a>
 
                     <?php else: ?>
@@ -97,6 +95,10 @@ require __DIR__ . '/../includes/header.php';
     </div>
 
     <h2 class="training-section-heading">Training Topics</h2>
+    <p class="training-topic-summary">
+        Choose a use case to read the steps and watch its demonstration.
+        Until the video segment times are entered, topics play their video from the beginning.
+    </p>
 
     <div class="training-grid">
 
@@ -109,10 +111,7 @@ require __DIR__ . '/../includes/header.php';
                 . rawurlencode($topicKey);
             ?>
 
-            <a
-                href="<?= escapeOutput($topicAddress) ?>"
-                class="training-card"
-            >
+            <a href="<?= escapeOutput($topicAddress) ?>" class="training-card">
                 <span class="training-assignment-label">
                     <?= escapeOutput($topic['assignment']) ?>
                 </span>

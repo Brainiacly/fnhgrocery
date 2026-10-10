@@ -165,8 +165,8 @@ $netSubtotal =
 
 $taxableRatio =
     $subtotal > 0
-        ? $grossTaxableSubtotal / $subtotal
-        : 0.00;
+    ? $grossTaxableSubtotal / $subtotal
+    : 0.00;
 
 $taxableDiscount =
     round(
@@ -326,146 +326,129 @@ require __DIR__ . '/../includes/header.php';
 
     <div class="checkout-layout">
 
-    <div class="checkout-items">
+        <div class="checkout-items">
 
-    <div class="express-table-container">
+            <div class="express-table-container">
 
-        <table class="express-table">
+                <table class="express-table">
 
-            <thead>
+                    <thead>
 
-                <tr>
-                    <th>Product</th>
-                    <th>Quantity</th>
-                    <th>Unit Price</th>
-                    <th>Line Total</th>
-                </tr>
+                        <tr>
+                            <th>Product</th>
+                            <th>Quantity</th>
+                            <th>Unit Price</th>
+                            <th>Line Total</th>
+                        </tr>
 
-            </thead>
+                    </thead>
 
-            <tbody>
+                    <tbody>
 
-                <?php foreach ($saleItems as $saleItem): ?>
+                        <?php foreach ($saleItems as $saleItem): ?>
 
-                    <tr>
+                            <tr>
 
-                        <td>
-                            <?= escapeOutput($saleItem['ProductName']) ?>
-                        </td>
+                                <td>
+                                    <?= escapeOutput($saleItem['ProductName']) ?>
+                                </td>
 
-                        <td>
-                            <?= escapeOutput($saleItem['Quantity']) ?>
-                        </td>
+                                <td>
+                                    <?= escapeOutput($saleItem['Quantity']) ?>
+                                </td>
 
-                        <td>
-                            $<?= escapeOutput(
-                                number_format(
-                                    (float) $saleItem['UnitPrice'],
-                                    2
-                                )
-                            ) ?>
-                        </td>
+                                <td>
+                                    $<?= escapeOutput(
+                                        number_format(
+                                            (float) $saleItem['UnitPrice'],
+                                            2
+                                        )
+                                    ) ?>
+                                </td>
 
-                        <td>
-                            $<?= escapeOutput(
-                                number_format(
-                                    (float) $saleItem['LineTotal'],
-                                    2
-                                )
-                            ) ?>
-                        </td>
+                                <td>
+                                    $<?= escapeOutput(
+                                        number_format(
+                                            (float) $saleItem['LineTotal'],
+                                            2
+                                        )
+                                    ) ?>
+                                </td>
 
-                    </tr>
+                            </tr>
 
-                <?php endforeach; ?>
+                        <?php endforeach; ?>
 
-            </tbody>
+                    </tbody>
 
-        </table>
+                </table>
 
-    </div>
+            </div>
 
-
-    </div>
-
-    <div class="checkout-payment">
-
-    <div class="express-checkout-totals">
-
-        <div>
-            <span>Merchandise Subtotal</span>
-            <strong>$<?= escapeOutput(number_format($subtotal, 2)) ?></strong>
-        </div>
-
-        <div>
-            <span>Sales Tax</span>
-            <strong>$<?= escapeOutput(number_format($taxAmount, 2)) ?></strong>
-        </div>
-
-        <div>
-            <span>Delivery Fee</span>
-            <strong>$<?= escapeOutput(number_format($deliveryFee, 2)) ?></strong>
-        </div>
-
-        <div class="express-checkout-grand-total">
-            <span>Total Due</span>
-            <strong>$<?= escapeOutput(number_format($totalAmount, 2)) ?></strong>
-        </div>
-
-    </div>
-
-
-    <form
-        method="post"
-        class="express-checkout-form"
-    >
-
-        <input
-            type="hidden"
-            name="form_security_token"
-            value="<?= escapeOutput(formToken()) ?>"
-        >
-
-        <input
-            type="hidden"
-            name="express_order_id"
-            value="<?= $expressOrderID ?>"
-        >
-
-
-        <div class="express-charge-note">
-            <strong>
-                Payment: Charge
-            </strong>
-            <span>
-                The customer pays in advance. The total is charged to the customer's card and recorded
-                as a Charge. No cash is taken and no change is given.
-            </span>
-        </div>
-
-
-        <div class="express-actions">
-
-            <button
-                type="submit"
-                name="complete_order"
-                value="1"
-                class="button button-primary"
-            > Charge Order </button>
-
-            <a
-                href="<?= APPLICATION_URL ?>/express/ex_order.php?id=<?= $expressOrderID ?>"
-                class="button button-secondary"
-            >
-                Back to Order
-            </a>
 
         </div>
 
-    </form>
+        <div class="checkout-payment">
+
+            <div class="express-checkout-totals">
+
+                <div>
+                    <span>Merchandise Subtotal</span>
+                    <strong>$<?= escapeOutput(number_format($subtotal, 2)) ?></strong>
+                </div>
+
+                <div>
+                    <span>Sales Tax</span>
+                    <strong>$<?= escapeOutput(number_format($taxAmount, 2)) ?></strong>
+                </div>
+
+                <div>
+                    <span>Delivery Fee</span>
+                    <strong>$<?= escapeOutput(number_format($deliveryFee, 2)) ?></strong>
+                </div>
+
+                <div class="express-checkout-grand-total">
+                    <span>Total Due</span>
+                    <strong>$<?= escapeOutput(number_format($totalAmount, 2)) ?></strong>
+                </div>
+
+            </div>
 
 
-    </div>
+            <form method="post" class="express-checkout-form">
+
+                <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
+
+                <input type="hidden" name="express_order_id" value="<?= $expressOrderID ?>">
+
+
+                <div class="express-charge-note">
+                    <strong>
+                        Payment: Charge
+                    </strong>
+                    <span>
+                        The customer pays in advance. The total is charged to the customer's card and recorded
+                        as a Charge. No cash is taken and no change is given.
+                    </span>
+                </div>
+
+
+                <div class="express-actions">
+
+                    <button type="submit" name="complete_order" value="1" class="button button-primary"> Charge Order
+                    </button>
+
+                    <a href="<?= APPLICATION_URL ?>/express/ex_order.php?id=<?= $expressOrderID ?>"
+                        class="button button-secondary">
+                        Back to Order
+                    </a>
+
+                </div>
+
+            </form>
+
+
+        </div>
 
     </div>
 

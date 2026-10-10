@@ -75,6 +75,28 @@ if (
     );
 }
 
+// Do not disclose or permit changes to Administrator accounts through the
+// Manager access-change page. The stored procedure independently rejects them.
+if (isManager() && $operatorRecord['Role'] === 'Administrator') {
+    showAccessDeniedPage(
+        'You do not have permission to view or change an Administrator account.'
+    );
+}
+
+// Administrators can also use this endpoint. Protect the final active Admin
+// in the confirmation page as well as the existing stored-procedure check.
+$isFinalAdministratorInactivation = false;
+if (
+    $makeActive === 0
+    && (int) $operatorRecord['Active'] === 1
+    && $operatorRecord['Role'] === 'Administrator'
+) {
+    $activeAdministratorCount = (int) $db->query(
+        "SELECT COUNT(*) FROM operator WHERE Role = 'Administrator' AND Active = 1"
+    )->fetchColumn();
+    $isFinalAdministratorInactivation = $activeAdministratorCount <= 1;
+}
+
 $changeIsNeeded = (int) $operatorRecord['Active'] !== $makeActive;
 $wordNow = $makeActive === 1 ? 'Reactivate' : 'Inactivate';
 
@@ -83,7 +105,10 @@ if (
     &&
     isset($_POST['confirm_access'])
 ) {
-    if (!$changeIsNeeded) {
+    if ($isFinalAdministratorInactivation) {
+        $errorMessage =
+            'The final active Administrator must remain active.';
+    } elseif (!$changeIsNeeded) {
         $errorMessage =
             'The employee already has that access.';
     } else {
@@ -152,7 +177,19 @@ require __DIR__ . '/../includes/header.php';
 
     <?php endif; ?>
 
-    <?php if (!$changeIsNeeded): ?>
+    <?php if ($isFinalAdministratorInactivation): ?>
+
+        <div class="message message-warning">
+            The final active Administrator cannot be inactivated.
+        </div>
+
+        <div class="form-actions">
+            <a href="op_list.php" class="button button-secondary">
+                Return to Employee List
+            </a>
+        </div>
+
+    <?php elseif (!$changeIsNeeded): ?>
 
         <div class="message message-warning">
             This employee already has that access.
@@ -160,10 +197,7 @@ require __DIR__ . '/../includes/header.php';
 
         <div class="form-actions">
 
-            <a
-                href="op_list.php"
-                class="button button-secondary"
-            >
+            <a href="op_list.php" class="button button-secondary">
                 Return to Employee List
             </a>
 
@@ -232,33 +266,17 @@ require __DIR__ . '/../includes/header.php';
 
         <form method="post">
 
-            <input
-                type="hidden"
-                name="form_security_token"
-                value="<?= escapeOutput(formToken()) ?>"
-            >
+            <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
 
-            <input
-                type="hidden"
-                name="id"
-                value="<?= (int) $operatorID ?>"
-            >
+            <input type="hidden" name="id" value="<?= (int) $operatorID ?>">
 
             <div class="form-actions delete-confirmation-actions">
 
-                <button
-                    type="submit"
-                    name="confirm_access"
-                    value="1"
-                    class="button button-primary"
-                >
+                <button type="submit" name="confirm_access" value="1" class="button button-primary">
                     Yes, <?= escapeOutput($wordNow) ?>
                 </button>
 
-                <a
-                    href="op_list.php"
-                    class="button button-secondary"
-                >
+                <a href="op_list.php" class="button button-secondary">
                     No, Cancel
                 </a>
 

@@ -94,12 +94,26 @@ $openSaleStatement->execute([
 $openSaleRecord =
     $openSaleStatement->fetch();
 
+// Show the same safeguard enforced by sp_delete_operator before confirming.
+$isFinalActiveAdministrator = false;
+if (
+    $operatorRecord['Role'] === 'Administrator'
+    && (int) $operatorRecord['Active'] === 1
+) {
+    $activeAdministratorCount = (int) $db->query(
+        "SELECT COUNT(*) FROM operator WHERE Role = 'Administrator' AND Active = 1"
+    )->fetchColumn();
+    $isFinalActiveAdministrator = $activeAdministratorCount <= 1;
+}
+
 $deleteIsAllowed =
-    (int)$operatorID
+    !$isFinalActiveAdministrator
+    &&
+    (int) $operatorID
     !==
     signedInOperatorID()
     &&
-    (int)$operatorRecord['Active']
+    (int) $operatorRecord['Active']
     ===
     1;
 
@@ -131,7 +145,7 @@ if (
                 );
 
             $deleteStatement->execute([
-                (int)$operatorID,
+                (int) $operatorID,
                 signedInOperatorID()
             ]);
 
@@ -178,13 +192,15 @@ require __DIR__ . '/../includes/header.php';
     <?php if (!$deleteIsAllowed): ?>
         <div class="message message-warning">
             <?php if (
-                (int)$operatorID
+                (int) $operatorID
                 ===
                 signedInOperatorID()
             ): ?>
                 You cannot delete the account that you are currently using.
+            <?php elseif ($isFinalActiveAdministrator): ?>
+                The final active Administrator cannot be deleted.
             <?php elseif (
-                (int)$operatorRecord['Active']
+                (int) $operatorRecord['Active']
                 !==
                 1
             ): ?>
@@ -195,10 +211,7 @@ require __DIR__ . '/../includes/header.php';
         </div>
 
         <div class="form-actions">
-            <a
-                href="op_list.php"
-                class="button button-secondary"
-            >
+            <a href="op_list.php" class="button button-secondary">
                 Return to Employee List
             </a>
         </div>
@@ -285,39 +298,21 @@ require __DIR__ . '/../includes/header.php';
         <?php endif; ?>
 
         <form method="post">
-            <input
-                type="hidden"
-                name="form_security_token"
-                value="<?= escapeOutput(formToken()) ?>"
-            >
+            <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
 
-            <input
-                type="hidden"
-                name="id"
-                value="<?= (int)$operatorID ?>"
-            >
+            <input type="hidden" name="id" value="<?= (int) $operatorID ?>">
 
             <?php if ($openSaleRecord): ?>
                 <div class="form-field">
                     <label>
-                        <input
-                            type="checkbox"
-                            name="confirm_open_sale_cancel"
-                            value="1"
-                            required
-                        >
+                        <input type="checkbox" name="confirm_open_sale_cancel" value="1" required>
                         I understand that the open sale will be cancelled.
                     </label>
                 </div>
             <?php endif; ?>
 
             <div class="form-actions delete-confirmation-actions">
-                <button
-                    type="submit"
-                    name="confirm_delete"
-                    value="1"
-                    class="button button-danger"
-                >
+                <button type="submit" name="confirm_delete" value="1" class="button button-danger">
                     <?php if ($openSaleRecord): ?>
                         Yes, Cancel Sale and Delete Employee
                     <?php else: ?>
@@ -325,10 +320,7 @@ require __DIR__ . '/../includes/header.php';
                     <?php endif; ?>
                 </button>
 
-                <a
-                    href="op_list.php"
-                    class="button button-secondary"
-                >
+                <a href="op_list.php" class="button button-secondary">
                     No, Cancel
                 </a>
             </div>

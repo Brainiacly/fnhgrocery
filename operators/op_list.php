@@ -19,7 +19,11 @@ if (
     !in_array(
         $roleFilter,
         [
-            'all', 'Administrator', 'Manager', 'Operator', 'Personal Shopper'
+            'all',
+            'Administrator',
+            'Manager',
+            'Operator',
+            'Personal Shopper'
         ],
         true
     )
@@ -32,8 +36,20 @@ $showInactive =
     ===
     '1';
 
+// Administrators are not visible to Managers, even via a crafted filter URL.
+if (isManager() && $roleFilter === 'Administrator') {
+    $roleFilter = 'all';
+}
+
 $showAllRoles =
     $roleFilter === 'all';
+
+// Used for the last-active-admin safeguard in the selection buttons.
+$activeAdministratorCount = isAdministrator()
+    ? (int) $db->query(
+        "SELECT COUNT(*) FROM operator WHERE Role = 'Administrator' AND Active = 1"
+    )->fetchColumn()
+    : 0;
 
 $operatorListStatement =
     $db->prepare(
@@ -55,6 +71,8 @@ $operatorListStatement =
             (:showInactive = 1 OR Active = 1)
             AND
             (:showAllRoles = 1 OR Role = :roleFilter)
+            AND
+            (:includeAdministrators = 1 OR Role <> :administratorRole)
         ORDER BY
             EmployeeNumber ASC,
             Username ASC
@@ -66,7 +84,9 @@ $operatorListStatement->execute([
     ':storeID' => signedInStoreID(),
     ':showInactive' => $showInactive ? 1 : 0,
     ':showAllRoles' => $showAllRoles ? 1 : 0,
-    ':roleFilter' => $roleFilter
+    ':roleFilter' => $roleFilter,
+    ':includeAdministrators' => isAdministrator() ? 1 : 0,
+    ':administratorRole' => 'Administrator'
 ]);
 
 $operatorRecords =
@@ -121,70 +141,40 @@ require __DIR__ . '/../includes/header.php';
             </p>
         </div>
 
-        <form
-            method="get"
-            class="operator-filter-form"
-        >
+        <form method="get" class="operator-filter-form">
             <div class="operator-filter-field">
                 <label for="roleFilter">
                     Show
                 </label>
 
-                <select
-                    id="roleFilter"
-                    name="role"
-                    onchange="this.form.submit()"
-                >
-                    <option
-                        value="all"
-                        <?= $roleFilter === 'all' ? 'selected' : '' ?>
-                    >
+                <select id="roleFilter" name="role" onchange="this.form.submit()">
+                    <option value="all" <?= $roleFilter === 'all' ? 'selected' : '' ?>>
                         All
                     </option>
 
-                    <option
-                        value="Administrator"
-                        <?= $roleFilter === 'Administrator' ? 'selected' : '' ?>
-                    >
-                        Admins
-                    </option>
+                    <?php if (isAdministrator()): ?>
+                        <option value="Administrator" <?= $roleFilter === 'Administrator' ? 'selected' : '' ?>>
+                            Admins
+                        </option>
+                    <?php endif; ?>
 
-                    <option
-                        value="Manager"
-                        <?= $roleFilter === 'Manager' ? 'selected' : '' ?>
-                    >
+                    <option value="Manager" <?= $roleFilter === 'Manager' ? 'selected' : '' ?>>
                         Managers
                     </option>
 
-                    <option
-                        value="Operator"
-                        <?= $roleFilter === 'Operator' ? 'selected' : '' ?>
-                    >
+                    <option value="Operator" <?= $roleFilter === 'Operator' ? 'selected' : '' ?>>
                         Operators
                     </option>
 
-                    <option
-                        value="Personal Shopper"
-                        <?= $roleFilter === 'Personal Shopper' ? 'selected' : '' ?>
-                    >
+                    <option value="Personal Shopper" <?= $roleFilter === 'Personal Shopper' ? 'selected' : '' ?>>
                         Personal Shoppers
                     </option>
                 </select>
             </div>
 
             <div class="operator-filter-field">
-                <label
-                    for="showInactive"
-                    class="operator-inactive-label"
-                >
-                    <input
-                        type="checkbox"
-                        id="showInactive"
-                        name="show_inactive"
-                        value="1"
-                        <?= $showInactive ? 'checked' : '' ?>
-                        onchange="this.form.submit()"
-                    >
+                <label for="showInactive" class="operator-inactive-label">
+                    <input type="checkbox" id="showInactive" name="show_inactive" value="1" <?= $showInactive ? 'checked' : '' ?> onchange="this.form.submit()">
                     <span>
                         Inactive
                     </span>
@@ -199,27 +189,15 @@ require __DIR__ . '/../includes/header.php';
         </div>
     <?php endif; ?>
 
-    <form
-        id="operatorSelectionForm"
-        method="post"
-        class="operator-selection-form"
-    >
-        <input
-            type="hidden"
-            name="form_security_token"
-            value="<?= escapeOutput(formToken()) ?>"
-        >
+    <form id="operatorSelectionForm" method="post" class="operator-selection-form">
+        <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
 
         <?php if (count($operatorRecords) === 0): ?>
             <div class="operator-table-empty">
                 No operators were found.
             </div>
         <?php else: ?>
-            <div
-                class="table-container"
-                tabindex="0"
-                aria-label="Employee list. Scroll horizontally if needed."
-            >
+            <div class="table-container" tabindex="0" aria-label="Employee list. Scroll horizontally if needed.">
                 <table class="operator-table">
                     <colgroup>
                         <col class="operator-column-select">
@@ -288,6 +266,12 @@ require __DIR__ . '/../includes/header.php';
                                 ===
                                 1;
 
+                            $isFinalActiveAdministrator =
+                                isAdministrator()
+                                && $isActiveOperator
+                                && $operatorRecord['Role'] === 'Administrator'
+                                && $activeAdministratorCount <= 1;
+
                             $radioClass =
                                 'operator-select-radio';
 
@@ -303,17 +287,19 @@ require __DIR__ . '/../includes/header.php';
 
                             $createdAtDisplay =
                                 $operatorRecord['CreatedAt']
-                                    ? date(
-                                        'M j, Y',
-                                        strtotime(
-                                            $operatorRecord['CreatedAt']
-                                        )
+                                ? date(
+                                    'M j, Y',
+                                    strtotime(
+                                        $operatorRecord['CreatedAt']
                                     )
-                                    : '';
+                                )
+                                : '';
 
                             $roleCodes =
                                 [
-                                    'Administrator' => 'A', 'Manager' => 'M', 'Operator' => 'O',
+                                    'Administrator' => 'A',
+                                    'Manager' => 'M',
+                                    'Operator' => 'O',
                                     'Personal Shopper' => 'S',
                                     'Pending' => 'P'
                                 ];
@@ -325,21 +311,14 @@ require __DIR__ . '/../includes/header.php';
 
                             <tr>
                                 <td class="operator-select-cell">
-                                    <label
-                                        class="operator-radio-label"
-                                        for="operator_<?= (int) $operatorRecord['OperatorID'] ?>"
-                                    >
-                                        <input
-                                            type="radio"
-                                            id="operator_<?= (int) $operatorRecord['OperatorID'] ?>"
-                                            name="id"
-                                            value="<?= (int) $operatorRecord['OperatorID'] ?>"
-                                            class="<?= $radioClass ?>"
+                                    <label class="operator-radio-label"
+                                        for="operator_<?= (int) $operatorRecord['OperatorID'] ?>">
+                                        <input type="radio" id="operator_<?= (int) $operatorRecord['OperatorID'] ?>" name="id"
+                                            value="<?= (int) $operatorRecord['OperatorID'] ?>" class="<?= $radioClass ?>"
                                             data-active="<?= $isActiveOperator ? '1' : '0' ?>"
                                             data-current="<?= $isCurrentOperator ? '1' : '0' ?>"
                                             data-role="<?= escapeOutput($operatorRecord['Role']) ?>"
-                                            required
-                                        >
+                                            data-final-admin="<?= $isFinalActiveAdministrator ? '1' : '0' ?>" required>
 
                                         <span class="screen-reader-text">
                                             Select
@@ -361,10 +340,7 @@ require __DIR__ . '/../includes/header.php';
                                 </td>
 
                                 <td class="operator-role-cell">
-                                    <span
-                                        class="operator-role-code"
-                                        title="<?= escapeOutput($operatorRecord['Role']) ?>"
-                                    >
+                                    <span class="operator-role-code" title="<?= escapeOutput($operatorRecord['Role']) ?>">
                                         <?= escapeOutput($roleCode) ?>
                                     </span>
                                 </td>
@@ -398,8 +374,10 @@ require __DIR__ . '/../includes/header.php';
 
             <div class="operator-role-key">
                 <span class="operator-role-key-items">
-                    <strong>A</strong> Administrator
-                    &nbsp;&nbsp;
+                    <?php if (isAdministrator()): ?>
+                        <strong>A</strong> Administrator
+                        &nbsp;&nbsp;
+                    <?php endif; ?>
                     <strong>M</strong> Manager
                     &nbsp;&nbsp;
                     <strong>O</strong> Operator
@@ -417,10 +395,7 @@ require __DIR__ . '/../includes/header.php';
         <?php endif; ?>
     </form>
 
-    <div
-        id="operatorListHelp"
-        class="operator-list-help"
-    >
+    <div id="operatorListHelp" class="operator-list-help">
         <h2>
             Using This List
         </h2>
@@ -448,7 +423,7 @@ require __DIR__ . '/../includes/header.php';
                 </li>
 
                 <li>
-                    The final active Administrator cannot be deleted or demoted.
+                    The final active Administrator cannot be deleted, inactivated, or demoted.
                 </li>
             <?php else: ?>
                 <li>
@@ -470,7 +445,8 @@ require __DIR__ . '/../includes/header.php';
                 </li>
 
                 <li>
-                    You cannot change an Administrator or your own access.
+                    Administrator accounts are hidden from Managers and cannot be changed by Managers.
+                    You also cannot change your own access.
                 </li>
             <?php endif; ?>
         </ul>
@@ -478,116 +454,120 @@ require __DIR__ . '/../includes/header.php';
 </section>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function () {
 
-    const selectionForm = document.getElementById('operatorSelectionForm');
-    const updateButton = document.getElementById('operatorUpdateButton');
-    const statusButton = document.getElementById('operatorStatusButton');
-    const clearButton = document.getElementById('operatorClearButton');
-    const transactionsLink = document.getElementById('operatorTransactionsLink');
+        const selectionForm = document.getElementById('operatorSelectionForm');
+        const updateButton = document.getElementById('operatorUpdateButton');
+        const statusButton = document.getElementById('operatorStatusButton');
+        const clearButton = document.getElementById('operatorClearButton');
+        const transactionsLink = document.getElementById('operatorTransactionsLink');
 
-    if (!selectionForm || !statusButton || !clearButton) {
-        return;
-    }
+        if (!selectionForm || !statusButton || !clearButton) {
+            return;
+        }
 
-    const isManagerView = <?= isManager() ? 'true' : 'false' ?>;
-    const deleteAddress = '<?= APPLICATION_URL ?>/operators/op_delete.php';
-    const reactivateAddress = '<?= APPLICATION_URL ?>/operators/op_reactivate.php';
-    const inactivateAddress = '<?= APPLICATION_URL ?>/operators/op_access.php?to=0';
-    const activateAddress = '<?= APPLICATION_URL ?>/operators/op_access.php?to=1';
-    const transactionsAddress = '<?= APPLICATION_URL ?>/transactions/tr_list.php?employee=';
+        const isManagerView = <?= isManager() ? 'true' : 'false' ?>;
+        const deleteAddress = '<?= APPLICATION_URL ?>/operators/op_delete.php';
+        const reactivateAddress = '<?= APPLICATION_URL ?>/operators/op_reactivate.php';
+        const inactivateAddress = '<?= APPLICATION_URL ?>/operators/op_access.php?to=0';
+        const activateAddress = '<?= APPLICATION_URL ?>/operators/op_access.php?to=1';
+        const transactionsAddress = '<?= APPLICATION_URL ?>/transactions/tr_list.php?employee=';
 
-    // The status button deletes (Administrator) or inactivates (Manager), then reactivates
-    function showStatusButton(label, address, isRemoval) {
+        // The status button deletes (Administrator) or inactivates (Manager), then reactivates
+        function showStatusButton(label, address, isRemoval) {
 
-        statusButton.textContent = label;
-        statusButton.setAttribute('formaction', address);
-        statusButton.classList.toggle('operator-nav-delete', isRemoval);
-        statusButton.classList.toggle('operator-nav-update', !isRemoval);
-    }
+            statusButton.textContent = label;
+            statusButton.setAttribute('formaction', address);
+            statusButton.classList.toggle('operator-nav-delete', isRemoval);
+            statusButton.classList.toggle('operator-nav-update', !isRemoval);
+        }
 
-    function updateOperatorButtons() {
+        function updateOperatorButtons() {
 
-        const selectedOperator = selectionForm.querySelector('input[name="id"]:checked');
+            const selectedOperator = selectionForm.querySelector('input[name="id"]:checked');
 
-        if (!selectedOperator) {
+            if (!selectedOperator) {
 
-            if (updateButton) {
-                updateButton.disabled = true;
+                if (updateButton) {
+                    updateButton.disabled = true;
+                }
+
+                statusButton.disabled = true;
+                clearButton.disabled = true;
+                showStatusButton(
+                    isManagerView ? 'Inactivate Employee' : 'Delete Employee',
+                    isManagerView ? inactivateAddress : deleteAddress,
+                    true
+                );
+
+                if (transactionsLink) {
+                    transactionsLink.setAttribute('aria-disabled', 'true');
+                    transactionsLink.setAttribute('href', '#');
+                }
+
+                return;
             }
 
-            statusButton.disabled = true;
-            clearButton.disabled = true;
+            if (updateButton) {
+                updateButton.disabled = false;
+            }
+
+            clearButton.disabled = false;
+
+            if (transactionsLink) {
+                transactionsLink.setAttribute('aria-disabled', 'false');
+                transactionsLink.setAttribute('href', transactionsAddress + selectedOperator.value);
+            }
+
+            const operatorIsActive = selectedOperator.dataset.active === '1';
+            const operatorIsCurrent = selectedOperator.dataset.current === '1';
+            const operatorIsAdministrator = selectedOperator.dataset.role === 'Administrator';
+            const isFinalActiveAdministrator = selectedOperator.dataset.finalAdmin === '1';
+
+            if (!operatorIsActive) {
+
+                showStatusButton(
+                    'Reactivate Employee',
+                    isManagerView ? activateAddress : reactivateAddress,
+                    false
+                );
+                statusButton.removeAttribute('aria-describedby');
+                statusButton.disabled = isManagerView && operatorIsAdministrator;
+                return;
+            }
+
             showStatusButton(
                 isManagerView ? 'Inactivate Employee' : 'Delete Employee',
                 isManagerView ? inactivateAddress : deleteAddress,
                 true
             );
-
-            if (transactionsLink) {
-                transactionsLink.setAttribute('aria-disabled', 'true');
-                transactionsLink.setAttribute('href', '#');
-            }
-
-            return;
+            statusButton.setAttribute('aria-describedby', 'currentAccountDeleteNote');
+            statusButton.disabled =
+                operatorIsCurrent
+                || isFinalActiveAdministrator
+                || (isManagerView && operatorIsAdministrator);
         }
 
-        if (updateButton) {
-            updateButton.disabled = false;
-        }
+        selectionForm
+            .querySelectorAll('input[name="id"]')
+            .forEach(function (radioButton) {
+                radioButton.addEventListener('change', updateOperatorButtons);
+            });
 
-        clearButton.disabled = false;
+        selectionForm.addEventListener('reset', function () {
+            window.setTimeout(updateOperatorButtons, 0);
+        });
 
         if (transactionsLink) {
-            transactionsLink.setAttribute('aria-disabled', 'false');
-            transactionsLink.setAttribute('href', transactionsAddress + selectedOperator.value);
+            transactionsLink.addEventListener('click', function (event) {
+                if (transactionsLink.getAttribute('aria-disabled') === 'true') {
+                    event.preventDefault();
+                }
+            });
         }
 
-        const operatorIsActive = selectedOperator.dataset.active === '1';
-        const operatorIsCurrent = selectedOperator.dataset.current === '1';
-        const operatorIsAdministrator = selectedOperator.dataset.role === 'Administrator';
-
-        if (!operatorIsActive) {
-
-            showStatusButton(
-                'Reactivate Employee',
-                isManagerView ? activateAddress : reactivateAddress,
-                false
-            );
-            statusButton.removeAttribute('aria-describedby');
-            statusButton.disabled = isManagerView && operatorIsAdministrator;
-            return;
-        }
-
-        showStatusButton(
-            isManagerView ? 'Inactivate Employee' : 'Delete Employee',
-            isManagerView ? inactivateAddress : deleteAddress,
-            true
-        );
-        statusButton.setAttribute('aria-describedby', 'currentAccountDeleteNote');
-        statusButton.disabled = operatorIsCurrent || (isManagerView && operatorIsAdministrator);
-    }
-
-    selectionForm
-        .querySelectorAll('input[name="id"]')
-        .forEach(function (radioButton) {
-            radioButton.addEventListener('change', updateOperatorButtons);
-        });
-
-    selectionForm.addEventListener('reset', function () {
-        window.setTimeout(updateOperatorButtons, 0);
+        updateOperatorButtons();
     });
-
-    if (transactionsLink) {
-        transactionsLink.addEventListener('click', function (event) {
-            if (transactionsLink.getAttribute('aria-disabled') === 'true') {
-                event.preventDefault();
-            }
-        });
-    }
-
-    updateOperatorButtons();
-});
 </script>
 
 <?php

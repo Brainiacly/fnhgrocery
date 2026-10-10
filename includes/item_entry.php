@@ -59,22 +59,11 @@ function capRequestedStock(PDO $db, int $storeID, int $productID, float $request
 function printQuantityPicker()
 {
     ?>
-    <div
-        class="form-field sale-count-field"
-        id="saleQuantityBox"
-    >
+    <div class="form-field sale-count-field" id="saleQuantityBox">
         <label for="sale_item_quantity">
             Quantity
         </label>
-        <input
-            type="number"
-            id="sale_item_quantity"
-            min="1"
-            max="999"
-            step="1"
-            value="1"
-            inputmode="numeric"
-        >
+        <input type="number" id="sale_item_quantity" min="1" max="999" step="1" value="1" inputmode="numeric">
     </div>
     <?php
 }
@@ -85,14 +74,8 @@ function printCodesButton()
 {
     ?>
 
-    <button
-        type="button"
-        class="button button-secondary sale-codes-button"
-        id="saleCodesButton"
-        aria-pressed="false"
-        title="Show or hide the UPC and PLU codes"
-        hidden
-    > &plus; UPC </button>
+    <button type="button" class="button button-secondary sale-codes-button" id="saleCodesButton" aria-pressed="false"
+        title="Show or hide the UPC and PLU codes" hidden> &plus; UPC </button>
 
     <?php
 }
@@ -113,8 +96,8 @@ function printProductTiles($products, $hiddenFields, $submitName)
 
             $tileCode =
                 trim((string) $product['UPC']) !== ''
-                    ? $product['UPC']
-                    : $product['PLUCode'];
+                ? $product['UPC']
+                : $product['PLUCode'];
 
             $tileClass = 'sale-product-button';
 
@@ -123,56 +106,27 @@ function printProductTiles($products, $hiddenFields, $submitName)
             }
             ?>
 
-            <form
-                method="post"
-                class="sale-product-form"
-            >
+            <form method="post" class="sale-product-form">
 
-                <input
-                    type="hidden"
-                    name="form_security_token"
-                    value="<?= escapeOutput(formToken()) ?>"
-                >
+                <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
 
                 <?php foreach ($hiddenFields as $fieldName => $fieldValue): ?>
 
-                    <input
-                        type="hidden"
-                        name="<?= escapeOutput($fieldName) ?>"
-                        value="<?= escapeOutput($fieldValue) ?>"
-                    >
+                    <input type="hidden" name="<?= escapeOutput($fieldName) ?>" value="<?= escapeOutput($fieldValue) ?>">
 
                 <?php endforeach; ?>
 
-                <input
-                    type="hidden"
-                    name="product_id"
-                    value="<?= (int) $product['ProductID'] ?>"
-                >
+                <input type="hidden" name="product_id" value="<?= (int) $product['ProductID'] ?>">
 
-                <input
-                    type="hidden"
-                    name="quantity"
-                    value="1"
-                >
+                <input type="hidden" name="quantity" value="1">
 
-                <button
-                    <?php if ($isWeighed): ?>
-                    type="button"
-                    <?php else: ?>
-                    type="submit"
-                    name="<?= escapeOutput($submitName) ?>"
-                    value="1"
-                    <?php endif; ?>
-                    class="<?= $tileClass ?>"
-                    data-product-id="<?= (int) $product['ProductID'] ?>"
-                    data-product-code="<?= escapeOutput($tileCode) ?>"
+                <button <?php if ($isWeighed): ?> type="button" <?php else: ?> type="submit"
+                        name="<?= escapeOutput($submitName) ?>" value="1" <?php endif; ?> class="<?= $tileClass ?>"
+                    data-product-id="<?= (int) $product['ProductID'] ?>" data-product-code="<?= escapeOutput($tileCode) ?>"
                     data-upc="<?= escapeOutput((string) $product['UPC']) ?>"
                     data-plu="<?= escapeOutput((string) $product['PLUCode']) ?>"
                     data-unit-type="<?= escapeOutput($product['UnitType']) ?>"
-                    data-stock="<?= escapeOutput((string) $product['StockQuantity']) ?>"
-                    <?= (float) $product['StockQuantity'] <= 0 ? 'disabled' : '' ?>
-                >
+                    data-stock="<?= escapeOutput((string) $product['StockQuantity']) ?>" <?= (float) $product['StockQuantity'] <= 0 ? 'disabled' : '' ?>>
 
                     <strong>
                         <?= escapeOutput($product['ProductName']) ?>
@@ -214,8 +168,8 @@ function printProductTiles($products, $hiddenFields, $submitName)
                         Stock:
                         <?= escapeOutput(
                             $isWeighed
-                                ? number_format((float) $product['StockQuantity'], 3) . ' lb'
-                                : number_format((float) $product['StockQuantity'], 0) . ' each'
+                            ? number_format((float) $product['StockQuantity'], 3) . ' lb'
+                            : number_format((float) $product['StockQuantity'], 0) . ' each'
                         ) ?>
                     </span>
 
@@ -264,33 +218,18 @@ function printLineButton($hiddenFields, $fields, $buttonName, $symbol, $label, $
 
     <form method="post">
 
-        <input
-            type="hidden"
-            name="form_security_token"
-            value="<?= escapeOutput(formToken()) ?>"
-        >
+        <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
 
         <?php foreach (array_merge($hiddenFields, $fields) as $fieldName => $fieldValue): ?>
 
-            <input
-                type="hidden"
-                name="<?= escapeOutput($fieldName) ?>"
-                value="<?= escapeOutput($fieldValue) ?>"
-            >
+            <input type="hidden" name="<?= escapeOutput($fieldName) ?>" value="<?= escapeOutput($fieldValue) ?>">
 
         <?php endforeach; ?>
 
-        <button
-            type="submit"
-            name="<?= escapeOutput($buttonName) ?>"
-            value="1"
-            class="button button-secondary symbol-button"
-            title="<?= escapeOutput($label) ?>"
-            aria-label="<?= escapeOutput($label) ?>"
-            <?php if ($confirmText !== ''): ?>
-            onclick="return window.confirm('<?= escapeOutput($confirmText) ?>');"
-            <?php endif; ?>
-        >
+        <button type="submit" name="<?= escapeOutput($buttonName) ?>" value="1"
+            class="button button-secondary symbol-button" title="<?= escapeOutput($label) ?>"
+            aria-label="<?= escapeOutput($label) ?>" <?php if ($confirmText !== ''): ?>
+                onclick="return window.confirm('<?= escapeOutput($confirmText) ?>');" <?php endif; ?>>
             <?= $symbol ?>
         </button>
 

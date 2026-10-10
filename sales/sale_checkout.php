@@ -151,7 +151,7 @@ try {
             $receiptID
         );
 
-    $discountRecords = fetchSaleDiscounts( $db, $receiptID );
+    $discountRecords = fetchSaleDiscounts($db, $receiptID);
     $couponRecords = fetchSaleCoupons($db, $receiptID);
     $couponTotal = array_sum(array_map('floatval', array_column($couponRecords, 'AppliedAmount')));
 
@@ -393,17 +393,17 @@ try {
 
             $paymentMethod =
                 ($_POST['payment_method'] ?? 'Cash') === 'Charge'
-                    ? 'Charge'
-                    : 'Cash';
+                ? 'Charge'
+                : 'Cash';
             // A charge is for exactly the total, so no cash amount is needed
             $amountTendered =
                 $paymentMethod === 'Charge'
-                    ? $totalAmount
-                    : filter_var(
-                        $_POST['amount_tendered']
-                        ?? null,
-                        FILTER_VALIDATE_FLOAT
-                    );
+                ? $totalAmount
+                : filter_var(
+                    $_POST['amount_tendered']
+                    ?? null,
+                    FILTER_VALIDATE_FLOAT
+                );
             if (
                 $amountTendered === false
                 ||
@@ -502,161 +502,205 @@ require __DIR__ . '/../includes/header.php';
 
     <div class="checkout-layout">
 
-    <div class="checkout-items">
+        <div class="checkout-items">
 
-    <div class="checkout-transaction-number">
+            <div class="checkout-transaction-number">
 
-        <strong>
-            Transaction:
-        </strong>
+                <strong>
+                    Transaction:
+                </strong>
 
-        <?= transactionNumberHtml(
-            $saleRecord['TransactionNumber'] ?? ''
-        ) ?>
+                <?= transactionNumberHtml(
+                    $saleRecord['TransactionNumber'] ?? ''
+                ) ?>
 
-    </div>
+            </div>
 
 
-    <div class="sale-receipt-table-container">
+            <div class="sale-receipt-table-container">
 
-        <table class="sale-receipt-table">
+                <table class="sale-receipt-table">
 
-            <thead>
+                    <thead>
 
-                <tr>
-                    <th>Product</th>
-                    <th>Quantity</th>
-                    <th>Unit Price</th>
-                    <th>Tax</th>
-                    <th>Total</th>
-                </tr>
+                        <tr>
+                            <th>Product</th>
+                            <th>Quantity</th>
+                            <th>Unit Price</th>
+                            <th>Tax</th>
+                            <th>Total</th>
+                        </tr>
 
-            </thead>
+                    </thead>
 
-            <tbody>
+                    <tbody>
 
-                <?php foreach ($saleItems as $saleItem): ?>
+                        <?php foreach ($saleItems as $saleItem): ?>
 
-                    <tr>
+                            <tr>
 
-                        <td>
-                            <?= escapeOutput(
-                                $saleItem['ProductName']
-                            ) ?>
-                        </td>
+                                <td>
+                                    <?= escapeOutput(
+                                        $saleItem['ProductName']
+                                    ) ?>
+                                </td>
 
-                        <td>
-                            <?= escapeOutput(
-                                $saleItem['UnitType'] === 'Each'
-                                ? number_format(
-                                    (float) $saleItem['Quantity'],
-                                    0
-                                )
-                                : number_format(
-                                    (float) $saleItem['Quantity'],
-                                    3
-                                )
-                            ) ?>
-                        </td>
+                                <td>
+                                    <?= escapeOutput(
+                                        $saleItem['UnitType'] === 'Each'
+                                        ? number_format(
+                                            (float) $saleItem['Quantity'],
+                                            0
+                                        )
+                                        : number_format(
+                                            (float) $saleItem['Quantity'],
+                                            3
+                                        )
+                                    ) ?>
+                                </td>
 
-                        <td>
-                            $<?= escapeOutput(
-                                number_format(
-                                    (float) $saleItem['UnitPrice'],
-                                    2
-                                )
-                            ) ?>
-                        </td>
+                                <td>
+                                    $<?= escapeOutput(
+                                        number_format(
+                                            (float) $saleItem['UnitPrice'],
+                                            2
+                                        )
+                                    ) ?>
+                                </td>
 
-                        <td>
-                            <?= (int) $saleItem['Taxable'] === 1
-                                ? 'Taxable'
-                                : 'No Tax'
-                            ?>
-                        </td>
+                                <td>
+                                    <?= (int) $saleItem['Taxable'] === 1
+                                        ? 'Taxable'
+                                        : 'No Tax'
+                                        ?>
+                                </td>
 
-                        <td>
-                            $<?= escapeOutput(
-                                number_format(
-                                    (float) $saleItem['LineTotal'],
-                                    2
-                                )
-                            ) ?>
-                        </td>
+                                <td>
+                                    $<?= escapeOutput(
+                                        number_format(
+                                            (float) $saleItem['LineTotal'],
+                                            2
+                                        )
+                                    ) ?>
+                                </td>
 
-                    </tr>
+                            </tr>
+
+                        <?php endforeach; ?>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+        </div>
+
+        <div class="checkout-payment">
+
+            <section class="checkout-totals">
+                <?php if (!empty($couponRecords)): ?>
+                    <div class="checkout-total-row">
+                        <span>
+                            Items
+                        </span>
+                        <strong>
+                            $<?= escapeOutput(number_format($subtotal + $couponTotal, 2)) ?>
+                        </strong>
+                    </div>
+                    <?php foreach ($couponRecords as $couponRecord): ?>
+                        <div class="checkout-total-row checkout-discount-row">
+                            <span>
+                                Coupon
+                                <small>
+                                    <?= escapeOutput($couponRecord['Description']) ?>
+                                </small>
+                            </span>
+                            <strong>
+                                -$<?= escapeOutput(number_format((float) $couponRecord['AppliedAmount'], 2)) ?>
+                            </strong>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+                <div class="checkout-total-row">
+                    <span>
+                        Subtotal
+                    </span>
+
+                    <strong>
+                        $<?= escapeOutput(
+                            number_format(
+                                $subtotal,
+                                2
+                            )
+                        ) ?>
+                    </strong>
+
+                </div>
+
+
+                <?php foreach ($discountRecords as $discountRecord): ?>
+
+                    <?php if ($discountRecord['TaxTiming'] === 'Before Tax'): ?>
+
+                        <div class="checkout-total-row checkout-discount-row">
+
+                            <span>
+                                <?= escapeOutput(describeDiscount($discountRecord)) ?>
+                                <small>
+                                    <?= escapeOutput($discountRecord['Reason']) ?>
+                                </small>
+                            </span>
+
+                            <strong>
+                                -$<?= escapeOutput(
+                                    number_format(
+                                        (float) $discountRecord['AppliedAmount'],
+                                        2
+                                    )
+                                ) ?>
+                            </strong>
+
+                        </div>
+
+                    <?php endif; ?>
 
                 <?php endforeach; ?>
 
-            </tbody>
 
-        </table>
+                <?php if ($receiptDiscount > 0): ?>
 
-    </div>
+                    <div class="checkout-total-row">
 
+                        <span>
+                            Subtotal After Discounts
+                        </span>
 
-    </div>
+                        <strong>
+                            $<?= escapeOutput(
+                                number_format(
+                                    $netSubtotal,
+                                    2
+                                )
+                            ) ?>
+                        </strong>
 
-    <div class="checkout-payment">
+                    </div>
 
-    <section class="checkout-totals">
-        <?php if (!empty($couponRecords)): ?>
-            <div class="checkout-total-row">
-                <span>
-                    Items
-                </span>
-                <strong>
-                    $<?= escapeOutput(number_format($subtotal + $couponTotal, 2)) ?>
-                </strong>
-            </div>
-            <?php foreach ($couponRecords as $couponRecord): ?>
-                <div class="checkout-total-row checkout-discount-row">
-                    <span>
-                        Coupon
-                        <small>
-                            <?= escapeOutput($couponRecord['Description']) ?>
-                        </small>
-                    </span>
-                    <strong>
-                        -$<?= escapeOutput(number_format((float) $couponRecord['AppliedAmount'], 2)) ?>
-                    </strong>
-                </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
-        <div class="checkout-total-row">
-            <span>
-                Subtotal
-            </span>
-
-            <strong>
-                $<?= escapeOutput(
-                    number_format(
-                        $subtotal,
-                        2
-                    )
-                ) ?>
-            </strong>
-
-        </div>
+                <?php endif; ?>
 
 
-        <?php foreach ($discountRecords as $discountRecord): ?>
-
-            <?php if ($discountRecord['TaxTiming'] === 'Before Tax'): ?>
-
-                <div class="checkout-total-row checkout-discount-row">
+                <div class="checkout-total-row">
 
                     <span>
-                        <?= escapeOutput(describeDiscount($discountRecord)) ?>
-                        <small>
-                            <?= escapeOutput($discountRecord['Reason']) ?>
-                        </small>
+                        Taxable Subtotal
                     </span>
 
                     <strong>
-                        -$<?= escapeOutput(
+                        $<?= escapeOutput(
                             number_format(
-                                (float) $discountRecord['AppliedAmount'],
+                                $taxableSubtotal,
                                 2
                             )
                         ) ?>
@@ -664,300 +708,167 @@ require __DIR__ . '/../includes/header.php';
 
                 </div>
 
-            <?php endif; ?>
 
-        <?php endforeach; ?>
+                <div class="checkout-total-row">
+
+                    <span>
+                        Sales Tax (<?= escapeOutput(number_format(SALES_TAX_RATE * 100, 2)) ?>%)
+                    </span>
+
+                    <strong>
+                        $<?= escapeOutput(
+                            number_format(
+                                $taxAmount,
+                                2
+                            )
+                        ) ?>
+                    </strong>
+
+                </div>
 
 
-        <?php if ($receiptDiscount > 0): ?>
+                <?php foreach ($discountRecords as $discountRecord): ?>
 
-            <div class="checkout-total-row">
+                    <?php if ($discountRecord['TaxTiming'] === 'After Tax'): ?>
 
-                <span>
-                    Subtotal After Discounts
-                </span>
+                        <div class="checkout-total-row checkout-discount-row">
 
-                <strong>
-                    $<?= escapeOutput(
+                            <span>
+                                <?= escapeOutput(describeDiscount($discountRecord)) ?>
+                                <small>
+                                    <?= escapeOutput($discountRecord['Reason']) ?>
+                                </small>
+                            </span>
+
+                            <strong>
+                                -$<?= escapeOutput(
+                                    number_format(
+                                        (float) $discountRecord['AppliedAmount'],
+                                        2
+                                    )
+                                ) ?>
+                            </strong>
+
+                        </div>
+
+                    <?php endif; ?>
+
+                <?php endforeach; ?>
+
+
+                <div class="checkout-total-row checkout-grand-total">
+
+                    <span>
+                        Total Due
+                    </span>
+
+                    <strong>
+                        $<?= escapeOutput(
+                            number_format(
+                                $totalAmount,
+                                2
+                            )
+                        ) ?>
+                    </strong>
+
+                </div>
+
+            </section>
+
+
+            <form method="post" id="checkoutPaymentForm" class="checkout-payment-form">
+
+                <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
+
+                <input type="hidden" name="receipt_id" value="<?= (int) $receiptID ?>">
+
+
+                <fieldset class="checkout-method">
+                    <legend>
+                        Payment
+                    </legend>
+                    <label class="checkout-method-option">
+                        <input type="radio" name="payment_method" value="Cash" checked>
+                        Cash
+                    </label>
+                    <label class="checkout-method-option">
+                        <input type="radio" name="payment_method" value="Charge">
+                        Charge
+                    </label>
+                </fieldset>
+                <div class="form-field" id="checkoutCashField">
+
+                    <label for="amount_tendered">
+                        Cash Tendered
+                    </label>
+
+                    <input type="number" id="amount_tendered" name="amount_tendered" min="<?= escapeOutput(
                         number_format(
-                            $netSubtotal,
-                            2
+                            $totalAmount,
+                            2,
+                            '.',
+                            ''
                         )
-                    ) ?>
-                </strong>
+                    ) ?>" step="0.01" inputmode="decimal" required>
 
-            </div>
-
-        <?php endif; ?>
-
-
-        <div class="checkout-total-row">
-
-            <span>
-                Taxable Subtotal
-            </span>
-
-            <strong>
-                $<?= escapeOutput(
-                    number_format(
-                        $taxableSubtotal,
-                        2
-                    )
-                ) ?>
-            </strong>
-
-        </div>
+                </div>
+                <p class="checkout-charge-note" id="checkoutChargeNote" hidden>
+                    The total is charged to the customer's card. No cash is entered and no change is given.
+                </p>
 
 
-        <div class="checkout-total-row">
+                <div class="form-actions">
 
-            <span>
-                Sales Tax (<?= escapeOutput(number_format(SALES_TAX_RATE * 100, 2)) ?>%)
-            </span>
-
-            <strong>
-                $<?= escapeOutput(
-                    number_format(
-                        $taxAmount,
-                        2
-                    )
-                ) ?>
-            </strong>
-
-        </div>
+                    <button type="submit" name="complete_sale" value="1" class="button button-primary">
+                        Complete Sale
+                    </button>
 
 
-        <?php foreach ($discountRecords as $discountRecord): ?>
-
-            <?php if ($discountRecord['TaxTiming'] === 'After Tax'): ?>
-
-                <div class="checkout-total-row checkout-discount-row">
-
-                    <span>
-                        <?= escapeOutput(describeDiscount($discountRecord)) ?>
-                        <small>
-                            <?= escapeOutput($discountRecord['Reason']) ?>
-                        </small>
-                    </span>
-
-                    <strong>
-                        -$<?= escapeOutput(
-                            number_format(
-                                (float) $discountRecord['AppliedAmount'],
-                                2
-                            )
-                        ) ?>
-                    </strong>
+                    <a href="<?= APPLICATION_URL ?>/sales/sale_new.php?receipt=<?= (int) $receiptID ?>"
+                        class="button button-secondary" data-checkout-safe="true">
+                        Return to Sale
+                    </a>
 
                 </div>
 
-            <?php endif; ?>
-
-        <?php endforeach; ?>
+            </form>
 
 
-        <div class="checkout-total-row checkout-grand-total">
+            <form method="post" id="cancelCheckoutSaleForm" class="checkout-cancel-form">
 
-            <span>
-                Total Due
-            </span>
+                <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
 
-            <strong>
-                $<?= escapeOutput(
-                    number_format(
-                        $totalAmount,
-                        2
-                    )
-                ) ?>
-            </strong>
+                <input type="hidden" name="receipt_id" value="<?= (int) $receiptID ?>">
+
+                <input type="hidden" name="cancel_sale" value="1">
+
+
+                <button type="submit" name="cancel_sale" value="1" class="button button-danger"
+                    onclick="return window.confirm('Cancel this sale? All scanned items will be returned to inventory.');">
+                    Cancel Sale
+                </button>
+
+            </form>
+
+
+            <form method="post" id="closeCheckoutRegisterForm" hidden>
+
+                <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
+
+                <input type="hidden" name="receipt_id" value="<?= (int) $receiptID ?>">
+
+                <input type="hidden" id="checkout_close_destination" name="close_destination" value="">
+
+                <input type="hidden" name="close_register" value="1">
+
+            </form>
+
 
         </div>
-
-    </section>
-
-
-    <form
-        method="post"
-        id="checkoutPaymentForm"
-        class="checkout-payment-form"
-    >
-
-        <input
-            type="hidden"
-            name="form_security_token"
-            value="<?= escapeOutput(formToken()) ?>"
-        >
-
-        <input
-            type="hidden"
-            name="receipt_id"
-            value="<?= (int) $receiptID ?>"
-        >
-
-
-        <fieldset class="checkout-method">
-            <legend>
-                Payment
-            </legend>
-            <label class="checkout-method-option">
-                <input
-                    type="radio"
-                    name="payment_method"
-                    value="Cash"
-                    checked
-                >
-                Cash
-            </label>
-            <label class="checkout-method-option">
-                <input
-                    type="radio"
-                    name="payment_method"
-                    value="Charge"
-                >
-                Charge
-            </label>
-        </fieldset>
-        <div
-            class="form-field"
-            id="checkoutCashField"
-        >
-
-            <label for="amount_tendered">
-                Cash Tendered
-            </label>
-
-            <input
-                type="number"
-                id="amount_tendered"
-                name="amount_tendered"
-                min="<?= escapeOutput(
-                    number_format(
-                        $totalAmount,
-                        2,
-                        '.',
-                        ''
-                    )
-                ) ?>"
-                step="0.01"
-                inputmode="decimal"
-                required
-            >
-
-        </div>
-        <p
-            class="checkout-charge-note"
-            id="checkoutChargeNote"
-            hidden
-        >
-            The total is charged to the customer's card. No cash is entered and no change is given.
-        </p>
-
-
-        <div class="form-actions">
-
-            <button
-                type="submit"
-                name="complete_sale"
-                value="1"
-                class="button button-primary"
-            >
-                Complete Sale
-            </button>
-
-
-            <a
-                href="<?= APPLICATION_URL ?>/sales/sale_new.php?receipt=<?= (int) $receiptID ?>"
-                class="button button-secondary"
-                data-checkout-safe="true"
-            >
-                Return to Sale
-            </a>
-
-        </div>
-
-    </form>
-
-
-    <form
-        method="post"
-        id="cancelCheckoutSaleForm"
-        class="checkout-cancel-form"
-    >
-
-        <input
-            type="hidden"
-            name="form_security_token"
-            value="<?= escapeOutput(formToken()) ?>"
-        >
-
-        <input
-            type="hidden"
-            name="receipt_id"
-            value="<?= (int) $receiptID ?>"
-        >
-
-        <input
-            type="hidden"
-            name="cancel_sale"
-            value="1"
-        >
-
-
-        <button
-            type="submit"
-            name="cancel_sale"
-            value="1"
-            class="button button-danger"
-            onclick="return window.confirm('Cancel this sale? All scanned items will be returned to inventory.');"
-        >
-            Cancel Sale
-        </button>
-
-    </form>
-
-
-    <form
-        method="post"
-        id="closeCheckoutRegisterForm"
-        hidden
-    >
-
-        <input
-            type="hidden"
-            name="form_security_token"
-            value="<?= escapeOutput(formToken()) ?>"
-        >
-
-        <input
-            type="hidden"
-            name="receipt_id"
-            value="<?= (int) $receiptID ?>"
-        >
-
-        <input
-            type="hidden"
-            id="checkout_close_destination"
-            name="close_destination"
-            value=""
-        >
-
-        <input
-            type="hidden"
-            name="close_register"
-            value="1"
-        >
-
-    </form>
-
 
     </div>
 
-    </div>
-
-    <dialog
-        id="checkoutLeaveDialog"
-        class="checkout-leave-dialog"
-    >
+    <dialog id="checkoutLeaveDialog" class="checkout-leave-dialog">
 
         <h2>
             Leave Checkout?
@@ -969,44 +880,32 @@ require __DIR__ . '/../includes/header.php';
 
 
         <div class="checkout-leave-actions">
-                <div class="checkout-leave-choice">
-                    <button
-                        type="button"
-                        id="checkoutStayButton"
-                        class="button button-secondary"
-                    >
-                        Stay
-                    </button>
-                    <p class="checkout-leave-note">
-                        Keep working on this transaction.
-                    </p>
-                </div>
-                <div class="checkout-leave-choice">
-                    <button
-                        type="button"
-                        id="checkoutSaveButton"
-                        class="button button-primary"
-                    >
-                        Save
-                    </button>
-                    <p class="checkout-leave-note">
-                        Leave now. The transaction stays saved on this register.
-                    </p>
-                </div>
-                <div class="checkout-leave-choice">
-                    <button
-                        type="button"
-                        id="checkoutCloseButton"
-                        class="button button-danger"
-                    >
-                        Close
-                    </button>
-                    <p class="checkout-leave-note">
-                        Cancel the transaction, return the items to stock, and close the register.
-                    </p>
-                </div>
+            <div class="checkout-leave-choice">
+                <button type="button" id="checkoutStayButton" class="button button-secondary">
+                    Stay
+                </button>
+                <p class="checkout-leave-note">
+                    Keep working on this transaction.
+                </p>
             </div>
-        </dialog>
+            <div class="checkout-leave-choice">
+                <button type="button" id="checkoutSaveButton" class="button button-primary">
+                    Save
+                </button>
+                <p class="checkout-leave-note">
+                    Leave now. The transaction stays saved on this register.
+                </p>
+            </div>
+            <div class="checkout-leave-choice">
+                <button type="button" id="checkoutCloseButton" class="button button-danger">
+                    Close
+                </button>
+                <p class="checkout-leave-note">
+                    Cancel the transaction, return the items to stock, and close the register.
+                </p>
+            </div>
+        </div>
+    </dialog>
 
     <script>
         (function () {
@@ -1040,207 +939,207 @@ require __DIR__ . '/../includes/header.php';
 
 
 <script>
-(function () {
+    (function () {
 
-    const leaveDialog =
-        document.getElementById(
-            'checkoutLeaveDialog'
-        );
+        const leaveDialog =
+            document.getElementById(
+                'checkoutLeaveDialog'
+            );
 
-    const cancelSaleForm =
-        document.getElementById(
-            'cancelCheckoutSaleForm'
-        );
+        const cancelSaleForm =
+            document.getElementById(
+                'cancelCheckoutSaleForm'
+            );
 
-    const closeRegisterForm =
-        document.getElementById(
-            'closeCheckoutRegisterForm'
-        );
+        const closeRegisterForm =
+            document.getElementById(
+                'closeCheckoutRegisterForm'
+            );
 
-    const closeDestinationInput =
-        document.getElementById(
-            'checkout_close_destination'
-        );
+        const closeDestinationInput =
+            document.getElementById(
+                'checkout_close_destination'
+            );
 
-    const paymentForm =
-        document.getElementById(
-            'checkoutPaymentForm'
-        );
+        const paymentForm =
+            document.getElementById(
+                'checkoutPaymentForm'
+            );
 
-    const stayButton =
-        document.getElementById(
-            'checkoutStayButton'
-        );
+        const stayButton =
+            document.getElementById(
+                'checkoutStayButton'
+            );
 
-    const saveButton =
-        document.getElementById(
-            'checkoutSaveButton'
-        );
+        const saveButton =
+            document.getElementById(
+                'checkoutSaveButton'
+            );
 
-    const closeButton =
-        document.getElementById(
-            'checkoutCloseButton'
-        );
+        const closeButton =
+            document.getElementById(
+                'checkoutCloseButton'
+            );
 
-    let pendingDestination = '';
+        let pendingDestination = '';
 
-    let allowCheckoutLeave = false;
+        let allowCheckoutLeave = false;
 
 
-    document.addEventListener(
-        'click',
-        function (event) {
+        document.addEventListener(
+            'click',
+            function (event) {
 
-            const link =
-                event.target.closest(
-                    'a[href]'
-                );
+                const link =
+                    event.target.closest(
+                        'a[href]'
+                    );
 
-            if (!link) {
-                return;
+                if (!link) {
+                    return;
+                }
+
+                if (
+                    link.dataset.checkoutSafe
+                    ===
+                    'true'
+                ) {
+
+                    allowCheckoutLeave = true;
+
+                    return;
+                }
+
+                const destination =
+                    link.getAttribute('href');
+
+                if (
+                    !destination
+                    ||
+                    destination.startsWith('#')
+                    ||
+                    destination.startsWith('mailto:')
+                ) {
+
+                    return;
+                }
+
+                event.preventDefault();
+
+                pendingDestination =
+                    destination;
+
+                leaveDialog.showModal();
             }
+        );
 
-            if (
-                link.dataset.checkoutSafe
-                ===
-                'true'
-            ) {
+
+        stayButton.addEventListener(
+            'click',
+            function () {
+
+                pendingDestination = '';
+
+                leaveDialog.close();
+            }
+        );
+
+
+        saveButton.addEventListener(
+            'click',
+            function () {
+
+                if (pendingDestination === '') {
+
+                    leaveDialog.close();
+
+                    return;
+                }
 
                 allowCheckoutLeave = true;
 
-                return;
-            }
-
-            const destination =
-                link.getAttribute('href');
-
-            if (
-                !destination
-                ||
-                destination.startsWith('#')
-                ||
-                destination.startsWith('mailto:')
-            ) {
-
-                return;
-            }
-
-            event.preventDefault();
-
-            pendingDestination =
-                destination;
-
-            leaveDialog.showModal();
-        }
-    );
-
-
-    stayButton.addEventListener(
-        'click',
-        function () {
-
-            pendingDestination = '';
-
-            leaveDialog.close();
-        }
-    );
-
-
-    saveButton.addEventListener(
-        'click',
-        function () {
-
-            if (pendingDestination === '') {
-
                 leaveDialog.close();
 
-                return;
+                window.location.href =
+                    pendingDestination;
             }
-
-            allowCheckoutLeave = true;
-
-            leaveDialog.close();
-
-            window.location.href =
-                pendingDestination;
-        }
-    );
+        );
 
 
-    closeButton.addEventListener(
-        'click',
-        function () {
+        closeButton.addEventListener(
+            'click',
+            function () {
 
-            if (pendingDestination === '') {
+                if (pendingDestination === '') {
 
-                leaveDialog.close();
+                    leaveDialog.close();
 
-                return;
+                    return;
+                }
+
+                const confirmed =
+                    window.confirm(
+                        'Close this register? '
+                        + 'The current transaction will be cancelled '
+                        + 'and all scanned items will be returned to inventory.'
+                    );
+
+                if (!confirmed) {
+                    return;
+                }
+
+                allowCheckoutLeave = true;
+
+                closeDestinationInput.value =
+                    pendingDestination;
+
+                closeRegisterForm.requestSubmit();
             }
+        );
 
-            const confirmed =
-                window.confirm(
-                    'Close this register? '
-                    + 'The current transaction will be cancelled '
-                    + 'and all scanned items will be returned to inventory.'
-                );
 
-            if (!confirmed) {
-                return;
+        paymentForm.addEventListener(
+            'submit',
+            function () {
+
+                allowCheckoutLeave = true;
             }
-
-            allowCheckoutLeave = true;
-
-            closeDestinationInput.value =
-                pendingDestination;
-
-            closeRegisterForm.requestSubmit();
-        }
-    );
+        );
 
 
-    paymentForm.addEventListener(
-        'submit',
-        function () {
+        cancelSaleForm.addEventListener(
+            'submit',
+            function () {
 
-            allowCheckoutLeave = true;
-        }
-    );
-
-
-    cancelSaleForm.addEventListener(
-        'submit',
-        function () {
-
-            allowCheckoutLeave = true;
-        }
-    );
-
-
-    closeRegisterForm.addEventListener(
-        'submit',
-        function () {
-
-            allowCheckoutLeave = true;
-        }
-    );
-
-
-    window.addEventListener(
-        'beforeunload',
-        function (event) {
-
-            if (allowCheckoutLeave) {
-                return;
+                allowCheckoutLeave = true;
             }
+        );
 
-            event.preventDefault();
 
-            event.returnValue = '';
-        }
-    );
+        closeRegisterForm.addEventListener(
+            'submit',
+            function () {
 
-})();
+                allowCheckoutLeave = true;
+            }
+        );
+
+
+        window.addEventListener(
+            'beforeunload',
+            function (event) {
+
+                if (allowCheckoutLeave) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                event.returnValue = '';
+            }
+        );
+
+    })();
 </script>
 
 <?php require __DIR__ . '/../includes/footer.php'; ?>

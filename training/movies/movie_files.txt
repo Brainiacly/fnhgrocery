@@ -1,13 +1,24 @@
-FnH Groceries - CSC 680 Assignment 4 Training Movies
-Brian Phillips
+FnH Groceries - CSC 680 Assignment 4 Training Videos
 
-Save the five training movies in this folder with these exact names:
+Record seven full videos. Within each video, finish every logical use-case segment
+with one short closing sentence, then STOP TALKING and PAUSE for 2-3 seconds.
+The pause makes it easy to find exact start times during editing.
 
-01_getting_started.mp4
-02_operator_administration.mp4
-03_point_of_sale.mp4
-04_fnh_express.mp4
-05_inventory_and_transactions.mp4
+Save finished MP4 files here using these exact names:
 
-Each topic page links to the movie that shows it. To open a topic at the right moment,
-set its 'start' value (in seconds) in training/tc_data.php.
+01_sign_in_and_navigation.mp4
+02_regular_checkout.mp4
+03_express_orders.mp4
+04_inventory.mp4
+05_employee_management.mp4
+06_register_management.mp4
+07_transactions_and_coupons.mp4
+
+Each Training Topic remains linked to the matching full video.
+After all videos are recorded and edited, open training/tc_data.php and replace
+  'start' => null
+with a nonnegative number of seconds for EACH topic (for example, 02:35 => 155).
+Topic pages then use #t=155 to jump to that segment, while the Training Movies
+buttons still open the complete video from its beginning.
+
+Never guess a timestamp; leave null until the exact position is known.

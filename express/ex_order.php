@@ -121,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if ($codeNotFound) {
             $errorMessage = 'The product code was not found.';
-        } elseif ( $productID <= 0 || $quantity === false || $quantity <= 0 ) {
+        } elseif ($productID <= 0 || $quantity === false || $quantity <= 0) {
 
             $errorMessage =
                 'Select a product and enter a quantity greater than zero.';
@@ -659,9 +659,7 @@ require __DIR__ . '/../includes/header.php';
             You are assisting <?= escapeOutput($order['PersonalShopperUsername']) ?>.
             The order stays with <?= escapeOutput($order['PersonalShopperUsername']) ?>, who can still resume it.
             To mark it Ready or check it out, take it over from the
-            <a
-                href="<?= APPLICATION_URL ?>/transactions/tr_view.php?receipt=<?= (int) $order['ReceiptID'] ?>"
-            >
+            <a href="<?= APPLICATION_URL ?>/transactions/tr_view.php?receipt=<?= (int) $order['ReceiptID'] ?>">
                 transaction details</a>.
         </div>
     <?php endif; ?>
@@ -686,36 +684,17 @@ require __DIR__ . '/../includes/header.php';
 
                 <?php if ($order['ExpressStatus'] !== 'Ready' && $lines): ?>
                     <form method="post">
-                        <input
-                            type="hidden"
-                            name="form_security_token"
-                            value="<?= escapeOutput(formToken()) ?>"
-                        >
-                        <input
-                            type="hidden"
-                            name="express_order_id"
-                            value="<?= $expressOrderID ?>"
-                        >
-                        <input
-                            type="hidden"
-                            name="status"
-                            value="Ready"
-                        >
-                        <button
-                            type="submit"
-                            name="update_status"
-                            value="1"
-                            class="button button-primary"
-                        >
+                        <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
+                        <input type="hidden" name="express_order_id" value="<?= $expressOrderID ?>">
+                        <input type="hidden" name="status" value="Ready">
+                        <button type="submit" name="update_status" value="1" class="button button-primary">
                             Mark Ready
                         </button>
                     </form>
                 <?php endif; ?>
                 <?php if ($order['ExpressStatus'] === 'Ready'): ?>
-                    <a
-                        href="<?= APPLICATION_URL ?>/express/ex_checkout.php?id=<?= $expressOrderID ?>"
-                        class="button button-primary"
-                    >
+                    <a href="<?= APPLICATION_URL ?>/express/ex_checkout.php?id=<?= $expressOrderID ?>"
+                        class="button button-primary">
                         Checkout
                     </a>
                 <?php endif; ?>
@@ -723,27 +702,13 @@ require __DIR__ . '/../includes/header.php';
 
                 <form method="post">
 
-                    <input
-                        type="hidden"
-                        name="form_security_token"
-                        value="<?= escapeOutput(formToken()) ?>"
-                    >
+                    <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
 
-                    <input
-                        type="hidden"
-                        name="express_order_id"
-                        value="<?= $expressOrderID ?>"
-                    >
+                    <input type="hidden" name="express_order_id" value="<?= $expressOrderID ?>">
 
-                    <button
-                        type="submit"
-                        name="cancel_order"
-                        value="1"
-                        class="button button-secondary"
-                        onclick="return confirm(
+                    <button type="submit" name="cancel_order" value="1" class="button button-secondary" onclick="return confirm(
                         'Cancel this Express order? All picked items will be returned to inventory.'
-                        );"
-                    >
+                        );">
                         Cancel Order
                     </button>
 
@@ -763,83 +728,42 @@ require __DIR__ . '/../includes/header.php';
 
                 <div class="sale-entry-panel">
 
-                <form
-                    method="post"
-                    class="sale-scan-form"
-                    id="saleScanForm"
-                >
+                    <form method="post" class="sale-scan-form" id="saleScanForm">
 
-                    <input
-                        type="hidden"
-                        name="form_security_token"
-                        value="<?= escapeOutput(formToken()) ?>"
-                    >
+                        <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
 
-                    <input
-                        type="hidden"
-                        name="express_order_id"
-                        value="<?= $expressOrderID ?>"
-                    >
+                        <input type="hidden" name="express_order_id" value="<?= $expressOrderID ?>">
 
-                    <input
-                        type="hidden"
-                        id="scanner_product_id"
-                        name="product_id"
-                        value="0"
-                    >
+                        <input type="hidden" id="scanner_product_id" name="product_id" value="0">
 
-                    <div class="form-field sale-barcode-field">
+                        <div class="form-field sale-barcode-field">
 
-                        <label for="product_code">
-                            Barcode / Product Code
-                        </label>
+                            <label for="product_code">
+                                Barcode / Product Code
+                            </label>
 
-                        <input
-                            type="text"
-                            id="product_code"
-                            name="product_code"
-                            value=""
-                            maxlength="20"
-                            autocomplete="off"
-                        >
+                            <input type="text" id="product_code" name="product_code" value="" maxlength="20"
+                                autocomplete="off">
 
-                    </div>
+                        </div>
 
-                    <?php printQuantityPicker(); ?>
-                    <div
-                        class="form-field sale-quantity-field"
-                        id="saleWeightField"
-                    >
+                        <?php printQuantityPicker(); ?>
+                        <div class="form-field sale-quantity-field" id="saleWeightField">
 
-                        <label
-                            for="quantity"
-                            id="sale_quantity_label"
-                        >
-                            Quantity
-                        </label>
+                            <label for="quantity" id="sale_quantity_label">
+                                Quantity
+                            </label>
 
-                        <input
-                            type="number"
-                            id="quantity"
-                            name="quantity"
-                            value="1"
-                            min="1"
-                            step="1"
-                            inputmode="decimal"
-                        >
+                            <input type="number" id="quantity" name="quantity" value="1" min="1" step="1"
+                                inputmode="decimal">
 
-                    </div>
+                        </div>
 
-                    <button
-                        type="submit"
-                        name="add_item"
-                        value="1"
-                        class="button button-primary"
-                    >
-                        Add Item
-                    </button>
+                        <button type="submit" name="add_item" value="1" class="button button-primary">
+                            Add Item
+                        </button>
 
-                </form>
+                    </form>
 
 
                 </div>
@@ -886,10 +810,10 @@ require __DIR__ . '/../includes/header.php';
                     ['express_order_id' => $expressOrderID],
                     $order['ReceiptStatus'] === 'Open',
                     [
-                            'add' => 'add_item',
-                            'remove' => 'remove_item',
-                            'removeAll' => 'remove_all_item'
-                        ]
+                        'add' => 'add_item',
+                        'remove' => 'remove_item',
+                        'removeAll' => 'remove_all_item'
+                    ]
                 );
                 ?>
 
@@ -902,10 +826,7 @@ require __DIR__ . '/../includes/header.php';
 
     <div class="express-actions">
 
-        <a
-            class="button button-secondary"
-            href="<?= APPLICATION_URL ?>/express/ex_orders.php"
-        >
+        <a class="button button-secondary" href="<?= APPLICATION_URL ?>/express/ex_orders.php">
             Back to Orders
         </a>
 

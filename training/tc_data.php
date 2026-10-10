@@ -11,33 +11,46 @@ if (basename($_SERVER['SCRIPT_NAME']) === basename(__FILE__)) {
     exit;
 }
 
-// Each use case names its movie and the second where it starts in that movie
+// Each use case names its full movie and the second at which its segment starts.
+// Leave start => null while filming. AFTER editing, enter a whole number of seconds
+// (e.g. 02:35 = 155). Topic pages will then seek to the right part of the movie.
+// Keep each segment ending with a spoken closing line and 2-3 seconds of silence.
 return [
     'movies' => [
-        'getting_started' => [
-            'title' => 'Getting Started',
-            'file' => '01_getting_started.mp4',
-            'summary' => 'Sign in, find your way around the menus, manage your own account, and log out.'
+        'orientation' => [
+            'title' => '1. Signing In and Finding Your Way',
+            'file' => '01_sign_in_and_navigation.mp4',
+            'summary' => 'Compare roles and navigation, use My Account and the Training Center, and sign out safely.'
         ],
-        'operators' => [
-            'title' => 'Employee Administration',
-            'file' => '02_operator_administration.mp4',
-            'summary' => 'How an Administrator creates, changes, deactivates, and reactivates employees.'
-        ],
-        'point_of_sale' => [
-            'title' => 'Point of Sale',
-            'file' => '03_point_of_sale.mp4',
-            'summary' => 'Check stock, ring up a sale, apply discounts, and take payment at a register.'
+        'regular' => [
+            'title' => '2. Regular Register and Customer Sale',
+            'file' => '02_regular_checkout.mp4',
+            'summary' => 'Open a regular register, scan or tap products, apply a coupon and discount, and take payment.'
         ],
         'express' => [
-            'title' => 'FnH Express',
-            'file' => '04_fnh_express.mp4',
-            'summary' => 'Take curbside and home delivery orders and follow the Express rules.'
+            'title' => '3. FnH Express Orders',
+            'file' => '03_express_orders.mp4',
+            'summary' => 'Take, pick, prepare, and check out curbside and delivery orders, including the Express rules.'
         ],
-        'inventory_transactions' => [
-            'title' => 'Inventory and Transactions',
-            'file' => '05_inventory_and_transactions.mp4',
-            'summary' => 'Add products, adjust stock, and look up past transactions and receipts.'
+        'inventory' => [
+            'title' => '4. Stock Levels and Inventory',
+            'file' => '04_inventory.mp4',
+            'summary' => 'Check stock, add or edit products, and add, remove, or set quantities with recorded reasons.'
+        ],
+        'employees' => [
+            'title' => '5. Managing Employees and Permissions',
+            'file' => '05_employee_management.mp4',
+            'summary' => 'Create, change, inactivate, and reactivate accounts; compare Administrator and Manager authority.'
+        ],
+        'registers' => [
+            'title' => '6. Managing Checkout Registers',
+            'file' => '06_register_management.mp4',
+            'summary' => 'Add and update registers, choose Regular or Express, and deactivate safely.'
+        ],
+        'additional' => [
+            'title' => '7. Transactions, Coupons, and Supervisor Tools',
+            'file' => '07_transactions_and_coupons.mp4',
+            'summary' => 'Find receipts, inspect and assist with open transactions, and administer coupon definitions.'
         ]
     ],
     'topics' => [
@@ -53,8 +66,8 @@ return [
                 'Use the left menu to move around. It only offers what your role allows.',
                 'Press Logout before you leave the workstation.'
             ],
-            'movie' => 'getting_started',
-            'start' => 0
+            'movie' => 'orientation',
+            'start' => null
         ],
         'top_level_menu' => [
             'title' => 'Use the Main Menu',
@@ -68,8 +81,8 @@ return [
                 'Use the left menu to switch between areas.',
                 'Notice that areas outside your role are not offered.'
             ],
-            'movie' => 'getting_started',
-            'start' => 0
+            'movie' => 'orientation',
+            'start' => null
         ],
         'account' => [
             'title' => 'My Account',
@@ -83,8 +96,24 @@ return [
                 'Update your contact details and save.',
                 'To change your password, enter the current one and a valid new one, then save.'
             ],
-            'movie' => 'getting_started',
-            'start' => 0
+            'movie' => 'orientation',
+            'start' => null
+        ],
+        'training_center' => [
+            'title' => 'Use the Training Center',
+            'assignment' => 'Assignment 4 extension',
+            'audience' => 'Everyone',
+            'roles' => ['Administrator', 'Manager', 'Operator', 'Personal Shopper'],
+            'summary' => 'Find the training movies and the lesson for each job you do.',
+            'steps' => [
+                'Choose Training Center from the left menu.',
+                'Training Movies lists the seven full videos relevant to your role. Press Watch Full Video to start a complete video.',
+                'Training Topics lists a lesson for each job you do. Press a topic to read its steps.',
+                'Open an individual topic to play its related movie. Once timestamps are entered, playback starts at the correct segment.',
+                'Use the Training Center button below the lesson to go back.'
+            ],
+            'movie' => 'orientation',
+            'start' => null
         ],
         'create_operator' => [
             'title' => 'Create an Employee',
@@ -98,8 +127,8 @@ return [
                 'Enter the name, username, email, role, hire date, and password. Contact details are optional.',
                 'Save, then check that the new account appears in the employee list.'
             ],
-            'movie' => 'operators',
-            'start' => 0
+            'movie' => 'employees',
+            'start' => null
         ],
         'update_operator' => [
             'title' => 'Change an Employee',
@@ -113,8 +142,8 @@ return [
                 'Change what needs to change. The page warns you if the change would cancel an open sale.',
                 'Save, then reopen the employee to confirm the new values.'
             ],
-            'movie' => 'operators',
-            'start' => 0
+            'movie' => 'employees',
+            'start' => null
         ],
         'delete_operator' => [
             'title' => 'Deactivate and Reactivate an Employee',
@@ -128,8 +157,8 @@ return [
                 'Check Inactive in the filter bar to find the account again.',
                 'Select the inactive employee and press Reactivate Employee to restore access.'
             ],
-            'movie' => 'operators',
-            'start' => 0
+            'movie' => 'employees',
+            'start' => null
         ],
         'supervisor_open' => [
             'title' => 'Open Another Employee\'s Transaction',
@@ -145,8 +174,8 @@ return [
                 'Press Cancel Transaction to cancel it and return its items to stock.',
                 'Read Who Worked On This Transaction to see every view, assist, take over, and hand back.'
             ],
-            'movie' => 'inventory_transactions',
-            'start' => 0
+            'movie' => 'additional',
+            'start' => null
         ],
         'employee_access' => [
             'title' => 'Inactivate or Reactivate an Employee',
@@ -162,8 +191,8 @@ return [
                 'To restore access, show inactive employees, choose the employee, and press Reactivate.',
                 'A Manager cannot change an Administrator, and nobody can change their own access.'
             ],
-            'movie' => 'operators',
-            'start' => 0
+            'movie' => 'employees',
+            'start' => null
         ],
         'registers' => [
             'title' => 'Set Up Registers',
@@ -174,12 +203,12 @@ return [
             'steps' => [
                 'Open Register Configuration at the bottom of the menu.',
                 'Choose a register from the dropdown, or choose Add New Register.',
-                'Change the number, name, type (Express or Regular), or status in the form that opens below.',
-                'Press Save Register. A register with an open transaction cannot be changed.',
+                'Change the number, name, type (Express or Regular), or status in the form that opens below. Select Inactive to take a register out of service; there is no Delete Register button.',
+                'Press Add Register when making a new register, or Save Register when editing one. A register with an open transaction cannot be changed.',
                 'Register 1 always stays an active Express register, and at least one Regular register stays active.'
             ],
-            'movie' => 'operators',
-            'start' => 0
+            'movie' => 'registers',
+            'start' => null
         ],
         'stock_levels' => [
             'title' => 'View Store Stock Levels',
@@ -193,8 +222,8 @@ return [
                 'Find a product by department and check its quantity, price, aisle, section, and shelf.',
                 'Spot the products marked Out of Stock.'
             ],
-            'movie' => 'point_of_sale',
-            'start' => 0
+            'movie' => 'inventory',
+            'start' => null
         ],
         'regular_sale' => [
             'title' => 'Ring Up a Sale',
@@ -211,8 +240,24 @@ return [
                 'Close Register, next to + UPC, cancels the sale and puts the items back in stock.',
                 'Stock cannot go below zero, so a quantity that is not on the shelf is refused.'
             ],
-            'movie' => 'point_of_sale',
-            'start' => 0
+            'movie' => 'regular',
+            'start' => null
+        ],
+        'leave_sale' => [
+            'title' => 'Leave a Sale You Have Not Finished',
+            'assignment' => 'Assignment 4 extension',
+            'audience' => 'Administrators, Managers, and Operators',
+            'roles' => ['Administrator', 'Manager', 'Operator'],
+            'summary' => 'Choose what happens to a sale with items on it when you leave the register page.',
+            'steps' => [
+                'While a sale has items on it, press any link in the left menu.',
+                'A box asks Leave Current Transaction? and offers Stay, Save, and Close.',
+                'Stay closes the box and keeps you on the sale.',
+                'Save leaves the page and keeps the sale. Choose Continue Sale in the menu to come back to it.',
+                'Close cancels the sale, puts its items back in stock, and closes the register.'
+            ],
+            'movie' => 'regular',
+            'start' => null
         ],
         'discounts' => [
             'title' => 'Apply Discounts to a Sale',
@@ -227,10 +272,10 @@ return [
                 'Pick a saved reason. Or choose Other, type a new one, and keep Save checked to reuse it.',
                 'Press Apply Discount. A sale can have up to five. Use Remove to take one off.'
             ],
-            'movie' => 'point_of_sale',
-            'start' => 0
+            'movie' => 'regular',
+            'start' => null
         ],
-                'coupons' => [
+        'coupons' => [
             'title' => 'Use Coupons',
             'assignment' => 'Assignment 4 extension',
             'audience' => 'Administrators and Operators',
@@ -243,8 +288,8 @@ return [
                 'A coupon that needs 2 items takes 2 items. Items covered by one coupon cannot be used again.',
                 'Press the x beside a coupon to take it off. The totals change right away.'
             ],
-            'movie' => 'point_of_sale',
-            'start' => 0
+            'movie' => 'regular',
+            'start' => null
         ],
         'checkout' => [
             'title' => 'Check Out and Take Payment',
@@ -259,8 +304,8 @@ return [
                 'For Cash, enter the cash tendered. For Charge, nothing more is entered and no change is given.',
                 'Complete the sale. For Cash, hand the customer the change shown on the receipt.'
             ],
-            'movie' => 'point_of_sale',
-            'start' => 0
+            'movie' => 'regular',
+            'start' => null
         ],
         'express_orders' => [
             'title' => 'Take a Curbside Express Order',
@@ -270,7 +315,7 @@ return [
             'summary' => 'Record a pickup order, pick the groceries, and check it out at an Express register.',
             'steps' => [
                 'Open Express Orders. The board shows every order by stage, and how many are left today.',
-                'Press Take New Order, choose the customer, choose Curbside, and choose a free Express register.',
+                'Press Take New Order, pick or enter the customer, choose Curbside, and pick a free Express register.',
                 'Add groceries with the touch buttons or a typed code. Type a quantity first to add several.',
                 'Press + or - beside a quantity to add or remove one if something was picked by mistake.',
                 'It moves to Picking when the first item is added. Open it from the board to add a forgotten item.',
@@ -278,7 +323,7 @@ return [
                 'The customer is charged (no cash, no change). Confirm the Express receipt.'
             ],
             'movie' => 'express',
-            'start' => 0
+            'start' => null
         ],
         'express_delivery' => [
             'title' => 'Take a Home Delivery Express Order',
@@ -293,7 +338,38 @@ return [
                 'Add the items, press Mark Ready, and confirm the $10.00 delivery fee is in the total charged.'
             ],
             'movie' => 'express',
-            'start' => 0
+            'start' => null
+        ],
+        'express_today' => [
+            'title' => 'See Today\'s Express Orders and Stock',
+            'assignment' => 'Assignment 3',
+            'audience' => 'Administrators, Managers, and Personal Shoppers',
+            'roles' => ['Administrator', 'Manager', 'Personal Shopper'],
+            'summary' => 'Check how many Express orders are left, which are Curbside or Delivery, and the stock.',
+            'steps' => [
+                'Open Express Orders. The top shows how many of the 20 daily orders are still available.',
+                'Read the Order Board to see each open order by stage: Received, Picking, and Ready.',
+                'Press View Today\'s Orders to list every order with its method, Curbside or Delivery, and its status.',
+                'Scroll down to Store Stock. It shows the same stock levels the register staff see.',
+                'When all 20 orders are taken, a new order is refused until one is cancelled.'
+            ],
+            'movie' => 'express',
+            'start' => null
+        ],
+        'express_cancel' => [
+            'title' => 'Cancel an Express Order',
+            'assignment' => 'Assignment 3',
+            'audience' => 'Administrators, Managers, and Personal Shoppers',
+            'roles' => ['Administrator', 'Manager', 'Personal Shopper'],
+            'summary' => 'Cancel an Express order that will not be picked up, and put its items back in stock.',
+            'steps' => [
+                'Open the order from the Order Board or from Today\'s Express Orders.',
+                'Press Cancel Order and confirm that the picked items go back into stock.',
+                'The order moves to Finished Today and shows as Cancelled.',
+                'A cancelled order frees its place in the daily limit of 20.'
+            ],
+            'movie' => 'express',
+            'start' => null
         ],
         'express_rules' => [
             'title' => 'Express Rules at a Glance',
@@ -308,7 +384,7 @@ return [
                 'Outside 8:00 AM to 4:00 PM, only curbside orders can be taken.'
             ],
             'movie' => 'express',
-            'start' => 0
+            'start' => null
         ],
         'inventory_management' => [
             'title' => 'Manage Products and Inventory',
@@ -322,10 +398,27 @@ return [
                 'Open Edit on a product to change its details. Stock is changed separately.',
                 'Open Adjust to Add, Remove, or Set stock, type a reason, and save.',
                 'Check the change in Recent Manual Inventory Adjustments.',
-                'Administrators only: open Coupons to create a coupon. Its barcode is shown there to print.'
+                'Administrators also have a Coupons button here. See Create and Manage Coupons.'
             ],
-            'movie' => 'inventory_transactions',
-            'start' => 0
+            'movie' => 'inventory',
+            'start' => null
+        ],
+        'coupons_manage' => [
+            'title' => 'Create and Manage Coupons',
+            'assignment' => 'Assignment 4 extension',
+            'audience' => 'Administrators',
+            'roles' => ['Administrator'],
+            'summary' => 'Make a coupon with its own barcode, turn it on or off, and see how often it is used.',
+            'steps' => [
+                'Open Manage Inventory and press Coupons.',
+                'Choose the product, how many it needs, percent or dollar, and the amount.',
+                'Type a description. The start and end dates are optional.',
+                'Press Create Coupon. The coupon appears in the list with its barcode, ready to print.',
+                'The Used column shows how many times each coupon has been used.',
+                'Press Turn Off to stop a coupon from working, or Turn On to bring it back.'
+            ],
+            'movie' => 'additional',
+            'start' => null
         ],
         'transaction_viewer' => [
             'title' => 'Look Up a Transaction',
@@ -339,8 +432,8 @@ return [
                 'Press Open to see the lines, discounts, tax, total, payment, and change.',
                 'For an Express order, also read the status, delivery fee, and delivery address.'
             ],
-            'movie' => 'inventory_transactions',
-            'start' => 0
-    ]
+            'movie' => 'additional',
+            'start' => null
+        ]
     ]
 ];

@@ -71,7 +71,7 @@ if (!$operatorRecord) {
 }
 
 $reactivateIsAllowed =
-    (int)$operatorRecord['Active']
+    (int) $operatorRecord['Active']
     ===
     0;
 
@@ -95,7 +95,7 @@ if (
                 );
 
             $reactivateStatement->execute([
-                (int)$operatorID
+                (int) $operatorID
             ]);
 
             $reactivateStatement->closeCursor();
@@ -144,10 +144,7 @@ require __DIR__ . '/../includes/header.php';
         </div>
 
         <div class="form-actions">
-            <a
-                href="op_list.php"
-                class="button button-secondary"
-            >
+            <a href="op_list.php" class="button button-secondary">
                 Return to Employee List
             </a>
         </div>
@@ -223,32 +220,16 @@ require __DIR__ . '/../includes/header.php';
         </div>
 
         <form method="post">
-            <input
-                type="hidden"
-                name="form_security_token"
-                value="<?= escapeOutput(formToken()) ?>"
-            >
+            <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
 
-            <input
-                type="hidden"
-                name="id"
-                value="<?= (int)$operatorID ?>"
-            >
+            <input type="hidden" name="id" value="<?= (int) $operatorID ?>">
 
             <div class="form-actions delete-confirmation-actions">
-                <button
-                    type="submit"
-                    name="confirm_reactivate"
-                    value="1"
-                    class="button button-primary"
-                >
+                <button type="submit" name="confirm_reactivate" value="1" class="button button-primary">
                     Yes, Reactivate Employee
                 </button>
 
-                <a
-                    href="op_list.php"
-                    class="button button-secondary"
-                >
+                <a href="op_list.php" class="button button-secondary">
                     No, Cancel
                 </a>
             </div>

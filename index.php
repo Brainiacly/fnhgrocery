@@ -169,15 +169,9 @@ require __DIR__ . '/includes/header.php';
 
     <div class="home-public">
 
-        <div
-            class="home-public-image home-public-image-left"
-            aria-hidden="true"
-        >
+        <div class="home-public-image home-public-image-left" aria-hidden="true">
 
-            <img
-                src="<?= APPLICATION_URL ?>/assets/images/image3.png"
-                alt=""
-            >
+            <img src="<?= APPLICATION_URL ?>/assets/images/image3.png" alt="">
 
         </div>
 
@@ -245,15 +239,9 @@ require __DIR__ . '/includes/header.php';
         </section>
 
 
-        <div
-            class="home-public-image home-public-image-right"
-            aria-hidden="true"
-        >
+        <div class="home-public-image home-public-image-right" aria-hidden="true">
 
-            <img
-                src="<?= APPLICATION_URL ?>/assets/images/image6.png"
-                alt=""
-            >
+            <img src="<?= APPLICATION_URL ?>/assets/images/image6.png" alt="">
 
         </div>
 
@@ -408,10 +396,7 @@ require __DIR__ . '/includes/header.php';
 
                 <?php if (canUseRegister()): ?>
 
-                    <a
-                        href="<?= escapeOutput($saleNavigationHref) ?>"
-                        class="home-menu-card"
-                    >
+                    <a href="<?= escapeOutput($saleNavigationHref) ?>" class="home-menu-card">
 
                         <strong>
                             <?= escapeOutput($saleNavigationLabel) ?>
@@ -428,10 +413,7 @@ require __DIR__ . '/includes/header.php';
 
                 <?php if (canUseExpress()): ?>
 
-                    <a
-                        href="<?= APPLICATION_URL ?>/express/ex_home.php"
-                        class="home-menu-card"
-                    >
+                    <a href="<?= APPLICATION_URL ?>/express/ex_home.php" class="home-menu-card">
 
                         <strong>
                             Express Orders
@@ -446,10 +428,7 @@ require __DIR__ . '/includes/header.php';
                 <?php endif; ?>
 
 
-                <a
-                    href="<?= APPLICATION_URL ?>/inventory/inv_stock.php"
-                    class="home-menu-card"
-                >
+                <a href="<?= APPLICATION_URL ?>/inventory/inv_stock.php" class="home-menu-card">
 
                     <strong>
                         Store Stock Levels
@@ -464,10 +443,7 @@ require __DIR__ . '/includes/header.php';
 
                 <?php if (isAdministrator()): ?>
 
-                    <a
-                        href="<?= APPLICATION_URL ?>/inventory/inv_manage.php"
-                        class="home-menu-card"
-                    >
+                    <a href="<?= APPLICATION_URL ?>/inventory/inv_manage.php" class="home-menu-card">
 
                         <strong>
                             Manage Inventory
@@ -482,10 +458,7 @@ require __DIR__ . '/includes/header.php';
                 <?php endif; ?>
 
 
-                <a
-                    href="<?= APPLICATION_URL ?>/transactions/tr_list.php"
-                    class="home-menu-card"
-                >
+                <a href="<?= APPLICATION_URL ?>/transactions/tr_list.php" class="home-menu-card">
 
                     <strong>
                         Transaction Viewer
@@ -498,10 +471,7 @@ require __DIR__ . '/includes/header.php';
                 </a>
 
 
-                <a
-                    href="<?= APPLICATION_URL ?>/training/tc_home.php"
-                    class="home-menu-card"
-                >
+                <a href="<?= APPLICATION_URL ?>/training/tc_home.php" class="home-menu-card">
 
                     <strong>
                         Training Center
@@ -516,10 +486,7 @@ require __DIR__ . '/includes/header.php';
 
                 <?php if (canViewOperators()): ?>
 
-                    <a
-                        href="<?= APPLICATION_URL ?>/operators/op_list.php"
-                        class="home-menu-card"
-                    >
+                    <a href="<?= APPLICATION_URL ?>/operators/op_list.php" class="home-menu-card">
 
                         <strong>
                             Employees
@@ -535,10 +502,7 @@ require __DIR__ . '/includes/header.php';
 
                 <?php else: ?>
 
-                    <a
-                        href="<?= APPLICATION_URL ?>/account.php"
-                        class="home-menu-card"
-                    >
+                    <a href="<?= APPLICATION_URL ?>/account.php" class="home-menu-card">
 
                         <strong>
                             My Account

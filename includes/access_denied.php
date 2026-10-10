@@ -15,10 +15,7 @@ if (basename($_SERVER['SCRIPT_NAME']) === basename(__FILE__)) {
 
 <section class="content-panel access-denied-panel">
 
-    <div
-        class="access-denied-symbol"
-        aria-hidden="true"
-    >
+    <div class="access-denied-symbol" aria-hidden="true">
         !
     </div>
 

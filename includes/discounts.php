@@ -32,7 +32,7 @@ function discountWasLimited(array $discount): bool
 {
     return $discount['DiscountKind'] === 'Dollar'
         && (float) $discount['AppliedAmount']
-            < (float) $discount['DiscountValue'] - 0.004;
+        < (float) $discount['DiscountValue'] - 0.004;
 }
 
 // Load the totals for a sale from the database calculation
@@ -309,8 +309,16 @@ function describeCouponValue(array $coupon): string
 function couponBarcodeSvg($code)
 {
     $leftPatterns = [
-        '0001101', '0011001', '0010011', '0111101', '0100011',
-        '0110001', '0101111', '0111011', '0110111', '0001011'
+        '0001101',
+        '0011001',
+        '0010011',
+        '0111101',
+        '0100011',
+        '0110001',
+        '0101111',
+        '0111011',
+        '0110111',
+        '0001011'
     ];
 
     $bits = '101';

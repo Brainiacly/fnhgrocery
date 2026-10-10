@@ -154,57 +154,34 @@ require __DIR__ . '/../includes/header.php';
     <?php endif; ?>
 
     <div class="inventory-management-actions">
-        <a
-            href="<?= APPLICATION_URL ?>/inventory/inv_product.php"
-            class="button button-primary"
-        >
+        <a href="<?= APPLICATION_URL ?>/inventory/inv_product.php" class="button button-primary">
             Add New Product
         </a>
 
-        <a
-            href="<?= APPLICATION_URL ?>/inventory/inv_stock.php"
-            class="button button-secondary"
-        >
+        <a href="<?= APPLICATION_URL ?>/inventory/inv_stock.php" class="button button-secondary">
             View Stock Levels
         </a>
         <?php if (isAdministrator()): ?>
-            <a
-                href="<?= APPLICATION_URL ?>/inventory/inv_coupons.php"
-                class="button button-secondary"
-            >
+            <a href="<?= APPLICATION_URL ?>/inventory/inv_coupons.php" class="button button-secondary">
                 Coupons
             </a>
         <?php endif; ?>
     </div>
 
-    <form
-        method="get"
-        class="inventory-filter-form"
-    >
+    <form method="get" class="inventory-filter-form">
 
         <div class="inventory-filter-field inventory-filter-search">
             <label for="search">Search</label>
-            <input
-                type="search"
-                id="search"
-                name="search"
-                value="<?= escapeOutput($searchTerm) ?>"
-                placeholder="Product name, UPC, or PLU"
-            >
+            <input type="search" id="search" name="search" value="<?= escapeOutput($searchTerm) ?>"
+                placeholder="Product name, UPC, or PLU">
         </div>
 
         <div class="inventory-filter-field">
             <label for="department">Department</label>
-            <select
-                id="department"
-                name="department"
-            >
+            <select id="department" name="department">
                 <option value="0">All</option>
                 <?php foreach ($departmentRecords as $departmentRecord): ?>
-                    <option
-                        value="<?= (int) $departmentRecord['DepartmentID'] ?>"
-                        <?= $departmentFilter === (int) $departmentRecord['DepartmentID'] ? 'selected' : '' ?>
-                    >
+                    <option value="<?= (int) $departmentRecord['DepartmentID'] ?>" <?= $departmentFilter === (int) $departmentRecord['DepartmentID'] ? 'selected' : '' ?>>
                         <?= escapeOutput($departmentRecord['DepartmentName']) ?>
                     </option>
                 <?php endforeach; ?>
@@ -213,46 +190,25 @@ require __DIR__ . '/../includes/header.php';
 
         <div class="inventory-filter-field">
             <label for="status">Status</label>
-            <select
-                id="status"
-                name="status"
-            >
-                <option
-                    value="all"
-                    <?= $statusFilter === 'all' ? 'selected' : '' ?>
-                >All</option>
-                <option
-                    value="active"
-                    <?= $statusFilter === 'active' ? 'selected' : '' ?>
-                >Active</option>
-                <option
-                    value="inactive"
-                    <?= $statusFilter === 'inactive' ? 'selected' : '' ?>
-                >Inactive</option>
+            <select id="status" name="status">
+                <option value="all" <?= $statusFilter === 'all' ? 'selected' : '' ?>>All</option>
+                <option value="active" <?= $statusFilter === 'active' ? 'selected' : '' ?>>Active</option>
+                <option value="inactive" <?= $statusFilter === 'inactive' ? 'selected' : '' ?>>Inactive</option>
             </select>
         </div>
 
         <div class="inventory-filter-actions">
-            <button
-                type="submit"
-                class="button button-primary"
-            >
+            <button type="submit" class="button button-primary">
                 Apply
             </button>
-            <a
-                href="<?= APPLICATION_URL ?>/inventory/inv_manage.php"
-                class="button button-secondary"
-            >
+            <a href="<?= APPLICATION_URL ?>/inventory/inv_manage.php" class="button button-secondary">
                 Clear
             </a>
         </div>
 
     </form>
 
-    <div
-        class="inventory-table-container inventory-management-table-container"
-        tabindex="0"
-    >
+    <div class="inventory-table-container inventory-management-table-container" tabindex="0">
         <table class="inventory-table inventory-management-table">
             <thead>
                 <tr>
@@ -270,10 +226,7 @@ require __DIR__ . '/../includes/header.php';
             <tbody>
                 <?php if (!$inventoryRecords): ?>
                     <tr>
-                        <td
-                            colspan="9"
-                            class="inventory-empty-row"
-                        >No products match the selected filters.</td>
+                        <td colspan="9" class="inventory-empty-row">No products match the selected filters.</td>
                     </tr>
                 <?php endif; ?>
 
@@ -308,16 +261,12 @@ require __DIR__ . '/../includes/header.php';
                         <td><?= (int) $inventoryRecord['Active'] === 1 ? 'Active' : 'Inactive' ?></td>
                         <td>
                             <div class="inventory-row-actions">
-                                <a
-                                    href="<?= escapeOutput($adjustAddress) ?>"
-                                    class="button button-primary inventory-row-button"
-                                >
+                                <a href="<?= escapeOutput($adjustAddress) ?>"
+                                    class="button button-primary inventory-row-button">
                                     Adjust
                                 </a>
-                                <a
-                                    href="<?= escapeOutput($editAddress) ?>"
-                                    class="button button-secondary inventory-row-button"
-                                >
+                                <a href="<?= escapeOutput($editAddress) ?>"
+                                    class="button button-secondary inventory-row-button">
                                     Edit
                                 </a>
                             </div>
@@ -336,10 +285,7 @@ require __DIR__ . '/../includes/header.php';
                 No manual inventory adjustments have been recorded yet.
             </div>
         <?php else: ?>
-            <div
-                class="inventory-table-container"
-                tabindex="0"
-            >
+            <div class="inventory-table-container" tabindex="0">
                 <table class="inventory-table inventory-adjustment-table">
                     <thead>
                         <tr>

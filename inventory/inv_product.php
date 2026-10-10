@@ -254,8 +254,8 @@ try {
                 $errorMessage = databaseMessage(
                     $exception,
                     $isEditing
-                        ? 'The product could not be updated.'
-                        : 'The product could not be created.'
+                    ? 'The product could not be updated.'
+                    : 'The product could not be created.'
                 );
             }
         }
@@ -302,244 +302,136 @@ require __DIR__ . '/../includes/header.php';
         <div class="inventory-current-stock-strip">
             <span>Current Stock</span>
             <strong><?= escapeOutput(formatStock($currentStockQuantity, $unitType)) ?></strong>
-            <a
-                href="<?= APPLICATION_URL ?>/inventory/inv_adjust.php?product=<?= (int) $productID ?>"
-                class="button button-secondary"
-            >
+            <a href="<?= APPLICATION_URL ?>/inventory/inv_adjust.php?product=<?= (int) $productID ?>"
+                class="button button-secondary">
                 Adjust Stock
             </a>
         </div>
     <?php endif; ?>
 
     <form method="post">
-        <input
-            type="hidden"
-            name="form_security_token"
-            value="<?= escapeOutput(formToken()) ?>"
-        >
+        <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
         <?php if ($isEditing): ?>
-            <input
-                type="hidden"
-                name="product_id"
-                value="<?= (int) $productID ?>"
-            >
+            <input type="hidden" name="product_id" value="<?= (int) $productID ?>">
         <?php endif; ?>
 
         <div class="form-grid">
             <div class="form-field">
                 <label for="department_id">Department *</label>
-                <select
-                    id="department_id"
-                    name="department_id"
-                    required
-                >
+                <select id="department_id" name="department_id" required>
                     <option value="">Select Department</option>
-                    <?php foreach ($departmentRecords as $departmentRecord): ?>
-                        <option
-                            value="<?= (int) $departmentRecord['DepartmentID'] ?>"
-                            <?= $departmentID === (int) $departmentRecord['DepartmentID'] ? 'selected' : '' ?>
-                        >
-                            <?= escapeOutput($departmentRecord['DepartmentName']) ?>
-                        </option>
-                    <?php endforeach; ?>
+                    <?php
+                    foreach ($departmentRecords as $departmentRecord) {
+                        $departmentSelectedAttribute =
+                            $departmentID === (int) $departmentRecord['DepartmentID']
+                            ? ' selected="selected"'
+                            : '';
+
+                        echo '<option value="'
+                            . (int) $departmentRecord['DepartmentID']
+                            . '"'
+                            . $departmentSelectedAttribute
+                            . '>'
+                            . escapeOutput($departmentRecord['DepartmentName'])
+                            . '</option>';
+                    }
+                    ?>
                 </select>
             </div>
 
             <div class="form-field">
                 <label for="product_name">Product Name *</label>
-                <input
-                    type="text"
-                    id="product_name"
-                    name="product_name"
-                    maxlength="120"
-                    value="<?= escapeOutput($productName) ?>"
-                    required
-                >
+                <input type="text" id="product_name" name="product_name" maxlength="120"
+                    value="<?= escapeOutput($productName) ?>" required>
             </div>
 
             <div class="form-field">
                 <label for="upc">UPC</label>
-                <input
-                    type="text"
-                    id="upc"
-                    name="upc"
-                    maxlength="20"
-                    value="<?= escapeOutput($upc) ?>"
-                    inputmode="numeric"
-                >
-                <div
-                    class="field-help"
-                >Enter a UPC, a PLU, or both. At least one product code is required.</div>
+                <input type="text" id="upc" name="upc" maxlength="20" value="<?= escapeOutput($upc) ?>"
+                    inputmode="numeric">
+                <div class="field-help">Enter a UPC, a PLU, or both. At least one product code is required.</div>
             </div>
 
             <div class="form-field">
                 <label for="plu_code">PLU Code</label>
-                <input
-                    type="text"
-                    id="plu_code"
-                    name="plu_code"
-                    maxlength="10"
-                    value="<?= escapeOutput($pluCode) ?>"
-                    inputmode="numeric"
-                >
+                <input type="text" id="plu_code" name="plu_code" maxlength="10" value="<?= escapeOutput($pluCode) ?>"
+                    inputmode="numeric">
             </div>
 
             <div class="form-field">
                 <label for="unit_type">Sold As *</label>
-                <select
-                    id="unit_type"
-                    name="unit_type"
-                    required
-                >
-                    <option
-                        value="Each"
-                        <?= $unitType === 'Each' ? 'selected' : '' ?>
-                    >Each</option>
-                    <option
-                        value="Pound"
-                        <?= $unitType === 'Pound' ? 'selected' : '' ?>
-                    >By Weight (Pound)</option>
+                <select id="unit_type" name="unit_type" required>
+                    <option value="Each" <?= $unitType === 'Each' ? 'selected' : '' ?>>Each</option>
+                    <option value="Pound" <?= $unitType === 'Pound' ? 'selected' : '' ?>>By Weight (Pound)</option>
                 </select>
             </div>
 
             <div class="form-field">
                 <label for="taxable">Tax *</label>
-                <select
-                    id="taxable"
-                    name="taxable"
-                    required
-                >
-                    <option
-                        value="0"
-                        <?= $taxable === '0' ? 'selected' : '' ?>
-                    >Not Taxable</option>
-                    <option
-                        value="1"
-                        <?= $taxable === '1' ? 'selected' : '' ?>
-                    >Taxable</option>
+                <select id="taxable" name="taxable" required>
+                    <option value="0" <?= $taxable === '0' ? 'selected' : '' ?>>Not Taxable</option>
+                    <option value="1" <?= $taxable === '1' ? 'selected' : '' ?>>Taxable</option>
                 </select>
             </div>
 
             <div class="form-field">
                 <label for="unit_cost">Unit Cost</label>
-                <input
-                    type="number"
-                    id="unit_cost"
-                    name="unit_cost"
-                    min="0"
-                    step="0.01"
-                    value="<?= escapeOutput($unitCost) ?>"
-                    inputmode="decimal"
-                >
+                <input type="number" id="unit_cost" name="unit_cost" min="0" step="0.01"
+                    value="<?= escapeOutput($unitCost) ?>" inputmode="decimal">
             </div>
 
             <div class="form-field">
                 <label for="retail_price">Retail Price *</label>
-                <input
-                    type="number"
-                    id="retail_price"
-                    name="retail_price"
-                    min="0"
-                    step="0.01"
-                    value="<?= escapeOutput($retailPrice) ?>"
-                    required
-                    inputmode="decimal"
-                >
+                <input type="number" id="retail_price" name="retail_price" min="0" step="0.01"
+                    value="<?= escapeOutput($retailPrice) ?>" required inputmode="decimal">
             </div>
 
             <div class="form-field">
                 <label for="active">Product Status *</label>
-                <select
-                    id="active"
-                    name="active"
-                    required
-                >
-                    <option
-                        value="1"
-                        <?= $active === '1' ? 'selected' : '' ?>
-                    >Active</option>
-                    <option
-                        value="0"
-                        <?= $active === '0' ? 'selected' : '' ?>
-                    >Inactive</option>
+                <select id="active" name="active" required>
+                    <option value="1" <?= $active === '1' ? 'selected' : '' ?>>Active</option>
+                    <option value="0" <?= $active === '0' ? 'selected' : '' ?>>Inactive</option>
                 </select>
-                <div
-                    class="field-help"
-                >Inactive products remain in history but are not offered for new sales.</div>
+                <div class="field-help">Inactive products remain in history but are not offered for new sales.</div>
             </div>
 
             <?php if (!$isEditing): ?>
                 <div class="form-field">
                     <label for="starting_quantity">Starting Inventory *</label>
-                    <input
-                        type="number"
-                        id="starting_quantity"
-                        name="starting_quantity"
-                        min="0"
-                        step="0.001"
-                        value="<?= escapeOutput($startingQuantity) ?>"
-                        required
-                        inputmode="decimal"
-                    >
+                    <input type="number" id="starting_quantity" name="starting_quantity" min="0" step="0.001"
+                        value="<?= escapeOutput($startingQuantity) ?>" required inputmode="decimal">
                 </div>
             <?php endif; ?>
 
             <div class="form-field">
                 <label for="aisle">Aisle</label>
-                <input
-                    type="text"
-                    id="aisle"
-                    name="aisle"
-                    maxlength="20"
-                    value="<?= escapeOutput($aisle) ?>"
-                >
+                <input type="text" id="aisle" name="aisle" maxlength="20" value="<?= escapeOutput($aisle) ?>">
             </div>
 
             <div class="form-field">
                 <label for="section_name">Section</label>
-                <input
-                    type="text"
-                    id="section_name"
-                    name="section_name"
-                    maxlength="50"
-                    value="<?= escapeOutput($sectionName) ?>"
-                >
+                <input type="text" id="section_name" name="section_name" maxlength="50"
+                    value="<?= escapeOutput($sectionName) ?>">
             </div>
 
             <div class="form-field">
                 <label for="shelf_location">Shelf Location</label>
-                <input
-                    type="text"
-                    id="shelf_location"
-                    name="shelf_location"
-                    maxlength="30"
-                    value="<?= escapeOutput($shelfLocation) ?>"
-                >
+                <input type="text" id="shelf_location" name="shelf_location" maxlength="30"
+                    value="<?= escapeOutput($shelfLocation) ?>">
             </div>
 
             <div class="form-field form-field-full-width">
                 <label for="description">Description</label>
-                <input
-                    type="text"
-                    id="description"
-                    name="description"
-                    maxlength="500"
-                    value="<?= escapeOutput($description) ?>"
-                >
+                <input type="text" id="description" name="description" maxlength="500"
+                    value="<?= escapeOutput($description) ?>">
             </div>
         </div>
 
         <div class="form-actions">
-            <button
-                type="submit"
-                class="button button-primary"
-            >
+            <button type="submit" class="button button-primary">
                 <?= $isEditing ? 'Save Product Changes' : 'Create Product' ?>
             </button>
-            <a
-                href="<?= APPLICATION_URL ?>/inventory/inv_manage.php"
-                class="button button-secondary"
-            >
+            <a href="<?= APPLICATION_URL ?>/inventory/inv_manage.php" class="button button-secondary">
                 Back to Inventory
             </a>
         </div>

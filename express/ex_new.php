@@ -383,9 +383,11 @@ if (
                 break;
             }
         }
-        if (!$chosenRegister ||
+        if (
+            !$chosenRegister ||
             ($chosenRegister['RegisterType'] ?? '') !== 'Express' ||
-            !empty($chosenRegister['OpenReceiptID'])) {
+            !empty($chosenRegister['OpenReceiptID'])
+        ) {
             $errorMessage = 'Select an available Express register.';
         }
 
@@ -723,84 +725,55 @@ require __DIR__ . '/../includes/header.php';
         <div class="message message-error"><?= escapeOutput($errorMessage) ?></div>
     <?php endif; ?>
 
-    <form
-        method="post"
-        id="expressNewOrderForm"
-    >
-        <input
-            type="hidden"
-            name="form_security_token"
-            value="<?= escapeOutput(formToken()) ?>"
-        >
+    <form method="post" id="expressNewOrderForm">
+        <input type="hidden" name="form_security_token" value="<?= escapeOutput(formToken()) ?>">
 
         <div class="form-field">
             <label for="register_id">Express Register</label>
-            <select
-                id="register_id"
-                name="register_id"
-                required
-            >
+            <select id="register_id" name="register_id" required>
                 <option value="">Choose an available Express register</option>
-                <?php foreach ($registerRecords as $registerRecord): ?>
-                    <?php
+                <?php
+                foreach ($registerRecords as $registerRecord) {
                     $isExpress = ($registerRecord['RegisterType'] ?? '') === 'Express';
                     $busy = !empty($registerRecord['OpenReceiptID']);
-                    ?>
-                    <option
-                        value="<?= (int) $registerRecord['RegisterID'] ?>"
-                        <?= (!$isExpress || $busy) ? 'disabled' : '' ?>
-                        <?= $selectedRegisterID === (int) $registerRecord['RegisterID'] ? 'selected' : '' ?>
-                    >
-                        Register <?= (int) $registerRecord['RegisterNumber'] ?>
-                        <?php if (!$isExpress): ?>
-                            - Reserved for Regular Sales
-                        <?php elseif ($busy): ?>
-                            - In Use By: <?= escapeOutput($registerRecord['OpenOperatorName']) ?>
-                        <?php else: ?>
-                            - Available
-                        <?php endif; ?>
-                    </option>
-                <?php endforeach; ?>
+                    $registerDisabledAttribute = (!$isExpress || $busy)
+                        ? ' disabled="disabled"'
+                        : '';
+                    $registerSelectedAttribute =
+                        $selectedRegisterID === (int) $registerRecord['RegisterID']
+                        ? ' selected="selected"'
+                        : '';
+
+                    $registerOptionText = 'Register ' . (int) $registerRecord['RegisterNumber'];
+                    if (!$isExpress) {
+                        $registerOptionText .= ' - Reserved for Regular Sales';
+                    } elseif ($busy) {
+                        $registerOptionText .= ' - In Use By: '
+                            . (string) ($registerRecord['OpenOperatorName'] ?? '');
+                    } else {
+                        $registerOptionText .= ' - Available';
+                    }
+
+                    echo '<option value="'
+                        . (int) $registerRecord['RegisterID']
+                        . '"'
+                        . $registerDisabledAttribute
+                        . $registerSelectedAttribute
+                        . '>'
+                        . escapeOutput($registerOptionText)
+                        . '</option>';
+                }
+                ?>
             </select>
         </div>
 
-        <input
-            type="hidden"
-            name="loaded_address_id"
-            id="loadedAddressID"
-            value="<?= (int) $loadedAddressID ?>"
-        >
-        <input
-            type="hidden"
-            id="loadedAddressLine1"
-            value="<?= escapeOutput($loadedAddressLine1) ?>"
-        >
-        <input
-            type="hidden"
-            id="loadedAddressLine2"
-            value="<?= escapeOutput($loadedAddressLine2) ?>"
-        >
-        <input
-            type="hidden"
-            id="loadedAddressCity"
-            value="<?= escapeOutput($loadedAddressCity) ?>"
-        >
-        <input
-            type="hidden"
-            id="loadedAddressState"
-            value="<?= escapeOutput($loadedAddressState) ?>"
-        >
-        <input
-            type="hidden"
-            id="loadedAddressPostalCode"
-            value="<?= escapeOutput($loadedPostalCode) ?>"
-        >
-        <input
-            type="hidden"
-            name="update_address_on_file"
-            id="updateAddressOnFile"
-            value="0"
-        >
+        <input type="hidden" name="loaded_address_id" id="loadedAddressID" value="<?= (int) $loadedAddressID ?>">
+        <input type="hidden" id="loadedAddressLine1" value="<?= escapeOutput($loadedAddressLine1) ?>">
+        <input type="hidden" id="loadedAddressLine2" value="<?= escapeOutput($loadedAddressLine2) ?>">
+        <input type="hidden" id="loadedAddressCity" value="<?= escapeOutput($loadedAddressCity) ?>">
+        <input type="hidden" id="loadedAddressState" value="<?= escapeOutput($loadedAddressState) ?>">
+        <input type="hidden" id="loadedAddressPostalCode" value="<?= escapeOutput($loadedPostalCode) ?>">
+        <input type="hidden" name="update_address_on_file" id="updateAddressOnFile" value="0">
 
         <div class="form-grid">
 
@@ -808,60 +781,46 @@ require __DIR__ . '/../includes/header.php';
                 <legend>Customer *</legend>
 
                 <label>
-                    <input
-                        type="radio"
-                        name="customer_mode"
-                        value="existing"
-                        id="customer_mode_existing"
-                        <?= $customerMode === 'existing' ? 'checked' : '' ?>
-                    >
+                    <input type="radio" name="customer_mode" value="existing" id="customer_mode_existing"
+                        <?= $customerMode === 'existing' ? 'checked' : '' ?>>
                     Existing Customer
                 </label>
 
                 <label>
-                    <input
-                        type="radio"
-                        name="customer_mode"
-                        value="new"
-                        id="customer_mode_new"
-                        <?= $customerMode === 'new' ? 'checked' : '' ?>
-                    >
+                    <input type="radio" name="customer_mode" value="new" id="customer_mode_new" <?= $customerMode === 'new' ? 'checked' : '' ?>>
                     New Customer
                 </label>
             </fieldset>
 
-            <div
-                class="form-field express-address"
-                id="existingCustomerField"
-            >
+            <div class="form-field express-address" id="existingCustomerField">
                 <label for="customer_id">Select Customer</label>
-                <select
-                    id="customer_id"
-                    name="customer_id"
-                >
+                <select id="customer_id" name="customer_id">
                     <option value="">Select Customer</option>
                     <?php foreach ($customers as $customer): ?>
-                        <option
-                            value="<?= (int) $customer['CustomerID'] ?>"
-                            <?= $selectedCustomerID === (int) $customer['CustomerID'] ? 'selected' : '' ?>
-                        >
-                            <?= escapeOutput(
-                                $customer['LastName']
-                                . ', '
-                                . $customer['FirstName']
-                                . ' - '
-                                . $customer['LoyaltyNumber']
-                            ) ?>
-                        </option>
+                        <?php
+                        $customerSelectedAttribute =
+                            $selectedCustomerID === (int) $customer['CustomerID']
+                            ? ' selected="selected"'
+                            : '';
+                        $customerLabel =
+                            $customer['LastName']
+                            . ', '
+                            . $customer['FirstName']
+                            . ' - '
+                            . $customer['LoyaltyNumber'];
+
+                        echo '<option value="'
+                            . (int) $customer['CustomerID']
+                            . '"'
+                            . $customerSelectedAttribute
+                            . '>'
+                            . escapeOutput($customerLabel)
+                            . '</option>';
+                        ?>
                     <?php endforeach; ?>
                 </select>
 
-                <button
-                    type="submit"
-                    name="load_customer"
-                    value="1"
-                    class="button button-secondary"
-                >
+                <button type="submit" name="load_customer" value="1" class="button button-secondary">
                     Load Customer
                 </button>
 
@@ -870,57 +829,32 @@ require __DIR__ . '/../includes/header.php';
                 </p>
             </div>
 
-            <div
-                class="express-new-customer"
-                id="newCustomerFields"
-            >
+            <div class="express-new-customer" id="newCustomerFields">
 
                 <div class="form-field">
                     <label for="new_customer_first_name">First Name</label>
-                    <input
-                        type="text"
-                        id="new_customer_first_name"
-                        name="new_customer_first_name"
-                        maxlength="60"
-                        value="<?= escapeOutput($newFirstName) ?>"
-                    >
+                    <input type="text" id="new_customer_first_name" name="new_customer_first_name" maxlength="60"
+                        value="<?= escapeOutput($newFirstName) ?>">
                 </div>
 
                 <div class="form-field">
                     <label for="new_customer_last_name">Last Name</label>
-                    <input
-                        type="text"
-                        id="new_customer_last_name"
-                        name="new_customer_last_name"
-                        maxlength="60"
-                        value="<?= escapeOutput($newLastName) ?>"
-                    >
+                    <input type="text" id="new_customer_last_name" name="new_customer_last_name" maxlength="60"
+                        value="<?= escapeOutput($newLastName) ?>">
                 </div>
 
                 <div class="form-field">
                     <label for="new_customer_phone">Phone</label>
-                    <input
-                        type="tel"
-                        id="new_customer_phone"
-                        name="new_customer_phone"
-                        minlength="10"
-                        maxlength="10"
-                        pattern="[0-9]{10}"
-                        inputmode="numeric"
+                    <input type="tel" id="new_customer_phone" name="new_customer_phone" minlength="10" maxlength="10"
+                        pattern="[0-9]{10}" inputmode="numeric"
                         title="Enter exactly 10 digits with no spaces or punctuation."
-                        value="<?= escapeOutput($newPhone) ?>"
-                    >
+                        value="<?= escapeOutput($newPhone) ?>">
                 </div>
 
                 <div class="form-field">
                     <label for="new_customer_email">Email</label>
-                    <input
-                        type="email"
-                        id="new_customer_email"
-                        name="new_customer_email"
-                        maxlength="120"
-                        value="<?= escapeOutput($newEmail) ?>"
-                    >
+                    <input type="email" id="new_customer_email" name="new_customer_email" maxlength="120"
+                        value="<?= escapeOutput($newEmail) ?>">
                 </div>
 
                 <p class="field-help">
@@ -933,22 +867,12 @@ require __DIR__ . '/../includes/header.php';
                 <legend>Fulfillment *</legend>
 
                 <label>
-                    <input
-                        type="radio"
-                        name="fulfillment_method"
-                        value="Curbside"
-                        <?= $fulfillmentMethod === 'Curbside' ? 'checked' : '' ?>
-                    >
+                    <input type="radio" name="fulfillment_method" value="Curbside" <?= $fulfillmentMethod === 'Curbside' ? 'checked' : '' ?>>
                     Curbside Pickup
                 </label>
 
                 <label>
-                    <input
-                        type="radio"
-                        name="fulfillment_method"
-                        value="Delivery"
-                        <?= $fulfillmentMethod === 'Delivery' ? 'checked' : '' ?>
-                    >
+                    <input type="radio" name="fulfillment_method" value="Delivery" <?= $fulfillmentMethod === 'Delivery' ? 'checked' : '' ?>>
                     Home Delivery (+$<?= number_format(EXPRESS_DELIVERY_FEE, 2) ?>)
                 </label>
 
@@ -959,137 +883,94 @@ require __DIR__ . '/../includes/header.php';
                 </p>
             </fieldset>
 
-            <div
-                id="deliveryDetails"
-                class="express-address"
-                <?= $fulfillmentMethod === 'Delivery' ? '' : 'hidden' ?>
-            >
+            <div id="deliveryDetails" class="express-address" <?= $fulfillmentMethod === 'Delivery' ? '' : 'hidden' ?>>
                 <div class="form-grid">
-            <?php if ($selectedCustomerID > 0 && $savedAddresses): ?>
+                    <?php if ($selectedCustomerID > 0 && $savedAddresses): ?>
 
-                <div
-                    class="form-field express-address"
-                    id="savedAddressField"
-                >
-                    <label for="saved_address_select">Saved Address</label>
-                    <select
-                        id="saved_address_select"
-                        name="address_id"
-                    >
-                        <option value="">Select a Saved Address</option>
-                        <?php foreach ($savedAddresses as $savedAddress): ?>
-                            <option
-                                value="<?= (int) $savedAddress['CustomerAddressID'] ?>"
-                                <?= $loadedAddressID === (int) $savedAddress['CustomerAddressID'] ? 'selected' : '' ?>
-                            >
-                                <?= escapeOutput($savedAddress['AddressLabel']) ?>
-                                -
-                                <?= escapeOutput($savedAddress['AddressLine1']) ?>,
-                                <?= escapeOutput($savedAddress['City']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                        <div class="form-field express-address" id="savedAddressField">
+                            <label for="saved_address_select">Saved Address</label>
+                            <select id="saved_address_select" name="address_id">
+                                <option value="">Select a Saved Address</option>
+                                <?php foreach ($savedAddresses as $savedAddress): ?>
+                                    <?php
+                                    $savedAddressSelectedAttribute =
+                                        $loadedAddressID === (int) $savedAddress['CustomerAddressID']
+                                        ? ' selected="selected"'
+                                        : '';
+                                    $savedAddressLabel =
+                                        $savedAddress['AddressLabel']
+                                        . ' - '
+                                        . $savedAddress['AddressLine1']
+                                        . ', '
+                                        . $savedAddress['City'];
 
-                    <button
-                        type="submit"
-                        name="load_address"
-                        value="1"
-                        class="button button-secondary"
-                    >
-                        Load Address
-                    </button>
+                                    echo '<option value="'
+                                        . (int) $savedAddress['CustomerAddressID']
+                                        . '"'
+                                        . $savedAddressSelectedAttribute
+                                        . '>'
+                                        . escapeOutput($savedAddressLabel)
+                                        . '</option>';
+                                    ?>
+                                <?php endforeach; ?>
+                            </select>
 
-                    <p class="field-help">
-                        Loading a saved address fills in the delivery fields below. This reloads the page too.
-                    </p>
-                </div>
+                            <button type="submit" name="load_address" value="1" class="button button-secondary">
+                                Load Address
+                            </button>
 
-            <?php endif; ?>
+                            <p class="field-help">
+                                Loading a saved address fills in the delivery fields below. This reloads the page too.
+                            </p>
+                        </div>
 
-            <div class="form-field">
-                <label for="delivery_address_1">Delivery Address</label>
-                <input
-                    type="text"
-                    id="delivery_address_1"
-                    name="delivery_address_1"
-                    maxlength="120"
-                    value="<?= escapeOutput($deliveryAddressLine1) ?>"
-                >
-            </div>
+                    <?php endif; ?>
 
-            <div class="form-field">
-                <label for="delivery_address_2">Address Line 2</label>
-                <input
-                    type="text"
-                    id="delivery_address_2"
-                    name="delivery_address_2"
-                    maxlength="120"
-                    value="<?= escapeOutput($deliveryAddressLine2) ?>"
-                >
-            </div>
+                    <div class="form-field">
+                        <label for="delivery_address_1">Delivery Address</label>
+                        <input type="text" id="delivery_address_1" name="delivery_address_1" maxlength="120"
+                            value="<?= escapeOutput($deliveryAddressLine1) ?>">
+                    </div>
 
-            <div class="form-field">
-                <label for="delivery_city">City</label>
-                <input
-                    type="text"
-                    id="delivery_city"
-                    name="delivery_city"
-                    maxlength="80"
-                    value="<?= escapeOutput($deliveryCity) ?>"
-                >
-            </div>
+                    <div class="form-field">
+                        <label for="delivery_address_2">Address Line 2</label>
+                        <input type="text" id="delivery_address_2" name="delivery_address_2" maxlength="120"
+                            value="<?= escapeOutput($deliveryAddressLine2) ?>">
+                    </div>
 
-            <div class="form-field">
-                <label for="delivery_state">State</label>
-                <input
-                    type="text"
-                    id="delivery_state"
-                    name="delivery_state"
-                    maxlength="2"
-                    value="<?= escapeOutput($deliveryState) ?>"
-                >
-            </div>
+                    <div class="form-field">
+                        <label for="delivery_city">City</label>
+                        <input type="text" id="delivery_city" name="delivery_city" maxlength="80"
+                            value="<?= escapeOutput($deliveryCity) ?>">
+                    </div>
 
-            <div class="form-field">
-                <label for="delivery_postal_code">ZIP Code</label>
-                <input
-                    type="text"
-                    id="delivery_postal_code"
-                    name="delivery_postal_code"
-                    maxlength="10"
-                    value="<?= escapeOutput($deliveryPostalCode) ?>"
-                >
-            </div>
+                    <div class="form-field">
+                        <label for="delivery_state">State</label>
+                        <input type="text" id="delivery_state" name="delivery_state" maxlength="2"
+                            value="<?= escapeOutput($deliveryState) ?>">
+                    </div>
 
-            <?php if ($loadedAddressID === 0): ?>
+                    <div class="form-field">
+                        <label for="delivery_postal_code">ZIP Code</label>
+                        <input type="text" id="delivery_postal_code" name="delivery_postal_code" maxlength="10"
+                            value="<?= escapeOutput($deliveryPostalCode) ?>">
+                    </div>
 
-                <div
-                    class="form-field express-save-address"
-                    id="saveNewAddressField"
-                >
-                    <label>
-                        <input
-                            type="checkbox"
-                            name="save_new_address"
-                            id="save_new_address"
-                            value="1"
-                            <?= $saveNewAddress ? 'checked' : '' ?>
-                        >
-                        Save this address for reuse
-                    </label>
+                    <?php if ($loadedAddressID === 0): ?>
 
-                    <input
-                        type="text"
-                        name="new_address_label"
-                        id="new_address_label"
-                        aria-label="Name for this saved address"
-                        maxlength="40"
-                        placeholder="Label, such as Home or Work"
-                        value="<?= escapeOutput($newAddressLabel) ?>"
-                    >
-                </div>
+                        <div class="form-field express-save-address" id="saveNewAddressField">
+                            <label>
+                                <input type="checkbox" name="save_new_address" id="save_new_address" value="1"
+                                    <?= $saveNewAddress ? 'checked' : '' ?>>
+                                Save this address for reuse
+                            </label>
 
-            <?php endif; ?>
+                            <input type="text" name="new_address_label" id="new_address_label"
+                                aria-label="Name for this saved address" maxlength="40"
+                                placeholder="Label, such as Home or Work" value="<?= escapeOutput($newAddressLabel) ?>">
+                        </div>
+
+                    <?php endif; ?>
 
                 </div>
             </div>
@@ -1098,26 +979,15 @@ require __DIR__ . '/../includes/header.php';
 
         <div class="form-actions">
             <?php if ((int) ($capacity['OrdersRemaining'] ?? 0) > 0): ?>
-                <button
-                    class="button button-primary"
-                    type="submit"
-                    name="create_order"
-                    value="1"
-                >
+                <button class="button button-primary" type="submit" name="create_order" value="1">
                     Create Order
                 </button>
             <?php else: ?>
-                <span
-                    class="button button-disabled"
-                    aria-disabled="true"
-                >
+                <span class="button button-disabled" aria-disabled="true">
                     Daily Capacity Full
                 </span>
             <?php endif; ?>
-            <a
-                class="button button-secondary"
-                href="<?= APPLICATION_URL ?>/express/ex_home.php"
-            >
+            <a class="button button-secondary" href="<?= APPLICATION_URL ?>/express/ex_home.php">
                 Cancel
             </a>
         </div>
@@ -1125,195 +995,195 @@ require __DIR__ . '/../includes/header.php';
 </section>
 
 <script>
-// Reset the address when the customer changes and confirm saved-address edits
-(function () {
-    var form =
-        document.getElementById('expressNewOrderForm');
-    var existingRadio =
-        document.getElementById('customer_mode_existing');
-    var newRadio =
-        document.getElementById('customer_mode_new');
-    var existingField =
-        document.getElementById('existingCustomerField');
-    var newFields =
-        document.getElementById('newCustomerFields');
-    var customerSelect =
-        document.getElementById('customer_id');
-    var deliveryDetails = document.getElementById('deliveryDetails');
-    var deliveryRadio = form.querySelector('[name="fulfillment_method"][value="Delivery"]');
-    var curbsideRadio = form.querySelector('[name="fulfillment_method"][value="Curbside"]');
-    var savedAddressField =
-        document.getElementById('savedAddressField');
-    var savedAddressSelect =
-        document.getElementById('saved_address_select');
-    var loadedAddressID =
-        document.getElementById('loadedAddressID');
-    var updateFlag =
-        document.getElementById('updateAddressOnFile');
+    // Reset the address when the customer changes and confirm saved-address edits
+    (function () {
+        var form =
+            document.getElementById('expressNewOrderForm');
+        var existingRadio =
+            document.getElementById('customer_mode_existing');
+        var newRadio =
+            document.getElementById('customer_mode_new');
+        var existingField =
+            document.getElementById('existingCustomerField');
+        var newFields =
+            document.getElementById('newCustomerFields');
+        var customerSelect =
+            document.getElementById('customer_id');
+        var deliveryDetails = document.getElementById('deliveryDetails');
+        var deliveryRadio = form.querySelector('[name="fulfillment_method"][value="Delivery"]');
+        var curbsideRadio = form.querySelector('[name="fulfillment_method"][value="Curbside"]');
+        var savedAddressField =
+            document.getElementById('savedAddressField');
+        var savedAddressSelect =
+            document.getElementById('saved_address_select');
+        var loadedAddressID =
+            document.getElementById('loadedAddressID');
+        var updateFlag =
+            document.getElementById('updateAddressOnFile');
 
-    var addressFieldIDs = [
-        'delivery_address_1',
-        'delivery_address_2',
-        'delivery_city',
-        'delivery_state',
-        'delivery_postal_code'
-    ];
+        var addressFieldIDs = [
+            'delivery_address_1',
+            'delivery_address_2',
+            'delivery_city',
+            'delivery_state',
+            'delivery_postal_code'
+        ];
 
-    var baselineFieldIDs = [
-        'loadedAddressLine1',
-        'loadedAddressLine2',
-        'loadedAddressCity',
-        'loadedAddressState',
-        'loadedAddressPostalCode'
-    ];
+        var baselineFieldIDs = [
+            'loadedAddressLine1',
+            'loadedAddressLine2',
+            'loadedAddressCity',
+            'loadedAddressState',
+            'loadedAddressPostalCode'
+        ];
 
-    function clearAddressValues() {
-        addressFieldIDs.forEach(function (fieldID) {
-            document.getElementById(fieldID).value = '';
+        function clearAddressValues() {
+            addressFieldIDs.forEach(function (fieldID) {
+                document.getElementById(fieldID).value = '';
+            });
+        }
+
+        function clearAddress(clearDeliveryValues) {
+            loadedAddressID.value = '0';
+            updateFlag.value = '0';
+
+            baselineFieldIDs.forEach(function (fieldID) {
+                document.getElementById(fieldID).value = '';
+            });
+
+            if (savedAddressSelect) {
+                savedAddressSelect.value = '';
+            }
+
+            if (savedAddressField) {
+                savedAddressField.hidden = true;
+            }
+
+            if (clearDeliveryValues) {
+                clearAddressValues();
+            }
+        }
+
+        function selectCurbside() {
+            var curbsideRadio =
+                form.querySelector(
+                    '[name="fulfillment_method"][value="Curbside"]'
+                );
+
+            if (curbsideRadio) {
+                curbsideRadio.checked = true;
+            }
+        }
+
+        function updateFulfillmentFields() {
+            var isDelivery = deliveryRadio && deliveryRadio.checked;
+            deliveryDetails.hidden = !isDelivery;
+            ['delivery_address_1', 'delivery_city', 'delivery_state', 'delivery_postal_code'].forEach(function (id) {
+                document.getElementById(id).required = Boolean(isDelivery);
+            });
+            // A saved address only applies to an existing customer's delivery
+            if (savedAddressField) {
+                savedAddressField.hidden = !isDelivery || newRadio.checked;
+            }
+        }
+
+        [deliveryRadio, curbsideRadio].forEach(function (radio) {
+            if (radio) radio.addEventListener('change', updateFulfillmentFields);
         });
-    }
 
-    function clearAddress(clearDeliveryValues) {
-        loadedAddressID.value = '0';
-        updateFlag.value = '0';
+        function updateCustomerFields() {
+            var useNew = newRadio.checked;
+            existingField.hidden = useNew;
+            newFields.hidden = !useNew;
 
-        baselineFieldIDs.forEach(function (fieldID) {
-            document.getElementById(fieldID).value = '';
-        });
-
-        if (savedAddressSelect) {
-            savedAddressSelect.value = '';
+            if (useNew && savedAddressField) {
+                savedAddressField.hidden = true;
+            }
         }
 
-        if (savedAddressField) {
-            savedAddressField.hidden = true;
-        }
-
-        if (clearDeliveryValues) {
-            clearAddressValues();
-        }
-    }
-
-    function selectCurbside() {
-        var curbsideRadio =
-            form.querySelector(
-                '[name="fulfillment_method"][value="Curbside"]'
-            );
-
-        if (curbsideRadio) {
-            curbsideRadio.checked = true;
-        }
-    }
-
-    function updateFulfillmentFields() {
-        var isDelivery = deliveryRadio && deliveryRadio.checked;
-        deliveryDetails.hidden = !isDelivery;
-        ['delivery_address_1', 'delivery_city', 'delivery_state', 'delivery_postal_code'].forEach(function (id) {
-            document.getElementById(id).required = Boolean(isDelivery);
-        });
-        // A saved address only applies to an existing customer's delivery
-        if (savedAddressField) {
-            savedAddressField.hidden = !isDelivery || newRadio.checked;
-        }
-    }
-
-    [deliveryRadio, curbsideRadio].forEach(function (radio) {
-        if (radio) radio.addEventListener('change', updateFulfillmentFields);
-    });
-
-    function updateCustomerFields() {
-        var useNew = newRadio.checked;
-        existingField.hidden = useNew;
-        newFields.hidden = !useNew;
-
-        if (useNew && savedAddressField) {
-            savedAddressField.hidden = true;
-        }
-    }
-
-    customerSelect.addEventListener('change', function () {
-        clearAddress(true);
-        updateFulfillmentFields();
-    });
-
-    existingRadio.addEventListener('change', function () {
-        updateCustomerFields();
-    });
-
-    newRadio.addEventListener('change', function () {
-        if (newRadio.checked) {
+        customerSelect.addEventListener('change', function () {
             clearAddress(true);
-            selectCurbside();
-        }
+            updateFulfillmentFields();
+        });
+
+        existingRadio.addEventListener('change', function () {
+            updateCustomerFields();
+        });
+
+        newRadio.addEventListener('change', function () {
+            if (newRadio.checked) {
+                clearAddress(true);
+                selectCurbside();
+            }
+
+            updateCustomerFields();
+            updateFulfillmentFields();
+        });
 
         updateCustomerFields();
         updateFulfillmentFields();
-    });
 
-    updateCustomerFields();
-    updateFulfillmentFields();
+        form.addEventListener('submit', function (event) {
+            var submitter = event.submitter;
 
-    form.addEventListener('submit', function (event) {
-        var submitter = event.submitter;
+            if (!submitter || submitter.name !== 'create_order') {
+                return;
+            }
 
-        if (!submitter || submitter.name !== 'create_order') {
-            return;
-        }
+            var deliveryRadio =
+                form.querySelector(
+                    '[name="fulfillment_method"][value="Delivery"]'
+                );
 
-        var deliveryRadio =
-            form.querySelector(
-                '[name="fulfillment_method"][value="Delivery"]'
-            );
+            if (
+                !deliveryRadio
+                ||
+                !deliveryRadio.checked
+                ||
+                !loadedAddressID.value
+                ||
+                loadedAddressID.value === '0'
+            ) {
+                return;
+            }
 
-        if (
-            !deliveryRadio
-            ||
-            !deliveryRadio.checked
-            ||
-            !loadedAddressID.value
-            ||
-            loadedAddressID.value === '0'
-        ) {
-            return;
-        }
+            var line1 =
+                document.getElementById(
+                    'delivery_address_1'
+                ).value;
+            var line2 =
+                document.getElementById(
+                    'delivery_address_2'
+                ).value;
+            var city =
+                document.getElementById(
+                    'delivery_city'
+                ).value;
+            var state =
+                document.getElementById(
+                    'delivery_state'
+                ).value;
+            var zip =
+                document.getElementById(
+                    'delivery_postal_code'
+                ).value;
 
-        var line1 =
-            document.getElementById(
-                'delivery_address_1'
-            ).value;
-        var line2 =
-            document.getElementById(
-                'delivery_address_2'
-            ).value;
-        var city =
-            document.getElementById(
-                'delivery_city'
-            ).value;
-        var state =
-            document.getElementById(
-                'delivery_state'
-            ).value;
-        var zip =
-            document.getElementById(
-                'delivery_postal_code'
-            ).value;
+            var changed =
+                line1 !== document.getElementById('loadedAddressLine1').value
+                || line2 !== document.getElementById('loadedAddressLine2').value
+                || city !== document.getElementById('loadedAddressCity').value
+                || state !== document.getElementById('loadedAddressState').value
+                || zip !== document.getElementById('loadedAddressPostalCode').value;
 
-        var changed =
-            line1 !== document.getElementById('loadedAddressLine1').value
-            || line2 !== document.getElementById('loadedAddressLine2').value
-            || city !== document.getElementById('loadedAddressCity').value
-            || state !== document.getElementById('loadedAddressState').value
-            || zip !== document.getElementById('loadedAddressPostalCode').value;
+            if (changed) {
+                var shouldUpdate = window.confirm(
+                    'You changed this saved address. Update it on file for next time?'
+                );
 
-        if (changed) {
-            var shouldUpdate = window.confirm(
-                'You changed this saved address. Update it on file for next time?'
-            );
-
-            updateFlag.value = shouldUpdate ? '1' : '0';
-        }
-    });
-})();
+                updateFlag.value = shouldUpdate ? '1' : '0';
+            }
+        });
+    })();
 </script>
 
 <?php require __DIR__ . '/../includes/footer.php'; ?>
