@@ -1,75 +1,61 @@
-<?php // account.php
+<?php // operators/op_create.php
 
 /**
  * Brian Phillips
  * CSC 680
  */
 
-require_once __DIR__ . '/includes/access_control.php';
+require_once __DIR__ . '/../includes/access_control.php';
 
-requireLogin();
+requireAdministrator();
 
 $db = connectDatabase();
 
 $errorMessage = '';
-$successMessage = '';
+
+$selectedStoreID = '';
+$username = '';
+$firstName = '';
+$middleInitial = '';
+$lastName = '';
+$email = '';
+$phone = '';
+$selectedRole = 'Operator';
+$hireDate = '';
 
 
-// Load the current operator
-$accountStatement = $db->prepare(
+// Load active stores
+$storeListStatement = $db->query(
     '
     SELECT
-        OperatorID,
         StoreID,
         StoreNumber,
-        StoreName,
-        EmployeeNumber,
-        Username,
-        PasswordHash,
-        FirstName,
-        MiddleInitial,
-        LastName,
-        Email,
-        Phone,
-        Role
-    FROM vw_operatorlogin
-    WHERE OperatorID = :operatorID
-    LIMIT 1
+        StoreName
+    FROM vw_storelist
+    WHERE Active = 1
+    ORDER BY StoreNumber
     '
 );
 
-$accountStatement->execute([
-    ':operatorID' => signedInOperatorID()
-]);
-
-$accountRecord = $accountStatement->fetch();
-
-if (!$accountRecord) {
-    header('Location: ' . APPLICATION_URL . '/logout.php');
-    exit;
-}
-
-$username = $accountRecord['Username'];
-$firstName = $accountRecord['FirstName'];
-$middleInitial = (string) $accountRecord['MiddleInitial'];
-$lastName = $accountRecord['LastName'];
-$email = $accountRecord['Email'];
-$phone = (string) $accountRecord['Phone'];
+$storeRecords = $storeListStatement->fetchAll();
 
 
-// Show confirmation after an update
-if (isset($_GET['updated'])) {
-    $successMessage = 'Your account was updated successfully.';
-}
-
-
-// Process account changes
+// Process the Create Employee form
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $selectedStoreID =
+        $_POST['store_id']
+        ?? '';
     $username =
         trim(
             $_POST['username']
             ?? ''
         );
+    $enteredPassword =
+        $_POST['password']
+        ?? '';
+    $confirmedPassword =
+        $_POST['confirm_password']
+        ?? '';
     $firstName =
         trim(
             $_POST['first_name']
@@ -95,31 +81,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST['phone']
             ?? ''
         );
-
-    $currentPassword =
-        $_POST['current_password']
-        ?? '';
-    $newPassword =
-        $_POST['new_password']
-        ?? '';
-    $confirmNewPassword =
-        $_POST['confirm_new_password']
+    $selectedRole =
+        $_POST['role']
+        ?? 'Operator';
+    $hireDate =
+        $_POST['hire_date']
         ?? '';
     $submittedToken =
         $_POST['form_security_token']
         ?? '';
 
-    $isChangingPassword =
-        $currentPassword !== ''
-        ||
-        $newPassword !== ''
-        ||
-        $confirmNewPassword !== '';
-
     if (!tokenIsValid($submittedToken)) {
         $errorMessage = 'The form expired. Please try again.';
     } elseif (
+        $selectedStoreID === ''
+        ||
         $username === ''
+        ||
+        $enteredPassword === ''
         ||
         $firstName === ''
         ||
@@ -136,55 +115,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errorMessage = 'Enter a valid email address.';
     } elseif (!phoneIsValid($phone)) {
         $errorMessage = 'Phone number must contain exactly 10 digits or be left blank.';
-    } elseif (
-        $isChangingPassword
-        &&
-        (
-            $currentPassword === ''
-            ||
-            $newPassword === ''
-            ||
-            $confirmNewPassword === ''
-        )
-    ) {
-        $errorMessage =
-            'Enter your current password, a new password, and the confirmation to change your password.';
-    } elseif (
-        $isChangingPassword
-        &&
-        !password_verify(
-            $currentPassword,
-            $accountRecord['PasswordHash']
-        )
-    ) {
-        $errorMessage = 'Your current password is incorrect.';
-    } elseif (
-        $isChangingPassword
-        &&
-        !passwordIsValid($newPassword)
-    ) {
+    } elseif (!passwordIsValid($enteredPassword)) {
         $errorMessage =
             passwordRules();
+    } elseif ($enteredPassword !== $confirmedPassword) {
+        $errorMessage = 'The password and confirmation do not match.';
     } elseif (
-        $isChangingPassword
-        &&
-        $newPassword !== $confirmNewPassword
+        !in_array(
+            $selectedRole,
+            [
+                'Administrator',
+                'Manager',
+                'Operator',
+                'Personal Shopper'
+            ],
+            true
+        )
     ) {
-        $errorMessage =
-            'The new password and confirmation do not match.';
+        $errorMessage = 'Select a valid employee role.';
     } else {
         try {
             if ($middleInitial !== '') {
                 $middleInitial = strtoupper($middleInitial);
             }
 
-            $newPasswordHash = $isChangingPassword
-                ? password_hash($newPassword, PASSWORD_DEFAULT)
-                : null;
+            $passwordHash = password_hash(
+                $enteredPassword,
+                PASSWORD_DEFAULT
+            );
 
-            $updateAccountStatement = $db->prepare(
+            $createStatement = $db->prepare(
                 '
-                CALL sp_update_own_account(
+                CALL sp_create_operator(
+                    ?,
+                    ?,
                     ?,
                     ?,
                     ?,
@@ -197,65 +161,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 '
             );
 
-            $updateAccountStatement->execute([
-                signedInOperatorID(),
+            $createStatement->execute([
+                (int) $selectedStoreID,
                 $username,
+                $passwordHash,
                 $firstName,
                 $middleInitial,
                 $lastName,
                 $email,
                 $phone,
-                $newPasswordHash
+                $selectedRole,
+                $hireDate === '' ? null : $hireDate
             ]);
 
-            $updateAccountStatement->closeCursor();
+            $createStatement->closeCursor();
 
-            // Refresh the session after account changes
-            refreshSession();
-
-            header(
-                'Location: '
-                . APPLICATION_URL
-                . '/account.php?updated=1'
-            );
-
+            header('Location: op_list.php?created=1');
             exit;
         } catch (PDOException $exception) {
             $errorMessage = databaseMessage(
                 $exception,
-                'Your account could not be updated.'
+                'The employee could not be created.'
             );
         }
     }
 }
 
+$pageTitle = 'Create Employee';
+$currentSection = 'operators';
+$currentPage = 'create';
 
-$pageTitle = 'My Account';
-$currentSection = 'account';
-$currentPage = 'account';
-
-require __DIR__ . '/includes/header.php';
+require __DIR__ . '/../includes/header.php';
 ?>
 
 <section class="content-panel form-panel">
 
     <div class="page-intro">
         <h1>
-            My Account
+            Create Employee
         </h1>
 
         <p>
-            Update your account, contact details, or password.
+            Enter the information for the new FnH Groceries employee.
         </p>
     </div>
-
-    <?php if ($successMessage !== ''): ?>
-
-        <div class="message message-success">
-            <?= escapeOutput($successMessage) ?>
-        </div>
-
-    <?php endif; ?>
 
     <?php if ($errorMessage !== ''): ?>
 
@@ -275,22 +224,39 @@ require __DIR__ . '/includes/header.php';
 
         <div class="form-grid">
 
-            <div class="form-field">
-                <label>
-                    Employee Number
+            <div class="form-field form-field-full-width">
+                <label for="store_id">
+                    Assigned Store *
                 </label>
 
-                <div class="read-only-value">
-                    <?= escapeOutput($accountRecord['EmployeeNumber']) ?>
-                </div>
+                <select
+                    id="store_id"
+                    name="store_id"
+                    required
+                >
+                    <option value="">
+                        Select Store
+                    </option>
+
+                    <?php foreach ($storeRecords as $storeRecord): ?>
+
+                        <option
+                            value="<?= (int) $storeRecord['StoreID'] ?>"
+                            <?= (string) $selectedStoreID === (string) $storeRecord['StoreID'] ? 'selected' : '' ?>
+                        >
+                            <?= escapeOutput($storeRecord['StoreNumber']) ?>
+                            -
+                            <?= escapeOutput($storeRecord['StoreName']) ?>
+                        </option>
+
+                    <?php endforeach; ?>
+
+                </select>
             </div>
 
             <div class="form-field">
                 <label for="username">
                     Username *
-                    <span class="field-label-note">
-                        - Must be unique
-                    </span>
                 </label>
 
                 <input
@@ -302,40 +268,6 @@ require __DIR__ . '/includes/header.php';
                     required
                     autocomplete="username"
                 >
-            </div>
-            <div class="form-field">
-                <label>
-                    Assigned Store
-                    <span class="field-label-note">
-                        - Managed by admin
-                    </span>
-                </label>
-
-                <div class="read-only-value">
-                    <?= escapeOutput($accountRecord['StoreNumber']) ?>
-                    -
-                    <?= escapeOutput($accountRecord['StoreName']) ?>
-                </div>
-            </div>
-
-            <div class="form-field">
-                <label>
-                    Privilege
-                </label>
-
-                <div class="read-only-value">
-
-                    <?php if ($accountRecord['Role'] === 'Pending'): ?>
-
-                        No Access
-
-                    <?php else: ?>
-
-                        <?= escapeOutput($accountRecord['Role']) ?>
-
-                    <?php endif; ?>
-
-                </div>
             </div>
 
             <div class="form-field">
@@ -365,6 +297,7 @@ require __DIR__ . '/includes/header.php';
                     value="<?= escapeOutput($middleInitial) ?>"
                     maxlength="1"
                     pattern="[A-Za-z]"
+                    title="Enter one letter or leave this field blank."
                 >
             </div>
 
@@ -403,6 +336,7 @@ require __DIR__ . '/includes/header.php';
                 <label for="phone">
                     Phone
                 </label>
+
                 <input
                     type="tel"
                     id="phone"
@@ -418,50 +352,88 @@ require __DIR__ . '/includes/header.php';
             </div>
 
             <div class="form-field">
-                <label for="current_password">
-                    Current Password
+                <label for="role">
+                    Role *
                 </label>
 
-                <input
-                    type="password"
-                    id="current_password"
-                    name="current_password"
-                    autocomplete="current-password"
+                <select
+                    id="role"
+                    name="role"
+                    required
                 >
+                    <option
+                        value="Operator"
+                        <?= $selectedRole === 'Operator' ? 'selected' : '' ?>
+                    >
+                        Operator
+                    </option>
 
-                <div class="field-help">
-                    Required only when changing your password.
-                </div>
+                    <option
+                        value="Manager"
+                        <?= $selectedRole === 'Manager' ? 'selected' : '' ?>
+                    >
+                        Manager
+                    </option>
+
+                    <option
+                        value="Administrator"
+                        <?= $selectedRole === 'Administrator' ? 'selected' : '' ?>
+                    >
+                        Administrator
+                    </option>
+
+                    <option
+                        value="Personal Shopper"
+                        <?= $selectedRole === 'Personal Shopper' ? 'selected' : '' ?>
+                    >
+                        Personal Shopper
+                    </option>
+                </select>
             </div>
 
             <div class="form-field">
-                <label for="new_password">
-                    New Password
+                <label for="hire_date">
+                    Hire Date
+                </label>
+
+                <input
+                    type="date"
+                    id="hire_date"
+                    name="hire_date"
+                    value="<?= escapeOutput($hireDate) ?>"
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="password">
+                    Password *
                 </label>
 
                 <input
                     type="password"
-                    id="new_password"
-                    name="new_password"
+                    id="password"
+                    name="password"
                     minlength="8"
+                    required
                     autocomplete="new-password"
                 >
 
                 <div class="field-help">
-                    Leave blank to keep your current password. <?= escapeOutput(passwordRules()) ?>
+                    <?= escapeOutput(passwordRules()) ?>
                 </div>
             </div>
 
             <div class="form-field">
-                <label for="confirm_new_password">
-                    Confirm New Password
+                <label for="confirm_password">
+                    Confirm Password *
                 </label>
 
                 <input
                     type="password"
-                    id="confirm_new_password"
-                    name="confirm_new_password"
+                    id="confirm_password"
+                    name="confirm_password"
                     minlength="8"
+                    required
                     autocomplete="new-password"
                 >
             </div>
@@ -474,11 +446,11 @@ require __DIR__ . '/includes/header.php';
                 type="submit"
                 class="button button-primary"
             >
-                Save Changes
+                Create Employee
             </button>
 
             <a
-                href="<?= APPLICATION_URL ?>/index.php"
+                href="op_list.php"
                 class="button button-secondary"
             >
                 Cancel
@@ -490,4 +462,4 @@ require __DIR__ . '/includes/header.php';
 
 </section>
 
-<?php require __DIR__ . '/includes/footer.php'; ?>
+<?php require __DIR__ . '/../includes/footer.php'; ?>

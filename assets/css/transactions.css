@@ -1,0 +1,274 @@
+/* assets/css/transactions.css */
+
+/*
+  Brian Phillips
+  CSC 680
+*/
+
+.transaction-panel {
+    max-width: none;
+    overflow: hidden;
+}
+
+.transaction-compact-intro {
+    margin-bottom: 0.625rem;
+    padding-bottom: 0.5rem;
+}
+
+.transaction-filter-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.625rem;
+    margin-bottom: 0.625rem;
+    padding: 0.75rem;
+    border: 0.0625rem solid var(--standard-border-color);
+    border-radius: var(--standard-border-radius);
+    background: var(--page-background-light-color);
+}
+
+.transaction-filter-field {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.transaction-filter-field label {
+    color: var(--theme-primary-dark-color);
+    font-size: 0.8125rem;
+    font-weight: bold;
+}
+
+.transaction-filter-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 0.5rem;
+}
+
+.transaction-count-note {
+    margin-bottom: 0.5rem;
+    color: var(--secondary-text-color);
+    font-size: 0.8125rem;
+}
+
+.transaction-table-container {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: var(--standard-border-radius);
+}
+
+.transaction-table {
+    width: 100%;
+    min-width: 52rem;
+    border-collapse: collapse;
+}
+
+.transaction-table th,
+.transaction-table td {
+    padding: 0.625rem;
+    border: 0.0625rem solid var(--standard-border-color);
+    text-align: left;
+    vertical-align: middle;
+}
+
+.transaction-table th {
+    background: var(--theme-primary-dark-color);
+    color: var(--text-on-dark-color);
+}
+
+.transaction-table tbody tr:nth-child(even) {
+    background: var(--page-background-light-color);
+}
+
+.transaction-type {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.75rem;
+    padding: 0.2rem 0.45rem;
+    border-radius: var(--standard-border-radius);
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.transaction-type-regular {
+    border: 0.0625rem solid var(--shared-blue-color);
+    background: var(--theme-primary-light-color);
+    color: var(--theme-primary-dark-color);
+}
+
+.transaction-type-express {
+    border: 0.0625rem solid var(--theme-green-color);
+    background: var(--theme-light-green-color);
+    color: var(--theme-primary-dark-color);
+}
+
+.transaction-substatus {
+    display: block;
+    margin-top: 0.2rem;
+    color: var(--secondary-text-color);
+    font-size: 0.75rem;
+}
+
+.transaction-view-button {
+    min-height: var(--minimum-touch-size);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+}
+
+.transaction-table td.transaction-empty-row {
+    padding: 1rem;
+    text-align: center;
+    color: var(--secondary-text-color);
+}
+
+.transaction-detail-summary,
+.transaction-express-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.625rem;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem;
+    border: 0.0625rem solid var(--shared-blue-color);
+    border-radius: var(--standard-border-radius);
+    background: var(--theme-primary-light-color);
+}
+
+.transaction-express-summary {
+    border-color: var(--theme-green-color);
+    background: var(--success-background-color);
+}
+
+.transaction-detail-summary > div,
+.transaction-express-summary > div {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.transaction-detail-summary span,
+.transaction-express-summary span {
+    color: var(--secondary-text-color);
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.transaction-detail-summary strong,
+.transaction-express-summary strong {
+    overflow-wrap: anywhere;
+}
+
+.transaction-address-block {
+    grid-column: 1 / -1;
+}
+
+.transaction-line-table {
+    min-width: 48rem;
+}
+
+.transaction-payment-summary {
+    width: 100%;
+    max-width: 38rem;
+    margin: 0.875rem 0 0 auto;
+    padding: 0.75rem;
+    border: 0.0625rem solid var(--standard-border-color);
+    border-radius: var(--standard-border-radius);
+    background: var(--page-background-light-color);
+}
+
+.transaction-payment-summary > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.3rem 0;
+}
+
+.transaction-payment-summary > .transaction-total-row {
+    margin-top: 0.25rem;
+    padding-top: 0.625rem;
+    border-top: 0.125rem solid var(--shared-blue-color);
+    color: var(--theme-primary-dark-color);
+    font-size: 1.125rem;
+}
+
+.transaction-detail-actions {
+    margin-top: 0.875rem;
+}
+
+@media (min-width: 48rem) {
+    .transaction-filter-form {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
+
+    .transaction-filter-field {
+        flex: 1 1 9rem;
+    }
+
+    .transaction-filter-search {
+        flex: 2 1 14rem;
+    }
+
+    .transaction-filter-actions {
+        flex: 0 0 auto;
+    }
+
+    .transaction-detail-summary,
+    .transaction-express-summary {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+/* Discounts */
+
+.transaction-subheading {
+    margin: 1rem 0 0.5rem;
+    font-size: 1.15rem;
+}
+
+/* Narrow desktop and tablet: compact cells so the tables still fit */
+
+@media (max-width: 85.99rem) {
+    .transaction-table:not(.transaction-line-table):not(.transaction-discount-table) th:nth-child(6),
+    .transaction-table:not(.transaction-line-table):not(.transaction-discount-table) td:nth-child(6) {
+        display: none;
+    }
+
+    .transaction-table th,
+    .transaction-table td {
+        padding: 0.375rem 0.3rem;
+        font-size: 0.8125rem;
+    }
+}
+
+/* Desktop layout */
+
+@media (min-width: 64rem) {
+    .transaction-table,
+    .transaction-line-table {
+        min-width: 0;
+    }
+}
+
+
+/* Choosing how to open someone else's open transaction */
+
+.transaction-open-panel {
+    margin: 0 0 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border: 0.0625rem solid var(--shared-blue-color);
+    border-radius: var(--standard-border-radius);
+    background: var(--information-background-color);
+}
+
+.transaction-open-panel ul {
+    margin: 0.25rem 0 0.5rem;
+    padding-left: 1.25rem;
+}
+
+.transaction-open-panel .form-actions {
+    margin: 0.25rem 0;
+}

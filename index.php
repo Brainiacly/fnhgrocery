@@ -9,6 +9,12 @@ require_once __DIR__ . '/includes/access_control.php';
 
 $loginErrorMessage = '';
 
+// Sent here when the sign-in time limit has passed
+if (($_GET['expired'] ?? '') === '1') {
+    $loginErrorMessage =
+        'Your ' . SIGN_IN_HOURS . '-hour sign-in has ended. Please sign in again.';
+}
+
 
 // Process the login form
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
@@ -19,11 +25,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $enteredPassword =
         $_POST['password'] ?? '';
 
-    $submittedSecurityToken =
+    $submittedToken =
         $_POST['form_security_token'] ?? '';
 
 
-    if (!formSecurityTokenIsValid($submittedSecurityToken)) {
+    if (!tokenIsValid($submittedToken)) {
 
         $loginErrorMessage =
             'The login form expired. Please try again.';
@@ -37,12 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 
         try {
 
-            $databaseConnection =
+            $db =
                 connectDatabase();
 
 
             $loginStatement =
-                $databaseConnection->prepare(
+                $db->prepare(
                     '
                     SELECT
                         OperatorID,
@@ -83,6 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 
                 session_regenerate_id(true);
 
+
+                $_SESSION['signed_in_at'] = time();
 
                 $_SESSION['operator_id'] =
                     $operatorRecord['OperatorID'];
@@ -157,7 +165,7 @@ require __DIR__ . '/includes/header.php';
 ?>
 
 
-<?php if (!operatorIsLoggedIn()): ?>
+<?php if (!isLoggedIn()): ?>
 
     <div class="home-public">
 
@@ -252,7 +260,7 @@ require __DIR__ . '/includes/header.php';
     </div>
 
 
-<?php elseif (!operatorHasAssignedAccess()): ?>
+<?php elseif (!hasAccess()): ?>
 
     <section class="content-panel home-pending">
 
@@ -283,7 +291,7 @@ require __DIR__ . '/includes/header.php';
             <h1>
                 Welcome,
                 <?= escapeOutput(
-                    getLoggedInOperatorDisplayName()
+                    signedInName()
                 ) ?>
             </h1>
 
@@ -324,7 +332,7 @@ require __DIR__ . '/includes/header.php';
                         -
 
                         <?= escapeOutput(
-                            $_SESSION['store_name'] ?? ''
+                            signedInStoreName()
                         ) ?>
 
                     </span>
@@ -360,7 +368,7 @@ require __DIR__ . '/includes/header.php';
                     <span class="home-account-value">
 
                         <?php if (
-                            ($_SESSION['role'] ?? '')
+                            signedInRole()
                             ===
                             'Pending'
                         ): ?>
@@ -370,7 +378,7 @@ require __DIR__ . '/includes/header.php';
                         <?php else: ?>
 
                             <?= escapeOutput(
-                                $_SESSION['role'] ?? ''
+                                signedInRole()
                             ) ?>
 
                         <?php endif; ?>
@@ -398,7 +406,7 @@ require __DIR__ . '/includes/header.php';
 
             <div class="home-menu-grid">
 
-                <?php if (operatorCanUseRegularPOS()): ?>
+                <?php if (canUseRegister()): ?>
 
                     <a
                         href="<?= escapeOutput($saleNavigationHref) ?>"
@@ -410,7 +418,7 @@ require __DIR__ . '/includes/header.php';
                         </strong>
 
                         <span>
-                            <?= escapeOutput($saleNavigationDescription) ?>
+                            <?= escapeOutput($saleLinkText) ?>
                         </span>
 
                     </a>
@@ -418,7 +426,7 @@ require __DIR__ . '/includes/header.php';
                 <?php endif; ?>
 
 
-                <?php if (operatorCanUseExpress()): ?>
+                <?php if (canUseExpress()): ?>
 
                     <a
                         href="<?= APPLICATION_URL ?>/express/ex_home.php"
@@ -426,7 +434,7 @@ require __DIR__ . '/includes/header.php';
                     >
 
                         <strong>
-                            FnH Express
+                            Express Orders
                         </strong>
 
                         <span>
@@ -439,7 +447,7 @@ require __DIR__ . '/includes/header.php';
 
 
                 <a
-                    href="<?= APPLICATION_URL ?>/inventory/stock_levels.php"
+                    href="<?= APPLICATION_URL ?>/inventory/inv_stock.php"
                     class="home-menu-card"
                 >
 
@@ -454,19 +462,73 @@ require __DIR__ . '/includes/header.php';
                 </a>
 
 
-                <?php if (operatorIsAdministrator()): ?>
+                <?php if (isAdministrator()): ?>
 
                     <a
-                        href="<?= APPLICATION_URL ?>/operators/operator_list.php"
+                        href="<?= APPLICATION_URL ?>/inventory/inv_manage.php"
                         class="home-menu-card"
                     >
 
                         <strong>
-                            Manage Operators
+                            Manage Inventory
                         </strong>
 
                         <span>
-                            Create, modify, delete, or reactivate operator accounts.
+                            Add or edit products and adjust current store inventory.
+                        </span>
+
+                    </a>
+
+                <?php endif; ?>
+
+
+                <a
+                    href="<?= APPLICATION_URL ?>/transactions/tr_list.php"
+                    class="home-menu-card"
+                >
+
+                    <strong>
+                        Transaction Viewer
+                    </strong>
+
+                    <span>
+                        Review permitted Regular and Express transactions and open receipt details.
+                    </span>
+
+                </a>
+
+
+                <a
+                    href="<?= APPLICATION_URL ?>/training/tc_home.php"
+                    class="home-menu-card"
+                >
+
+                    <strong>
+                        Training Center
+                    </strong>
+
+                    <span>
+                        Review use-case instructions and Assignment 4 training movies.
+                    </span>
+
+                </a>
+
+
+                <?php if (canViewOperators()): ?>
+
+                    <a
+                        href="<?= APPLICATION_URL ?>/operators/op_list.php"
+                        class="home-menu-card"
+                    >
+
+                        <strong>
+                            Employees
+                        </strong>
+
+                        <span>
+                            <?= isAdministrator()
+                                ? 'Create, edit, and manage employee accounts.'
+                                : 'Review employee activity and manage permitted access.' ?>
                         </span>
 
                     </a>
@@ -479,11 +541,11 @@ require __DIR__ . '/includes/header.php';
                     >
 
                         <strong>
-                            Manage My Account
+                            My Account
                         </strong>
 
                         <span>
-                            Review and update your operator account information.
+                            Review and update your employee account information.
                         </span>
 
                     </a>

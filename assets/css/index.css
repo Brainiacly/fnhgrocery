@@ -221,7 +221,7 @@
     border-top-color:
         var(--theme-primary-dark-color);
 
-    color: white;
+    color: var(--text-on-dark-color);
 
     text-align: center;
 }
@@ -540,17 +540,8 @@
 }
 
 
-.home-menu-grid {
-    display: grid;
-
-    grid-template-columns: 1fr;
-
-    gap: 0.875rem;
-}
-
-
 .home-menu-card {
-    min-height: 7rem;
+    min-height: var(--box-height);
 
     display: flex;
 
@@ -611,28 +602,4 @@
 
     outline-offset:
         0.0625rem;
-}
-
-
-@media (min-width: 48rem) {
-
-    .home-menu-grid {
-        grid-template-columns:
-            repeat(
-                2,
-                minmax(0, 1fr)
-            );
-    }
-}
-
-
-@media (min-width: 64rem) {
-
-    .home-menu-grid {
-        grid-template-columns:
-            repeat(
-                3,
-                minmax(0, 1fr)
-            );
-    }
 }

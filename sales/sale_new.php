@@ -6,19 +6,15 @@
  */
 
 require_once __DIR__ . '/../includes/access_control.php';
+require_once __DIR__ . '/../includes/discounts.php';
+require_once __DIR__ . '/../includes/item_entry.php';
 
-requireRegularPOSAccess();
+requireRegister();
 
 $storeID =
-    (int) (
-        $_SESSION['store_id']
-        ?? 0
-    );
+    signedInStoreID();
 $operatorID =
-    (int) (
-        $_SESSION['operator_id']
-        ?? 0
-    );
+    signedInOperatorID();
 
 $receiptID =
     isset($_GET['receipt'])
@@ -38,17 +34,24 @@ $productRecords = [];
 $saleItems = [];
 
 $saleRecord = null;
-$clearSale = null;
+$assistingOther = false;
+
+$saleTotals = [];
+$discountRecords = [];
+$couponRecords = [];
+$discountReasons = [];
+$discountForm = defaultDiscountForm();
+$discountPanelOpen = false;
 
 function startRegisterSale(
-    PDO $databaseConnection,
+    PDO $db,
     int $storeID,
     int $registerID,
     int $operatorID
 ): int {
 
     $statement =
-        $databaseConnection->prepare(
+        $db->prepare(
             '
             CALL sp_start_sale(
                 :storeID,
@@ -74,13 +77,13 @@ function startRegisterSale(
 }
 
 function voidRegisterSale(
-    PDO $databaseConnection,
+    PDO $db,
     int $receiptID,
     int $operatorID
 ): void {
 
     $statement =
-        $databaseConnection->prepare(
+        $db->prepare(
             '
             CALL sp_void_sale(
                 :receiptID,
@@ -100,20 +103,19 @@ function voidRegisterSale(
 
 try {
 
-    $databaseConnection =
+    $db =
         connectDatabase();
 
     $registerStatement =
-        $databaseConnection->prepare(
+        $db->prepare(
             '
             SELECT
                 r.RegisterID,
                 r.RegisterNumber,
                 r.RegisterName,
+                r.RegisterType,
                 sr.ReceiptID
                     AS OpenReceiptID,
-                sr.TransactionNumber
-                    AS OpenTransactionNumber,
                 sr.OperatorID
                     AS OpenOperatorID,
                 o.Username
@@ -132,7 +134,6 @@ try {
             WHERE r.StoreID =
                 :storeID
               AND r.Active = 1
-              AND r.RegisterNumber <> 1
             ORDER BY
                 r.RegisterNumber
             '
@@ -147,13 +148,13 @@ try {
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-        $submittedSecurityToken =
+        $submittedToken =
             $_POST['form_security_token']
             ?? '';
 
         if (
-            !formSecurityTokenIsValid(
-                $submittedSecurityToken
+            !tokenIsValid(
+                $submittedToken
             )
         ) {
 
@@ -187,7 +188,7 @@ try {
                     'The selected register does not have an open session.';
 
             } elseif (
-                !operatorIsAdministrator()
+                !canSupervise()
                 &&
                 (int) $selectedRegister['OpenOperatorID']
                 !==
@@ -199,7 +200,7 @@ try {
             } else {
                 try {
                     voidRegisterSale(
-                        $databaseConnection,
+                        $db,
                         (int) $selectedRegister['OpenReceiptID'],
                         $operatorID
                     );
@@ -211,7 +212,7 @@ try {
                     exit;
                 } catch (PDOException $exception) {
                     $errorMessage =
-                        getSafeDatabaseErrorMessage(
+                        databaseMessage(
                             $exception,
                             'The register could not be closed.'
                         );
@@ -243,6 +244,13 @@ try {
                     'Select an available register.';
 
             } elseif (
+                ($selectedRegister['RegisterType'] ?? 'Regular') !== 'Regular'
+                || (int) $selectedRegister['RegisterNumber'] === 1
+            ) {
+                $errorMessage =
+                    'Reserved for Express. Select a Regular register.';
+
+            } elseif (
                 !empty(
                 $selectedRegister['OpenReceiptID']
             )
@@ -265,7 +273,7 @@ try {
 
                 } else {
 
-                    if (operatorIsAdministrator()) {
+                    if (canSupervise()) {
 
                         $errorMessage =
                             'That register is currently in use. Use Close Register to release it.';
@@ -273,14 +281,14 @@ try {
                     } else {
 
                         $errorMessage =
-                            'That register is currently in use by another operator.';
+                            'That register is currently in use by another employee.';
                     }
                 }
 
             } else {
 
-                $operatorOpenSaleStatement =
-                    $databaseConnection->prepare(
+                $ownSaleStatement =
+                    $db->prepare(
                         '
                         SELECT
                             r.RegisterNumber
@@ -298,13 +306,13 @@ try {
                         '
                     );
 
-                $operatorOpenSaleStatement->execute([
+                $ownSaleStatement->execute([
                     ':storeID' => $storeID,
                     ':operatorID' => $operatorID
                 ]);
 
                 $operatorOpenSale =
-                    $operatorOpenSaleStatement->fetch();
+                    $ownSaleStatement->fetch();
 
                 if ($operatorOpenSale) {
 
@@ -319,7 +327,7 @@ try {
 
                         $newReceiptID =
                             startRegisterSale(
-                                $databaseConnection,
+                                $db,
                                 $storeID,
                                 $selectedRegisterID,
                                 $operatorID
@@ -340,7 +348,7 @@ try {
                     } catch (PDOException $exception) {
 
                         $errorMessage =
-                            getSafeDatabaseErrorMessage(
+                            databaseMessage(
                                 $exception,
                                 'The register could not be opened.'
                             );
@@ -350,10 +358,10 @@ try {
 
         } elseif (isset($_POST['clear_register'])) {
 
-            if (!operatorIsAdministrator()) {
+            if (!canSupervise()) {
 
                 $errorMessage =
-                    "Administrator access is required to clear another operator's register.";
+                    "Supervisor access is required to clear another employee's register.";
 
             } else {
 
@@ -366,7 +374,7 @@ try {
                 try {
 
                     voidRegisterSale(
-                        $databaseConnection,
+                        $db,
                         $clearReceiptID,
                         $operatorID
                     );
@@ -382,7 +390,7 @@ try {
                 } catch (PDOException $exception) {
 
                     $errorMessage =
-                        getSafeDatabaseErrorMessage(
+                        databaseMessage(
                             $exception,
                             'The register could not be cleared.'
                         );
@@ -419,7 +427,7 @@ try {
                     try {
 
                         $statement =
-                            $databaseConnection->prepare(
+                            $db->prepare(
                                 '
                                 SELECT ProductID
                                 FROM vw_pos_products
@@ -456,8 +464,26 @@ try {
                                 ?? 0
                             );
 
-                        if ($productID <= 0) {
-
+                        if ($productID <= 0 && isCouponCode($productCode)) {
+                            $couponStatement =
+                                $db->prepare(
+                                    'CALL sp_add_coupon_to_sale(:receiptID, :operatorID, :couponCode)'
+                                );
+                            $couponStatement->execute([
+                                ':receiptID' => $receiptID,
+                                ':operatorID' => $operatorID,
+                                ':couponCode' => $productCode
+                            ]);
+                            $couponStatement->closeCursor();
+                            header(
+                                'Location: '
+                                . APPLICATION_URL
+                                . '/sales/sale_new.php?receipt='
+                                . $receiptID
+                                . '&coupon=added'
+                            );
+                            exit;
+                        } elseif ($productID <= 0) {
                             $errorMessage =
                                 'The product code was not found.';
                         }
@@ -469,7 +495,7 @@ try {
                         );
 
                         $errorMessage =
-                            getSafeDatabaseErrorMessage(
+                            databaseMessage(
                                 $exception,
                                 'The product code could not be checked.'
                             );
@@ -505,8 +531,10 @@ try {
 
                 try {
 
+                    [$quantity, $stockCapNotice] = capRequestedStock($db, $storeID, $productID, (float) $quantity);
+
                     $statement =
-                        $databaseConnection->prepare(
+                        $db->prepare(
                             '
                             CALL sp_add_sale_item(
                                 :receiptID,
@@ -535,6 +563,9 @@ try {
                     ]);
 
                     $statement->closeCursor();
+                    if ($stockCapNotice !== '') {
+                        $_SESSION['stock_cap_notice'] = $stockCapNotice;
+                    }
 
                     header(
                         'Location: '
@@ -546,16 +577,49 @@ try {
 
                     exit;
 
+                } catch (StockLimitException $exception) {
+                    $errorMessage = $exception->getMessage();
                 } catch (PDOException $exception) {
 
                     $errorMessage =
-                        getSafeDatabaseErrorMessage(
+                        databaseMessage(
                             $exception,
                             'The product could not be added.'
                         );
                 }
             }
 
+        } elseif (
+            isset($_POST['remove_coupon'])
+            &&
+            $receiptID > 0
+        ) {
+            try {
+                $statement =
+                    $db->prepare(
+                        'CALL sp_remove_coupon_from_sale(:receiptID, :operatorID, :saleCouponID)'
+                    );
+                $statement->execute([
+                    ':receiptID' => $receiptID,
+                    ':operatorID' => $operatorID,
+                    ':saleCouponID' => (int) ($_POST['sale_coupon_id'] ?? 0)
+                ]);
+                $statement->closeCursor();
+                header(
+                    'Location: '
+                    . APPLICATION_URL
+                    . '/sales/sale_new.php?receipt='
+                    . $receiptID
+                    . '&coupon=removed'
+                );
+                exit;
+            } catch (PDOException $exception) {
+                $errorMessage =
+                    databaseMessage(
+                        $exception,
+                        'The coupon could not be removed.'
+                    );
+            }
         } elseif (
             (
                 isset($_POST['remove_product'])
@@ -611,7 +675,7 @@ try {
                 try {
 
                     $statement =
-                        $databaseConnection->prepare(
+                        $db->prepare(
                             '
                             CALL sp_remove_sale_item(
                                 :receiptID,
@@ -644,11 +708,147 @@ try {
                 } catch (PDOException $exception) {
 
                     $errorMessage =
-                        getSafeDatabaseErrorMessage(
+                        databaseMessage(
                             $exception,
                             'The product could not be removed.'
                         );
                 }
+            }
+
+        } elseif (
+            isset($_POST['apply_discount'])
+            &&
+            $receiptID > 0
+        ) {
+
+            $discountForm = readDiscountForm($_POST);
+
+            $discountPanelOpen = true;
+
+            $discountCheck =
+                checkDiscountForm(
+                    $db,
+                    $discountForm
+                );
+
+            if ($discountCheck['error'] !== '') {
+
+                $errorMessage =
+                    $discountCheck['error'];
+
+            } else {
+
+                try {
+
+                    $statement =
+                        $db->prepare(
+                            '
+                            CALL sp_apply_discount(
+                                :receiptID,
+                                :operatorID,
+                                :discountKind,
+                                :taxTiming,
+                                :discountValue,
+                                :reason,
+                                :saveReason
+                            )
+                            '
+                        );
+
+                    $statement->execute([
+                        ':receiptID' =>
+                            $receiptID,
+
+                        ':operatorID' =>
+                            $operatorID,
+
+                        ':discountKind' =>
+                            $discountForm['kind'],
+
+                        ':taxTiming' =>
+                            $discountForm['timing'],
+
+                        ':discountValue' =>
+                            $discountForm['value'],
+
+                        ':reason' =>
+                            $discountCheck['reason'],
+
+                        ':saveReason' =>
+                            $discountCheck['save']
+                    ]);
+
+                    $statement->closeCursor();
+
+                    header(
+                        'Location: '
+                        . APPLICATION_URL
+                        . '/sales/sale_new.php?receipt='
+                        . $receiptID
+                        . '&discount=added'
+                    );
+
+                    exit;
+
+                } catch (PDOException $exception) {
+
+                    $errorMessage =
+                        databaseMessage(
+                            $exception,
+                            'The discount could not be applied.'
+                        );
+                }
+            }
+
+        } elseif (
+            isset($_POST['remove_discount'])
+            &&
+            $receiptID > 0
+        ) {
+
+            try {
+
+                $statement =
+                    $db->prepare(
+                        '
+                        CALL sp_remove_discount(
+                            :receiptID,
+                            :operatorID,
+                            :discountID
+                        )
+                        '
+                    );
+
+                $statement->execute([
+                    ':receiptID' =>
+                        $receiptID,
+
+                    ':operatorID' =>
+                        $operatorID,
+
+                    ':discountID' =>
+                        (int) ($_POST['discount_id'] ?? 0)
+                ]);
+
+                $statement->closeCursor();
+
+                header(
+                    'Location: '
+                    . APPLICATION_URL
+                    . '/sales/sale_new.php?receipt='
+                    . $receiptID
+                    . '&discount=removed'
+                );
+
+                exit;
+
+            } catch (PDOException $exception) {
+
+                $errorMessage =
+                    databaseMessage(
+                        $exception,
+                        'The discount could not be removed.'
+                    );
             }
 
         } elseif (
@@ -663,8 +863,8 @@ try {
                     ?? 0
                 );
 
-            $cancelItemCountStatement =
-                $databaseConnection->prepare(
+            $itemCountStatement =
+                $db->prepare(
                     '
                     SELECT COUNT(*)
                     FROM salesreceiptline
@@ -673,13 +873,13 @@ try {
                     '
                 );
 
-            $cancelItemCountStatement->execute([
+            $itemCountStatement->execute([
                 ':receiptID' =>
                     $receiptID
             ]);
 
             $cancelItemCount =
-                (int) $cancelItemCountStatement->fetchColumn();
+                (int) $itemCountStatement->fetchColumn();
 
             if ($cancelItemCount <= 0) {
 
@@ -691,14 +891,14 @@ try {
                 try {
 
                     voidRegisterSale(
-                        $databaseConnection,
+                        $db,
                         $receiptID,
                         $operatorID
                     );
 
                     $newReceiptID =
                         startRegisterSale(
-                            $databaseConnection,
+                            $db,
                             $storeID,
                             $cancelRegisterID,
                             $operatorID
@@ -717,7 +917,7 @@ try {
                 } catch (PDOException $exception) {
 
                     $errorMessage =
-                        getSafeDatabaseErrorMessage(
+                        databaseMessage(
                             $exception,
                             'The sale could not be cancelled.'
                         );
@@ -766,7 +966,7 @@ try {
             try {
 
                 voidRegisterSale(
-                    $databaseConnection,
+                    $db,
                     $receiptID,
                     $operatorID
                 );
@@ -781,7 +981,7 @@ try {
             } catch (PDOException $exception) {
 
                 $errorMessage =
-                    getSafeDatabaseErrorMessage(
+                    databaseMessage(
                         $exception,
                         'The register could not be closed.'
                     );
@@ -797,6 +997,10 @@ try {
 
         $successMessage =
             'Product quantity added to the sale.';
+    if (!empty($_SESSION['stock_cap_notice'])) {
+        $successMessage = $_SESSION['stock_cap_notice'];
+        unset($_SESSION['stock_cap_notice']);
+    }
 
     } elseif (
         isset($_GET['cleared'])
@@ -824,12 +1028,44 @@ try {
 
         $successMessage =
             'Register closed.';
+
+    } elseif (
+        isset($_GET['coupon'])
+        &&
+        $_GET['coupon'] === 'added'
+    ) {
+        $successMessage =
+            'The coupon was added to the sale.';
+    } elseif (
+        isset($_GET['coupon'])
+        &&
+        $_GET['coupon'] === 'removed'
+    ) {
+        $successMessage =
+            'The coupon was removed from the sale.';
+    } elseif (
+        isset($_GET['discount'])
+        &&
+        $_GET['discount'] === 'added'
+    ) {
+
+        $successMessage =
+            'The discount was added to the sale.';
+
+    } elseif (
+        isset($_GET['discount'])
+        &&
+        $_GET['discount'] === 'removed'
+    ) {
+
+        $successMessage =
+            'The discount was removed from the sale.';
     }
 
     if ($receiptID > 0) {
 
         $statement =
-            $databaseConnection->prepare(
+            $db->prepare(
                 '
                 SELECT
                     sr.ReceiptID,
@@ -839,17 +1075,24 @@ try {
                     r.RegisterName,
                     sr.TransactionDateTime,
                     sr.Status,
-                    sr.SubtotalAmount
+                    sr.SubtotalAmount,
+                    sr.OperatorID AS OwnerID,
+                    CONCAT(ow.FirstName, \' \', ow.LastName) AS OwnerName
                 FROM salesreceipt sr
                 JOIN register r
                     ON r.RegisterID =
                         sr.RegisterID
+                JOIN operator ow
+                    ON ow.OperatorID =
+                        sr.OperatorID
                 WHERE sr.ReceiptID =
                     :receiptID
                   AND sr.StoreID =
                     :storeID
-                  AND sr.OperatorID =
-                    :operatorID
+                  AND (
+                      sr.OperatorID = :operatorID
+                      OR :assisting = 1
+                  )
                 LIMIT 1
                 '
             );
@@ -862,11 +1105,19 @@ try {
                 $storeID,
 
             ':operatorID' =>
-                $operatorID
+                $operatorID,
+
+            // A supervisor who chose Assist for this one sale may work on it
+            ':assisting' =>
+                isAssisting($receiptID) ? 1 : 0
         ]);
 
         $saleRecord =
             $statement->fetch();
+
+        $assistingOther =
+            $saleRecord
+            && (int) $saleRecord['OwnerID'] !== $operatorID;
 
         if (!$saleRecord) {
 
@@ -894,21 +1145,25 @@ try {
     if ($receiptID > 0) {
 
         $statement =
-            $databaseConnection->prepare(
+            $db->prepare(
                 '
                 SELECT
-                    ReceiptLineID,
-                    ProductID,
-                    ProductName,
-                    UnitType,
-                    Taxable,
-                    Quantity,
-                    UnitPrice,
-                    LineTotal
-                FROM vw_sale_detail
-                WHERE ReceiptID =
+                    sd.ReceiptLineID,
+                    sd.ProductID,
+                    sd.ProductName,
+                    sd.UnitType,
+                    sd.Taxable,
+                    sd.Quantity,
+                    sd.UnitPrice,
+                    sd.LineTotal,
+                    p.UPC,
+                    p.PLUCode
+                FROM vw_sale_detail sd
+                JOIN product p
+                    ON p.ProductID = sd.ProductID
+                WHERE sd.ReceiptID =
                     :receiptID
-                ORDER BY LineNumber
+                ORDER BY sd.LineNumber
                 '
             );
 
@@ -920,8 +1175,21 @@ try {
         $saleItems =
             $statement->fetchAll();
 
+        $saleTotals =
+            fetchSaleTotals(
+                $db,
+                $receiptID
+            );
+
+        $discountRecords = fetchSaleDiscounts( $db, $receiptID );
+        $couponRecords = fetchSaleCoupons($db, $receiptID);
+        $discountReasons =
+            fetchDiscountReasons(
+                $db
+            );
+
         $statement =
-            $databaseConnection->prepare(
+            $db->prepare(
                 '
                 SELECT
                     ProductID,
@@ -966,6 +1234,11 @@ try {
     $productRecords = [];
 }
 
+// A new error replaces any message left over from the page address
+if ($errorMessage !== '') {
+    $successMessage = '';
+}
+
 $pageTitle =
     'Select Register';
 
@@ -989,7 +1262,7 @@ $currentPage =
 require __DIR__ . '/../includes/header.php';
 ?>
 
-<section class="content-panel sales-panel">
+<section class="content-panel sales-panel register-panel">
 
     <?php if ($receiptID <= 0 || !$saleRecord): ?>
 
@@ -1016,7 +1289,7 @@ require __DIR__ . '/../includes/header.php';
                 <input
                     type="hidden"
                     name="form_security_token"
-                    value="<?= escapeOutput(getFormSecurityToken()) ?>"
+                    value="<?= escapeOutput(formToken()) ?>"
                 >
 
                 <div class="form-field">
@@ -1051,6 +1324,10 @@ require __DIR__ . '/../includes/header.php';
                                     ?? 0
                                 );
 
+                            $reservedForExpress =
+                                ($registerRecord['RegisterType'] ?? 'Regular') === 'Express'
+                                || (int) $registerRecord['RegisterNumber'] === 1;
+
                             $inUseByOtherOperator =
                                 $openReceiptID > 0
                                 &&
@@ -1070,7 +1347,7 @@ require __DIR__ . '/../includes/header.php';
                                 ? 'selected'
                                 : ''
                                 ?>
-                                <?= $inUseByOtherOperator && !operatorIsAdministrator() ? 'disabled' : '' ?>
+                                <?= $reservedForExpress || $inUseByOtherOperator ? 'disabled' : '' ?>
                             >
 
                                 Register #<?= escapeOutput($registerRecord['RegisterNumber']) ?>
@@ -1081,13 +1358,15 @@ require __DIR__ . '/../includes/header.php';
 
                                 <?php endif; ?>
 
-                                <?php if ($openReceiptID > 0 && !$inUseByOtherOperator): ?>
+                                <?php if ($reservedForExpress): ?>
+                                    - Reserved for Express
+                                <?php elseif ($openReceiptID > 0 && !$inUseByOtherOperator): ?>
 
                                     - Open Session
 
                                 <?php elseif ($inUseByOtherOperator): ?>
 
-                                    - In Use by <?= escapeOutput($registerRecord['OpenOperatorUsername']) ?>
+                                    - In Use By: <?= escapeOutput($registerRecord['OpenOperatorUsername']) ?>
 
                                 <?php endif; ?>
 
@@ -1134,6 +1413,16 @@ require __DIR__ . '/../includes/header.php';
 
     <?php else: ?>
 
+        <?php if ($assistingOther): ?>
+            <div class="message message-information">
+                You are assisting <?= escapeOutput($saleRecord['OwnerName']) ?>.
+                The sale stays with <?= escapeOutput($saleRecord['OwnerName']) ?>, who can still resume it.
+                To check it out, take it over from the
+                <a href="<?= APPLICATION_URL ?>/transactions/tr_view.php?receipt=<?= (int) $receiptID ?>">
+                    transaction details</a>.
+            </div>
+        <?php endif; ?>
+
         <section class="sale-information">
 
             <div class="sale-information-transaction">
@@ -1143,7 +1432,7 @@ require __DIR__ . '/../includes/header.php';
                 </span>
 
                 <strong>
-                    <?= escapeOutput(
+                    <?= transactionNumberHtml(
                         $saleRecord['TransactionNumber']
                     ) ?>
                 </strong>
@@ -1166,19 +1455,34 @@ require __DIR__ . '/../includes/header.php';
 
         </section>
 
+        <?php if ($errorMessage !== ''): ?>
+            <div class="message message-error">
+                <?= escapeOutput($errorMessage) ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($successMessage !== ''): ?>
+            <div class="message message-success">
+                <?= escapeOutput($successMessage) ?>
+            </div>
+        <?php endif; ?>
+
         <div class="sale-workspace">
 
             <section class="sale-product-area">
 
+                <div class="sale-entry-panel">
+
                 <form
                     method="post"
                     class="sale-scan-form"
+                    id="saleScanForm"
                 >
 
                     <input
                         type="hidden"
                         name="form_security_token"
-                        value="<?= escapeOutput(getFormSecurityToken()) ?>"
+                        value="<?= escapeOutput(formToken()) ?>"
                     >
 
                     <input
@@ -1194,17 +1498,6 @@ require __DIR__ . '/../includes/header.php';
                         value="0"
                     >
 
-                    <?php if ($errorMessage !== ''): ?>
-                        <div class="message message-error sale-scan-message">
-                            <?= escapeOutput($errorMessage) ?>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if ($successMessage !== ''): ?>
-                        <div class="message message-success sale-scan-message">
-                            <?= escapeOutput($successMessage) ?>
-                        </div>
-                    <?php endif; ?>
 
                     <div class="form-field sale-barcode-field">
 
@@ -1224,7 +1517,11 @@ require __DIR__ . '/../includes/header.php';
 
                     </div>
 
-                    <div class="form-field sale-quantity-field">
+                    <?php printQuantityPicker(); ?>
+                    <div
+                        class="form-field sale-quantity-field"
+                        id="saleWeightField"
+                    >
 
                         <label
                             for="quantity"
@@ -1241,7 +1538,6 @@ require __DIR__ . '/../includes/header.php';
                             min="1"
                             step="1"
                             inputmode="decimal"
-                            required
                         >
 
                     </div>
@@ -1252,147 +1548,86 @@ require __DIR__ . '/../includes/header.php';
                         value="1"
                         class="button button-primary"
                     >
-                        Add Product
+                        Add Item
                     </button>
 
                 </form>
+
+
+                </div>
 
                 <h2>
                     Products
                 </h2>
 
-                <div class="sale-product-grid">
-
-                    <?php foreach ($productRecords as $productRecord): ?>
-
-                        <form
-                            method="post"
-                            class="sale-product-form"
-                        >
-
-                            <input
-                                type="hidden"
-                                name="form_security_token"
-                                value="<?= escapeOutput(getFormSecurityToken()) ?>"
-                            >
-
-                            <input
-                                type="hidden"
-                                name="receipt_id"
-                                value="<?= (int) $receiptID ?>"
-                            >
-
-                            <input
-                                type="hidden"
-                                name="product_id"
-                                value="<?= (int) $productRecord['ProductID'] ?>"
-                            >
-
-                            <input
-                                type="hidden"
-                                name="quantity"
-                                value="1"
-                            >
-
-                            <?php
-
-                            $productIsWeighted =
-                                $productRecord['UnitType']
-                                ===
-                                'Pound';
-
-                            $productCodeForButton =
-                                trim((string) $productRecord['UPC']) !== ''
-                                ? $productRecord['UPC']
-                                : $productRecord['PLUCode'];
-
-                            ?>
-
-                            <button
-                                type="<?= $productIsWeighted ? 'button' : 'submit' ?>"
-                                name="<?= $productIsWeighted ? '' : 'add_product' ?>"
-                                value="<?= $productIsWeighted ? '' : '1' ?>"
-                                class="sale-product-button<?=
-                                    $productIsWeighted
-                                        ? ' sale-weighted-product-button'
-                                        : ''
-                                ?>"
-                                data-product-id="<?= (int) $productRecord['ProductID'] ?>"
-                                data-product-code="<?= escapeOutput($productCodeForButton) ?>"
-                                data-upc="<?= escapeOutput((string) $productRecord['UPC']) ?>"
-                                data-plu="<?= escapeOutput((string) $productRecord['PLUCode']) ?>"
-                                data-unit-type="<?= escapeOutput($productRecord['UnitType']) ?>"
-                                <?= (float) $productRecord['StockQuantity'] <= 0 ? 'disabled' : '' ?>
-                            >
-
-                                <strong>
-                                    <?= escapeOutput(
-                                        $productRecord['ProductName']
-                                    ) ?>
-                                </strong>
-
-                                <?php if (trim((string) $productRecord['UPC']) !== ''): ?>
-
-                                    <span class="sale-product-code">
-                                        UPC# <?= escapeOutput($productRecord['UPC']) ?>
-                                    </span>
-
-                                <?php elseif (trim((string) $productRecord['PLUCode']) !== ''): ?>
-
-                                    <span class="sale-product-code">
-                                        PLU# <?= escapeOutput($productRecord['PLUCode']) ?>
-                                    </span>
-
-                                <?php endif; ?>
-
-                                <span>
-                                    <?= escapeOutput(
-                                        $productRecord['DepartmentName']
-                                    ) ?>
-                                </span>
-
-                                <span>
-                                    $<?= escapeOutput(
-                                        number_format(
-                                            (float) $productRecord['RetailPrice'],
-                                            2
-                                        )
-                                    ) ?>
-                                </span>
-
-                                <?php if ((int) $productRecord['Taxable'] === 1): ?>
-
-                                    <span>
-                                        Taxable
-                                    </span>
-
-                                <?php endif; ?>
-
-                                <span>
-                                    Stock:
-                                    <?= escapeOutput(
-                                        number_format(
-                                            (float) $productRecord['StockQuantity'],
-                                            3
-                                        )
-                                    ) ?>
-                                </span>
-
-                            </button>
-
-                        </form>
-
-                    <?php endforeach; ?>
-
-                </div>
+                <?php
+                printProductTiles(
+                    $productRecords,
+                    ['receipt_id' => $receiptID],
+                    'add_product'
+                );
+                ?>
 
             </section>
 
             <section class="sale-receipt-area">
 
-                <h2>
-                    Current Sale
-                </h2>
+                <div class="sale-receipt-header">
+                    <h2>
+                        Current Sale
+                    </h2>
+                    <div class="sale-header-buttons">
+                    <?php if (!$assistingOther): ?>
+                    <form
+                        method="post"
+                        id="closeCurrentRegisterForm"
+                        class="sale-close-register-form"
+                    >
+
+                        <input
+                            type="hidden"
+                            name="form_security_token"
+                            value="<?= escapeOutput(formToken()) ?>"
+                        >
+
+                        <input
+                            type="hidden"
+                            name="receipt_id"
+                            value="<?= (int) $receiptID ?>"
+                        >
+
+                        <input
+                            type="hidden"
+                            id="sale_close_destination"
+                            name="close_destination"
+                            value=""
+                        >
+
+                        <input
+                            type="hidden"
+                            name="close_register"
+                            value="1"
+                        >
+
+                        <button
+                            type="submit"
+                            name="close_register"
+                            value="1"
+                            class="button button-secondary"
+                            onclick="return window.confirm(
+                                'Close this register? '
+                                + 'The current transaction will be cancelled '
+                                + 'and all scanned items will be returned to inventory.'
+                            );"
+                        >
+                            Close Register
+                        </button>
+
+                    </form>
+                    <?php endif; ?>
+                        <?php printCodesButton(); ?>
+                    </div>
+                </div>
 
                 <?php if (empty($saleItems)): ?>
 
@@ -1402,245 +1637,491 @@ require __DIR__ . '/../includes/header.php';
 
                 <?php else: ?>
 
-                    <div class="sale-receipt-table-container">
-
-                        <table class="sale-receipt-table">
-
-                            <thead>
-
-                                <tr>
-                                    <th>Product</th>
-                                    <th>Qty</th>
-                                    <th>Price</th>
-                                    <th>Total</th>
-                                    <th>Remove</th>
-                                </tr>
-
-                            </thead>
-
-                            <tbody>
-
-                                <?php foreach ($saleItems as $saleItem): ?>
-
-                                    <tr>
-
-                                        <td>
-
-                                            <?= escapeOutput(
-                                                $saleItem['ProductName']
-                                            ) ?>
-
-                                            <?= (int) $saleItem['Taxable'] === 1 ? ' *' : '' ?>
-
-                                        </td>
-
-                                        <td>
-
-                                            <?= escapeOutput(
-                                                $saleItem['UnitType'] === 'Each'
-                                                ? number_format(
-                                                    (float) $saleItem['Quantity'],
-                                                    0
-                                                )
-                                                : number_format(
-                                                    (float) $saleItem['Quantity'],
-                                                    3
-                                                )
-                                            ) ?>
-
-                                        </td>
-
-                                        <td>
-
-                                            $<?= escapeOutput(
-                                                number_format(
-                                                    (float) $saleItem['UnitPrice'],
-                                                    2
-                                                )
-                                            ) ?>
-
-                                        </td>
-
-                                        <td>
-
-                                            $<?= escapeOutput(
-                                                number_format(
-                                                    (float) $saleItem['LineTotal'],
-                                                    2
-                                                )
-                                            ) ?>
-
-                                        </td>
-
-                                        <td>
-
-                                            <?php if ($saleItem['UnitType'] === 'Pound'): ?>
-
-                                                <?php
-                                                $saleItemWeight =
-                                                    round(
-                                                        (float) $saleItem['Quantity'],
-                                                        3
-                                                    );
-
-                                                $defaultRemoveWeight =
-                                                    min(
-                                                        0.1,
-                                                        $saleItemWeight
-                                                    );
-                                                ?>
-
-                                                <form
-                                                    method="post"
-                                                    class="sale-weight-remove-form"
-                                                >
-
-                                                    <input
-                                                        type="hidden"
-                                                        name="form_security_token"
-                                                        value="<?= escapeOutput(getFormSecurityToken()) ?>"
-                                                    >
-
-                                                    <input
-                                                        type="hidden"
-                                                        name="receipt_id"
-                                                        value="<?= (int) $receiptID ?>"
-                                                    >
-
-                                                    <input
-                                                        type="hidden"
-                                                        name="receipt_line_id"
-                                                        value="<?= (int) $saleItem['ReceiptLineID'] ?>"
-                                                    >
-
-                                                    <input
-                                                        type="number"
-                                                        name="remove_quantity"
-                                                        value="<?= escapeOutput(
-                                                            number_format(
-                                                                $defaultRemoveWeight,
-                                                                3,
-                                                                '.',
-                                                                ''
-                                                            )
-                                                        ) ?>"
-                                                        min="<?= escapeOutput(
-                                                            number_format(
-                                                                $defaultRemoveWeight,
-                                                                3,
-                                                                '.',
-                                                                ''
-                                                            )
-                                                        ) ?>"
-                                                        max="<?= escapeOutput(
-                                                            number_format(
-                                                                $saleItemWeight,
-                                                                3,
-                                                                '.',
-                                                                ''
-                                                            )
-                                                        ) ?>"
-                                                        step="0.1"
-                                                        inputmode="decimal"
-                                                        class="sale-remove-weight-input"
-                                                        aria-label="Weight to remove in pounds"
-                                                        title="Weight to remove in pounds"
-                                                    >
-
-                                                    <button
-                                                        type="submit"
-                                                        name="remove_product"
-                                                        value="1"
-                                                        class="button button-secondary sale-remove-weight-button"
-                                                    >
-                                                        Remove
-                                                    </button>
-
-                                                    <button
-                                                        type="submit"
-                                                        name="remove_all_product"
-                                                        value="1"
-                                                        class="button button-secondary sale-remove-all-button"
-                                                        title="Remove all weight for this item"
-                                                    >
-                                                        All
-                                                    </button>
-
-                                                </form>
-
-                                            <?php else: ?>
-
-                                                <form method="post">
-
-                                                    <input
-                                                        type="hidden"
-                                                        name="form_security_token"
-                                                        value="<?= escapeOutput(getFormSecurityToken()) ?>"
-                                                    >
-
-                                                    <input
-                                                        type="hidden"
-                                                        name="receipt_id"
-                                                        value="<?= (int) $receiptID ?>"
-                                                    >
-
-                                                    <input
-                                                        type="hidden"
-                                                        name="receipt_line_id"
-                                                        value="<?= (int) $saleItem['ReceiptLineID'] ?>"
-                                                    >
-
-                                                    <button
-                                                        type="submit"
-                                                        name="remove_product"
-                                                        value="1"
-                                                        class="button button-secondary sale-remove-button"
-                                                    >
-                                                        <?=
-                                                            (float) $saleItem['Quantity'] > 1
-                                                            ? 'Remove 1'
-                                                            : 'Remove Item'
-                                                            ?>
-                                                    </button>
-
-                                                </form>
-
-                                            <?php endif; ?>
-
-                                        </td>
-
-                                    </tr>
-
-                                <?php endforeach; ?>
-
-                            </tbody>
-
-                        </table>
-
-                    </div>
+                    <?php
+                    printSaleLines(
+                        $saleItems,
+                        ['receipt_id' => $receiptID],
+                        true,
+                        [
+                            'add' => 'add_product',
+                            'remove' => 'remove_product',
+                            'removeAll' => 'remove_all_product'
+                        ]
+                    );
+                    ?>
 
                 <?php endif; ?>
 
-                <div class="sale-subtotal">
+                <section class="sale-totals-panel">
 
-                    <span>
-                        Current Subtotal
-                    </span>
+                    <div class="sale-subtotal">
 
-                    <strong>
-                        $<?= escapeOutput(
-                            number_format(
-                                (float) ($saleRecord['SubtotalAmount'] ?? 0),
-                                2
-                            )
-                        ) ?>
-                    </strong>
+                        <span>
+                            Current Subtotal
+                        </span>
 
-                </div>
+                        <strong>
+                            $<?= escapeOutput(
+                                number_format(
+                                    (float) ($saleRecord['SubtotalAmount'] ?? 0),
+                                    2
+                                )
+                            ) ?>
+                        </strong>
+
+                    </div>
+
+                    <?php if (!empty($couponRecords)): ?>
+                        <ul class="sale-discount-list">
+                            <?php foreach ($couponRecords as $couponRecord): ?>
+                                <li class="sale-discount-item">
+                                    <div class="sale-discount-text">
+                                        <strong>
+                                            Coupon: <?= escapeOutput($couponRecord['Description']) ?>
+                                        </strong>
+                                        <?php if ((int) $couponRecord['UnitsCovered'] === 0): ?>
+                                            <em>
+                                                Needs <?= (int) $couponRecord['RequiredQuantity'] ?>
+                                                <?= escapeOutput($couponRecord['ProductName']) ?>
+                                                that no other coupon is using.
+                                            </em>
+                                        <?php endif; ?>
+                                    </div>
+                                    <span class="sale-discount-amount">
+                                        -$<?= escapeOutput(number_format((float) $couponRecord['AppliedAmount'], 2)) ?>
+                                    </span>
+                                    <form
+                                        method="post"
+                                        class="sale-discount-remove-form"
+                                    >
+                                        <input
+                                            type="hidden"
+                                            name="form_security_token"
+                                            value="<?= escapeOutput(formToken()) ?>"
+                                        >
+                                        <input
+                                            type="hidden"
+                                            name="receipt_id"
+                                            value="<?= (int) $receiptID ?>"
+                                        >
+                                        <input
+                                            type="hidden"
+                                            name="sale_coupon_id"
+                                            value="<?= (int) $couponRecord['SaleCouponID'] ?>"
+                                        >
+                                        <button
+                                            type="submit"
+                                            name="remove_coupon"
+                                            value="1"
+                                            class="button button-secondary symbol-button"
+                                            title="Remove this coupon"
+                                            aria-label="Remove this coupon"
+                                        >
+                                            &times;
+                                        </button>
+                                    </form>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                        <?php if (empty($discountRecords)): ?>
+                            <div class="sale-subtotal sale-estimated-total">
+                                <span>
+                                    Estimated Total With Tax
+                                </span>
+                                <strong>
+                                    $<?= escapeOutput(number_format((float) ($saleTotals['TotalDue'] ?? 0), 2)) ?>
+                                </strong>
+                            </div>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                    <?php if (!empty($discountRecords)): ?> <ul class="sale-discount-list">
+
+                            <?php foreach ($discountRecords as $discountRecord): ?>
+
+                                <li class="sale-discount-item">
+
+                                    <div class="sale-discount-text">
+
+                                        <strong>
+                                            <?= escapeOutput(describeDiscount($discountRecord)) ?>
+                                        </strong>
+
+                                        <span>
+                                            <?= escapeOutput($discountRecord['Reason']) ?>
+                                        </span>
+
+                                        <?php if (discountWasLimited($discountRecord)): ?>
+
+                                            <em>
+                                                Limited to the amount that was left to discount.
+                                            </em>
+
+                                        <?php endif; ?>
+
+                                    </div>
+
+                                    <span class="sale-discount-amount">
+                                        -$<?= escapeOutput(
+                                            number_format(
+                                                (float) $discountRecord['AppliedAmount'],
+                                                2
+                                            )
+                                        ) ?>
+                                    </span>
+
+                                    <form
+                                        method="post"
+                                        class="sale-discount-remove-form"
+                                    >
+
+                                        <input
+                                            type="hidden"
+                                            name="form_security_token"
+                                            value="<?= escapeOutput(formToken()) ?>"
+                                        >
+
+                                        <input
+                                            type="hidden"
+                                            name="receipt_id"
+                                            value="<?= (int) $receiptID ?>"
+                                        >
+
+                                        <input
+                                            type="hidden"
+                                            name="discount_id"
+                                            value="<?= (int) $discountRecord['DiscountID'] ?>"
+                                        >
+
+                                        <button
+                                            type="submit"
+                                            name="remove_discount"
+                                            value="1"
+                                            class="button button-secondary sale-discount-remove-button"
+                                            title="Remove this discount"
+                                            aria-label="Remove this discount"
+                                        >
+                                            &times;
+                                        </button>
+
+                                    </form>
+
+                                </li>
+
+                            <?php endforeach; ?>
+
+                        </ul>
+
+                        <div class="sale-subtotal sale-estimated-total">
+
+                            <span>
+                                Estimated Total With Tax
+                            </span>
+
+                            <strong>
+                                $<?= escapeOutput(
+                                    number_format(
+                                        (float) ($saleTotals['TotalDue'] ?? 0),
+                                        2
+                                    )
+                                ) ?>
+                            </strong>
+
+                        </div>
+
+                    <?php endif; ?>
+
+                </section>
+
+                <?php if (!empty($saleItems)): ?>
+
+                    <details
+                        class="sale-discount-details"
+                        <?= $discountPanelOpen ? 'open' : '' ?>
+                    >
+
+                        <summary class="button button-secondary sale-discount-summary">
+                            Discount
+                        </summary>
+
+                        <?php if (count($discountRecords) >= 5): ?>
+
+                            <div class="message message-information">
+                                This sale already has the most discounts allowed.
+                            </div>
+
+                        <?php else: ?>
+
+                            <form
+                                method="post"
+                                class="sale-discount-form"
+                                id="saleDiscountForm"
+                            >
+
+                                <input
+                                    type="hidden"
+                                    name="form_security_token"
+                                    value="<?= escapeOutput(formToken()) ?>"
+                                >
+
+                                <input
+                                    type="hidden"
+                                    name="receipt_id"
+                                    value="<?= (int) $receiptID ?>"
+                                >
+
+                                <div class="sale-discount-grid">
+
+                                    <div class="form-field">
+
+                                        <label for="discount_kind">
+                                            Type
+                                        </label>
+
+                                        <select
+                                            id="discount_kind"
+                                            name="discount_kind"
+                                        >
+                                            <option
+                                                value="Percent"
+                                                <?= $discountForm['kind'] === 'Percent' ? 'selected' : '' ?>
+                                            >
+                                                Percent off (%)
+                                            </option>
+                                            <option
+                                                value="Dollar"
+                                                <?= $discountForm['kind'] === 'Dollar' ? 'selected' : '' ?>
+                                            >
+                                                Dollar amount off ($)
+                                            </option>
+                                        </select>
+
+                                    </div>
+
+                                    <div class="form-field">
+
+                                        <label for="tax_timing">
+                                            Apply
+                                        </label>
+
+                                        <select
+                                            id="tax_timing"
+                                            name="tax_timing"
+                                        >
+                                            <option
+                                                value="Before Tax"
+                                                <?= $discountForm['timing'] === 'Before Tax' ? 'selected' : '' ?>
+                                            >
+                                                Before tax
+                                            </option>
+                                            <option
+                                                value="After Tax"
+                                                <?= $discountForm['timing'] === 'After Tax' ? 'selected' : '' ?>
+                                            >
+                                                After tax
+                                            </option>
+                                        </select>
+
+                                    </div>
+
+                                    <div class="form-field">
+
+                                        <label for="discount_value">
+                                            Amount
+                                        </label>
+
+                                        <input
+                                            type="number"
+                                            id="discount_value"
+                                            name="discount_value"
+                                            min="0.01"
+                                            step="0.01"
+                                            inputmode="decimal"
+                                            value="<?= escapeOutput($discountForm['value']) ?>"
+                                            required
+                                        >
+
+                                        <div
+                                            class="field-help"
+                                            id="discountValueHelp"
+                                        >
+                                            Enter a percent or a dollar amount.
+                                        </div>
+
+                                    </div>
+
+                                    <div class="form-field">
+
+                                        <label for="reason_choice">
+                                            Reason
+                                        </label>
+
+                                        <select
+                                            id="reason_choice"
+                                            name="reason_choice"
+                                            required
+                                        >
+                                            <option value="">
+                                                Choose a reason
+                                            </option>
+
+                                            <?php foreach ($discountReasons as $discountReason): ?>
+                                                <?php
+                                                $reasonIsChosen =
+                                                    $discountForm['reason_choice']
+                                                    === (string) $discountReason['ReasonID'];
+                                                ?>
+                                                <option
+                                                    value="<?= (int) $discountReason['ReasonID'] ?>"
+                                                    <?= $reasonIsChosen ? 'selected' : '' ?>
+                                                >
+                                                    <?= escapeOutput($discountReason['ReasonText']) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+
+                                            <option
+                                                value="new"
+                                                <?= $discountForm['reason_choice'] === 'new' ? 'selected' : '' ?>
+                                            >
+                                                Other (type a new reason)
+                                            </option>
+                                        </select>
+
+                                    </div>
+
+                                </div>
+
+                                <div
+                                    class="form-field sale-discount-new-reason"
+                                    id="saleDiscountNewReason"
+                                >
+
+                                    <label for="reason_text">
+                                        New reason
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        id="reason_text"
+                                        name="reason_text"
+                                        maxlength="255"
+                                        value="<?= escapeOutput($discountForm['reason_text']) ?>"
+                                        placeholder="Example: Senior morning special"
+                                    >
+
+                                    <label class="sale-discount-save-reason">
+
+                                        <input
+                                            type="checkbox"
+                                            name="save_reason"
+                                            value="1"
+                                            <?= $discountForm['save'] ? 'checked' : '' ?>
+                                        >
+
+                                        Save this reason so it appears in the list next time
+
+                                    </label>
+
+                                </div>
+
+                                <div class="sale-discount-actions">
+
+                                    <button
+                                        type="submit"
+                                        name="apply_discount"
+                                        value="1"
+                                        class="button button-primary"
+                                    >
+                                        Apply Discount
+                                    </button>
+
+                                </div>
+
+                            </form>
+
+                            <script>
+                                (function () {
+
+                                    const kindSelect =
+                                        document.getElementById('discount_kind');
+
+                                    const valueInput =
+                                        document.getElementById('discount_value');
+
+                                    const valueHelp =
+                                        document.getElementById('discountValueHelp');
+
+                                    const reasonSelect =
+                                        document.getElementById('reason_choice');
+
+                                    const newReasonField =
+                                        document.getElementById('saleDiscountNewReason');
+
+                                    const newReasonInput =
+                                        document.getElementById('reason_text');
+
+                                    // Percent discounts stop at 100
+                                    function updateAmountRules() {
+
+                                        if (kindSelect.value === 'Percent') {
+
+                                            valueInput.max = '100';
+
+                                            valueHelp.textContent =
+                                                'Enter a percent from 0.01 to 100.';
+
+                                        } else {
+
+                                            valueInput.removeAttribute('max');
+
+                                            valueHelp.textContent =
+                                                'Enter a dollar amount, such as 2.50.';
+                                        }
+                                    }
+
+                                    // Show the new reason box only when it is needed
+                                    function updateReasonFields() {
+
+                                        const needsNewReason =
+                                            reasonSelect.value === 'new';
+
+                                        newReasonField.hidden =
+                                            !needsNewReason;
+
+                                        newReasonInput.required =
+                                            needsNewReason;
+
+                                        if (!needsNewReason) {
+
+                                            newReasonInput.value = '';
+                                        }
+                                    }
+
+                                    kindSelect.addEventListener(
+                                        'change',
+                                        updateAmountRules
+                                    );
+
+                                    reasonSelect.addEventListener(
+                                        'change',
+                                        updateReasonFields
+                                    );
+
+                                    updateAmountRules();
+
+                                    updateReasonFields();
+
+                                })();
+                            </script>
+
+                        <?php endif; ?>
+
+                    </details>
+
+                <?php endif; ?>
 
                 <div class="sale-actions">
 
-                    <?php if (!empty($saleItems)): ?>
+                    <?php if (!empty($saleItems) && !$assistingOther): ?>
 
                         <a
                             href="<?= APPLICATION_URL ?>/sales/sale_checkout.php?receipt=<?= (int) $receiptID ?>"
@@ -1652,7 +2133,7 @@ require __DIR__ . '/../includes/header.php';
 
                     <?php endif; ?>
 
-                    <?php if (!empty($saleItems)): ?>
+                    <?php if (!empty($saleItems) && !$assistingOther): ?>
 
                         <form
                             method="post"
@@ -1662,7 +2143,7 @@ require __DIR__ . '/../includes/header.php';
                             <input
                                 type="hidden"
                                 name="form_security_token"
-                                value="<?= escapeOutput(getFormSecurityToken()) ?>"
+                                value="<?= escapeOutput(formToken()) ?>"
                             >
 
                             <input
@@ -1700,52 +2181,6 @@ require __DIR__ . '/../includes/header.php';
 
                     <?php endif; ?>
 
-                    <form
-                        method="post"
-                        id="closeCurrentRegisterForm"
-                        class="sale-close-register-form"
-                    >
-
-                        <input
-                            type="hidden"
-                            name="form_security_token"
-                            value="<?= escapeOutput(getFormSecurityToken()) ?>"
-                        >
-
-                        <input
-                            type="hidden"
-                            name="receipt_id"
-                            value="<?= (int) $receiptID ?>"
-                        >
-
-                        <input
-                            type="hidden"
-                            id="sale_close_destination"
-                            name="close_destination"
-                            value=""
-                        >
-
-                        <input
-                            type="hidden"
-                            name="close_register"
-                            value="1"
-                        >
-
-                        <button
-                            type="submit"
-                            name="close_register"
-                            value="1"
-                            class="button button-secondary"
-                            onclick="return window.confirm(
-                                'Close this register? '
-                                + 'The current transaction will be cancelled '
-                                + 'and all scanned items will be returned to inventory.'
-                            );"
-                        >
-                            Close Register
-                        </button>
-
-                    </form>
 
                 </div>
 
@@ -1753,6 +2188,7 @@ require __DIR__ . '/../includes/header.php';
 
         </div>
 
+        <?php if (!$assistingOther): ?>
         <dialog
             id="saleLeaveDialog"
             class="checkout-leave-dialog"
@@ -1767,34 +2203,45 @@ require __DIR__ . '/../includes/header.php';
             </p>
 
             <div class="checkout-leave-actions">
-
-                <button
-                    type="button"
-                    id="saleStayButton"
-                    class="button button-secondary"
-                >
-                    Stay on Transaction
-                </button>
-
-                <button
-                    type="button"
-                    id="saleSaveButton"
-                    class="button button-primary"
-                >
-                    Save Transaction and Leave
-                </button>
-
-                <button
-                    type="button"
-                    id="saleCloseButton"
-                    class="button button-danger"
-                >
-                    Close Register and Leave
-                </button>
-
+                <div class="checkout-leave-choice">
+                    <button
+                        type="button"
+                        id="saleStayButton"
+                        class="button button-secondary"
+                    >
+                        Stay
+                    </button>
+                    <p class="checkout-leave-note">
+                        Keep working on this transaction.
+                    </p>
+                </div>
+                <div class="checkout-leave-choice">
+                    <button
+                        type="button"
+                        id="saleSaveButton"
+                        class="button button-primary"
+                    >
+                        Save
+                    </button>
+                    <p class="checkout-leave-note">
+                        Leave now. The transaction stays saved on this register.
+                    </p>
+                </div>
+                <div class="checkout-leave-choice">
+                    <button
+                        type="button"
+                        id="saleCloseButton"
+                        class="button button-danger"
+                    >
+                        Close
+                    </button>
+                    <p class="checkout-leave-note">
+                        Cancel the transaction, return the items to stock, and close the register.
+                    </p>
+                </div>
             </div>
-
         </dialog>
+        <?php endif; ?>
 
     <?php endif; ?>
 
@@ -1823,8 +2270,8 @@ require __DIR__ . '/../includes/header.php';
             const currentOperatorID =
                 <?= $operatorID ?>;
 
-            const currentOperatorIsAdministrator =
-                <?= operatorIsAdministrator() ? 'true' : 'false' ?>;
+            const currentOperatorCanSupervise =
+                <?= canSupervise() ? 'true' : 'false' ?>;
 
             function updateRegisterActions() {
 
@@ -1864,18 +2311,18 @@ require __DIR__ . '/../includes/header.php';
                 const hasSelectedRegister =
                     registerSelect.value !== '';
 
-                const administratorViewingOtherOperator =
+                const supervisorViewingOtherOperator =
                     hasSelectedRegister
                     &&
                     registerIsOpen
                     &&
                     !belongsToCurrentOperator
                     &&
-                    currentOperatorIsAdministrator;
+                    currentOperatorCanSupervise;
 
                 if (openButton) {
                     openButton.hidden =
-                        administratorViewingOtherOperator;
+                        supervisorViewingOtherOperator;
 
                     openButton.disabled =
                         !hasSelectedRegister
@@ -1895,14 +2342,14 @@ require __DIR__ . '/../includes/header.php';
                         &&
                         belongsToCurrentOperator;
 
-                    const administratorCanClose =
-                        administratorViewingOtherOperator;
+                    const supervisorCanClose =
+                        supervisorViewingOtherOperator;
 
                     closeButton.hidden =
                         !(
                             ownerCanClose
                             ||
-                            administratorCanClose
+                            supervisorCanClose
                         );
                 }
             }
@@ -1921,7 +2368,7 @@ require __DIR__ . '/../includes/header.php';
 
 <?php endif; ?>
 
-<?php if ($receiptID > 0 && $saleRecord): ?>
+<?php if ($receiptID > 0 && $saleRecord && !$assistingOther): ?>
 
     <script>
         (function () {
@@ -1963,196 +2410,6 @@ require __DIR__ . '/../includes/header.php';
             const saleHasItems =
                 <?= !empty($saleItems) ? 'true' : 'false' ?>;
 
-            const scannerProductID =
-                document.getElementById(
-                    'scanner_product_id'
-                );
-
-            const productCodeInput =
-                document.getElementById(
-                    'product_code'
-                );
-
-            const quantityInput =
-                document.getElementById(
-                    'quantity'
-                );
-
-            const quantityLabel =
-                document.getElementById(
-                    'sale_quantity_label'
-                );
-
-            const productButtons =
-                document.querySelectorAll(
-                    '.sale-product-button'
-                );
-
-            const weightedProductButtons =
-                document.querySelectorAll(
-                    '.sale-weighted-product-button'
-                );
-
-            let quantityIsWeighted = false;
-
-            function setQuantityMode(
-                isWeighted,
-                clearWeightValue
-            ) {
-
-                if (isWeighted) {
-
-                    quantityLabel.textContent =
-                        'Weight (lb)';
-
-                    quantityInput.min =
-                        '0.1';
-
-                    quantityInput.step =
-                        '0.1';
-
-                    if (
-                        !quantityIsWeighted
-                        &&
-                        clearWeightValue
-                    ) {
-                        quantityInput.value =
-                            '';
-                    }
-
-                    quantityInput.placeholder =
-                        '0.0';
-
-                } else {
-
-                    quantityLabel.textContent =
-                        'Quantity';
-
-                    quantityInput.min =
-                        '1';
-
-                    quantityInput.step =
-                        '1';
-
-                    if (
-                        Number(quantityInput.value) < 1
-                        ||
-                        !Number.isInteger(Number(quantityInput.value))
-                    ) {
-                        quantityInput.value =
-                            '1';
-                    }
-
-                    quantityInput.placeholder =
-                        '';
-                }
-
-                quantityIsWeighted =
-                    isWeighted;
-            }
-
-            function findProductButtonByCode(
-                productCode
-            ) {
-
-                const normalizedCode =
-                    productCode.trim();
-
-                if (normalizedCode === '') {
-                    return null;
-                }
-
-                for (const button of productButtons) {
-
-                    const upc =
-                        (
-                            button.dataset.upc
-                            ||
-                            ''
-                        ).trim();
-
-                    const plu =
-                        (
-                            button.dataset.plu
-                            ||
-                            ''
-                        ).trim();
-
-                    if (
-                        normalizedCode === upc
-                        ||
-                        normalizedCode === plu
-                    ) {
-                        return button;
-                    }
-                }
-
-                return null;
-            }
-
-            function syncQuantityModeFromCode() {
-
-                const matchingButton =
-                    findProductButtonByCode(
-                        productCodeInput.value
-                    );
-
-                scannerProductID.value =
-                    matchingButton
-                        ? (
-                            matchingButton.dataset.productId
-                            ||
-                            '0'
-                        )
-                        : '0';
-
-                setQuantityMode(
-                    matchingButton !== null
-                    &&
-                    matchingButton.dataset.unitType
-                    ===
-                    'Pound',
-                    true
-                );
-            }
-
-            weightedProductButtons.forEach(
-                function (button) {
-
-                    button.addEventListener(
-                        'click',
-                        function () {
-
-                            scannerProductID.value =
-                                button.dataset.productId
-                                ||
-                                '0';
-
-                            productCodeInput.value =
-                                button.dataset.productCode
-                                ||
-                                '';
-
-                            setQuantityMode(
-                                true,
-                                true
-                            );
-
-                            quantityInput.focus();
-                        }
-                    );
-                }
-            );
-
-            productCodeInput.addEventListener(
-                'input',
-                syncQuantityModeFromCode
-            );
-
-            quantityInput.addEventListener(
-                'focus',
-                syncQuantityModeFromCode
-            );
 
             document.addEventListener(
                 'click',
@@ -2295,6 +2552,8 @@ require __DIR__ . '/../includes/header.php';
 
         })();
     </script>
+
+    <?php printItemEntryScript(); ?>
 
 <?php endif; ?>
 

@@ -6,14 +6,15 @@
  */
 
 require_once __DIR__ . '/../includes/access_control.php';
+require_once __DIR__ . '/../includes/discounts.php';
 
-requireRegularPOSAccess();
+requireRegister();
 
 $storeID =
-    (int)($_SESSION['store_id'] ?? 0);
+    signedInStoreID();
 
 $operatorID =
-    (int)($_SESSION['operator_id'] ?? 0);
+    signedInOperatorID();
 
 $receiptID =
     (int)(
@@ -26,17 +27,21 @@ $saleRecord = null;
 
 $saleItems = [];
 
+$discountRecords = [];
+$couponRecords = [];
+$couponTotal = 0.00;
+
 $errorMessage = '';
 
 
 try {
 
-    $databaseConnection =
+    $db =
         connectDatabase();
 
 
     $saleStatement =
-        $databaseConnection->prepare(
+        $db->prepare(
             '
             SELECT
                 ReceiptID,
@@ -48,6 +53,7 @@ try {
                 ReceiptDiscountAmount,
                 TaxableSubtotalAmount,
                 TaxAmount,
+                PostTaxDiscountAmount,
                 TotalAmount,
                 PaymentMethod,
                 AmountTendered,
@@ -86,7 +92,7 @@ try {
     } else {
 
         $itemStatement =
-            $databaseConnection->prepare(
+            $db->prepare(
                 '
                 SELECT
                     ProductName,
@@ -110,6 +116,13 @@ try {
 
         $saleItems =
             $itemStatement->fetchAll();
+
+        $couponRecords = fetchSaleCoupons($db, $receiptID);
+        $couponTotal = array_sum(array_map('floatval', array_column($couponRecords, 'AppliedAmount')));
+        $discountRecords = fetchSaleDiscounts(
+                $db,
+                $receiptID
+            );
     }
 
 } catch (PDOException $exception) {
@@ -169,8 +182,9 @@ require __DIR__ . '/../includes/header.php';
                 </span>
 
                 <strong>
-                    <?= escapeOutput(
-                        $saleRecord['TransactionNumber']
+                    <?= transactionNumberHtml(
+                        $saleRecord['TransactionNumber'],
+                        true
                     ) ?>
                 </strong>
 
@@ -288,9 +302,30 @@ require __DIR__ . '/../includes/header.php';
 
 
         <section class="checkout-totals">
-
+            <?php if (!empty($couponRecords)): ?>
             <div class="checkout-total-row">
-
+                <span>
+                    Items
+                </span>
+                <strong>
+                    $<?= escapeOutput(number_format((float) $saleRecord['SubtotalAmount'] + $couponTotal, 2)) ?>
+                </strong>
+            </div>
+            <?php foreach ($couponRecords as $couponRecord): ?>
+                <div class="checkout-total-row checkout-discount-row">
+                    <span>
+                        Coupon
+                        <small>
+                            <?= escapeOutput($couponRecord['Description']) ?>
+                        </small>
+                    </span>
+                    <strong>
+                        -$<?= escapeOutput(number_format((float) $couponRecord['AppliedAmount'], 2)) ?>
+                    </strong>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+            <div class="checkout-total-row">
                 <span>
                     Subtotal
                 </span>
@@ -307,26 +342,33 @@ require __DIR__ . '/../includes/header.php';
             </div>
 
 
-            <?php if ((float)$saleRecord['ReceiptDiscountAmount'] > 0): ?>
+            <?php foreach ($discountRecords as $discountRecord): ?>
 
-                <div class="checkout-total-row">
+                <?php if ($discountRecord['TaxTiming'] === 'Before Tax'): ?>
 
-                    <span>
-                        Receipt Discount
-                    </span>
+                    <div class="checkout-total-row checkout-discount-row">
 
-                    <strong>
-                        -$<?= escapeOutput(
-                            number_format(
-                                (float)$saleRecord['ReceiptDiscountAmount'],
-                                2
-                            )
-                        ) ?>
-                    </strong>
+                        <span>
+                            <?= escapeOutput(describeDiscount($discountRecord)) ?>
+                            <small>
+                                <?= escapeOutput($discountRecord['Reason']) ?>
+                            </small>
+                        </span>
 
-                </div>
+                        <strong>
+                            -$<?= escapeOutput(
+                                number_format(
+                                    (float) $discountRecord['AppliedAmount'],
+                                    2
+                                )
+                            ) ?>
+                        </strong>
 
-            <?php endif; ?>
+                    </div>
+
+                <?php endif; ?>
+
+            <?php endforeach; ?>
 
 
             <div class="checkout-total-row">
@@ -365,6 +407,35 @@ require __DIR__ . '/../includes/header.php';
             </div>
 
 
+            <?php foreach ($discountRecords as $discountRecord): ?>
+
+                <?php if ($discountRecord['TaxTiming'] === 'After Tax'): ?>
+
+                    <div class="checkout-total-row checkout-discount-row">
+
+                        <span>
+                            <?= escapeOutput(describeDiscount($discountRecord)) ?>
+                            <small>
+                                <?= escapeOutput($discountRecord['Reason']) ?>
+                            </small>
+                        </span>
+
+                        <strong>
+                            -$<?= escapeOutput(
+                                number_format(
+                                    (float) $discountRecord['AppliedAmount'],
+                                    2
+                                )
+                            ) ?>
+                        </strong>
+
+                    </div>
+
+                <?php endif; ?>
+
+            <?php endforeach; ?>
+
+
             <div class="checkout-total-row checkout-grand-total">
 
                 <span>
@@ -398,6 +469,16 @@ require __DIR__ . '/../includes/header.php';
             </div>
 
 
+            <?php if ($saleRecord['PaymentMethod'] === 'Charge'): ?>
+                <div class="checkout-total-row">
+                    <span>
+                        Amount Charged
+                    </span>
+                    <strong>
+                        $<?= escapeOutput(number_format((float) $saleRecord['AmountTendered'], 2)) ?>
+                    </strong>
+                </div>
+            <?php else: ?>
             <div class="checkout-total-row">
 
                 <span>
@@ -432,6 +513,7 @@ require __DIR__ . '/../includes/header.php';
                 </strong>
 
             </div>
+            <?php endif; ?>
 
         </section>
 

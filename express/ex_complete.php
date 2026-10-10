@@ -7,20 +7,14 @@
 
 require_once __DIR__ . '/../includes/access_control.php';
 
-requireExpressAccess();
+requireExpress();
 
-$databaseConnection = connectDatabase();
+$db = connectDatabase();
 
 $storeID =
-    (int) (
-        $_SESSION['store_id']
-        ?? 0
-    );
+    signedInStoreID();
 $operatorID =
-    (int) (
-        $_SESSION['operator_id']
-        ?? 0
-    );
+    signedInOperatorID();
 $expressOrderID =
     (int) (
         $_GET['id']
@@ -34,7 +28,7 @@ $saleItems = [];
 
 try {
     $orderStatement =
-        $databaseConnection->prepare(
+        $db->prepare(
             '
             SELECT *
             FROM vw_express_orders
@@ -73,11 +67,9 @@ if ($errorMessage === '') {
     } elseif (
         (int) $order['PersonalShopperID'] !== $operatorID
         &&
-        !operatorIsAdministrator()
+        !canSupervise()
     ) {
-        http_response_code(403);
-
-        exit(
+        showAccessDeniedPage(
             "You cannot view another Personal Shopper's Express receipt."
         );
     }
@@ -86,7 +78,7 @@ if ($errorMessage === '') {
 if ($errorMessage === '') {
     try {
         $itemStatement =
-            $databaseConnection->prepare(
+            $db->prepare(
                 '
                 SELECT
                     ProductName,
@@ -161,7 +153,7 @@ require __DIR__ . '/../includes/header.php';
 
             <div>
                 <strong>Transaction:</strong>
-                <?= escapeOutput($order['TransactionNumber']) ?>
+                <?= transactionNumberHtml($order['TransactionNumber']) ?>
             </div>
 
             <div>
@@ -322,6 +314,12 @@ require __DIR__ . '/../includes/header.php';
                 </strong>
             </div>
 
+            <?php if (($order['PaymentMethod'] ?? '') === 'Charge'): ?>
+                <div>
+                    <span>Payment</span>
+                    <strong>Charge, paid in advance</strong>
+                </div>
+            <?php else: ?>
             <div>
                 <span>Cash Tendered</span>
                 <strong>
@@ -345,6 +343,7 @@ require __DIR__ . '/../includes/header.php';
                     ) ?>
                 </strong>
             </div>
+            <?php endif; ?>
 
         </div>
 
@@ -359,7 +358,7 @@ require __DIR__ . '/../includes/header.php';
             </a>
 
             <a
-                href="<?= APPLICATION_URL ?>/express/orders.php"
+                href="<?= APPLICATION_URL ?>/express/ex_orders.php"
                 class="button button-secondary"
             >
                 Today&apos;s Orders

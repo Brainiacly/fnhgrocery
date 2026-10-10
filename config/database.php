@@ -5,6 +5,12 @@
  * CSC 680
  */
 
+// This file is included by pages and cannot be opened on its own
+if (basename($_SERVER['SCRIPT_NAME']) === basename(__FILE__)) {
+    http_response_code(404);
+    exit;
+}
+
 define('APPLICATION_NAME', 'FnH Groceries');
 define('APPLICATION_URL', '/CSC_680');
 
@@ -12,6 +18,16 @@ define('DEVELOPER_NAME', 'Brian Phillips');
 define('DEVELOPER_EMAIL', 'B.Phillips958@student.nu.edu');
 
 define('APPLICATION_TIME_ZONE', 'America/Los_Angeles');
+
+// Hours an operator stays signed in
+define('SIGN_IN_HOURS', 24);
+
+// Business rules shown on the pages (the stored procedures enforce the same values)
+define('SALES_TAX_RATE', 0.0775);
+define('EXPRESS_DAILY_CAPACITY', 20);
+define('EXPRESS_DELIVERY_FEE', 10.00);
+define('EXPRESS_DELIVERY_OPENS', '8:00 AM');
+define('EXPRESS_DELIVERY_CLOSES', '4:00 PM');
 
 date_default_timezone_set(APPLICATION_TIME_ZONE);
 
@@ -36,23 +52,23 @@ function connectDatabase()
         "mysql:host=$databaseHost;dbname=$databaseName;charset=utf8mb4";
 
     try {
-        $databaseConnection = new PDO(
+        $db = new PDO(
             $connectionString,
             $databaseUsername,
             $databasePassword
         );
 
-        $databaseConnection->setAttribute(
+        $db->setAttribute(
             PDO::ATTR_ERRMODE,
             PDO::ERRMODE_EXCEPTION
         );
 
-        $databaseConnection->setAttribute(
+        $db->setAttribute(
             PDO::ATTR_DEFAULT_FETCH_MODE,
             PDO::FETCH_ASSOC
         );
 
-        $databaseConnection->setAttribute(
+        $db->setAttribute(
             PDO::ATTR_EMULATE_PREPARES,
             false
         );
@@ -61,14 +77,14 @@ function connectDatabase()
         $databaseTimeZoneOffset =
             date('P');
 
-        $databaseConnection->exec(
+        $db->exec(
             'SET time_zone = '
-            . $databaseConnection->quote(
+            . $db->quote(
                 $databaseTimeZoneOffset
             )
         );
 
-        return $databaseConnection;
+        return $db;
     } catch (PDOException $exception) {
         error_log($exception->getMessage());
 
@@ -80,7 +96,7 @@ function connectDatabase()
 
 
 // Return safe stored procedure errors
-function getSafeDatabaseErrorMessage(
+function databaseMessage(
     $exception,
     $defaultMessage
 ) {

@@ -7,51 +7,32 @@
 
 require_once __DIR__ . '/../includes/access_control.php';
 
-requireExpressAccess();
+requireExpress();
 
-$databaseConnection = connectDatabase();
+$db = connectDatabase();
 $errorMessage = '';
 $loadErrorMessage = '';
 $addressSaveWarning = '';
 $capacity = [
-    'DailyCapacity' => 20,
+    'DailyCapacity' => EXPRESS_DAILY_CAPACITY,
     'OrdersUsed' => 0,
     'OrdersRemaining' => 0
 ];
 $customers = [];
+$registerRecords = [];
+$selectedRegisterID = (int) ($_POST['register_id'] ?? 0);
 
 // Remove a new Express customer when the order could not be created
-function removeUnusedExpressCustomer(PDO $databaseConnection, int $customerID)
+function removeUnusedCustomer(PDO $db, int $customerID)
 {
     if ($customerID <= 0) {
         return;
     }
 
     try {
-        $cleanupStatement =
-            $databaseConnection->prepare(
-                '
-                DELETE FROM customer
-                WHERE CustomerID = :customerID
-                  AND LoyaltyNumber LIKE \'EXP%\'
-                  AND NOT EXISTS (
-                        SELECT 1
-                        FROM salesreceipt
-                        WHERE CustomerID = :receiptCustomerID
-                  )
-                  AND NOT EXISTS (
-                        SELECT 1
-                        FROM customeraddress
-                        WHERE CustomerID = :addressCustomerID
-                  )
-                '
-            );
-
-        $cleanupStatement->execute([
-            ':customerID' => $customerID,
-            ':receiptCustomerID' => $customerID,
-            ':addressCustomerID' => $customerID
-        ]);
+        $cleanupStatement = $db->prepare('CALL sp_remove_unused_express_customer(:customerID)');
+        $cleanupStatement->execute([':customerID' => $customerID]);
+        $cleanupStatement->closeCursor();
 
     } catch (PDOException $cleanupException) {
         error_log($cleanupException->getMessage());
@@ -60,12 +41,12 @@ function removeUnusedExpressCustomer(PDO $databaseConnection, int $customerID)
 
 try {
     $capacityStatement =
-        $databaseConnection->prepare(
+        $db->prepare(
             'CALL sp_get_express_capacity(?)'
         );
 
     $capacityStatement->execute([
-        (int) $_SESSION['store_id']
+        signedInStoreID()
     ]);
 
     $capacityRecord =
@@ -77,8 +58,27 @@ try {
         $capacity = $capacityRecord;
     }
 
+    $registerStatement = $db->prepare(
+        "SELECT r.RegisterID, r.RegisterNumber, r.RegisterName, r.RegisterType,
+                sr.ReceiptID AS OpenReceiptID,
+                sr.OperatorID AS OpenOperatorID,
+                CONCAT_WS(' ', o.FirstName, o.LastName) AS OpenOperatorName
+         FROM register r
+         LEFT JOIN salesreceipt sr
+             ON sr.RegisterID = r.RegisterID
+            AND sr.StoreID = r.StoreID
+            AND sr.Status = 'Open'
+         LEFT JOIN operator o ON o.OperatorID = sr.OperatorID
+         WHERE r.StoreID = :storeID AND r.Active = 1
+         ORDER BY r.RegisterNumber"
+    );
+    $registerStatement->execute([
+        ':storeID' => signedInStoreID()
+    ]);
+    $registerRecords = $registerStatement->fetchAll();
+
     $customerStatement =
-        $databaseConnection->query(
+        $db->query(
             'SELECT CustomerID, LoyaltyNumber, FirstName, LastName, Phone
              FROM customer
              WHERE Active = 1
@@ -95,13 +95,13 @@ try {
 }
 
 // Load active saved addresses for one customer
-function loadActiveCustomerAddresses(PDO $databaseConnection, int $customerID): array
+function loadAddresses(PDO $db, int $customerID): array
 {
     if ($customerID <= 0) {
         return [];
     }
 
-    $addressStatement = $databaseConnection->prepare(
+    $addressStatement = $db->prepare(
         'SELECT CustomerAddressID, AddressLabel, AddressLine1, AddressLine2, City, StateCode, PostalCode
          FROM customeraddress
          WHERE CustomerID = :customerID
@@ -117,7 +117,7 @@ function loadActiveCustomerAddresses(PDO $databaseConnection, int $customerID): 
 }
 
 // Find a saved address in this customer's list
-function findLoadedCustomerAddress(array $savedAddresses, int $addressID): ?array
+function findAddress(array $savedAddresses, int $addressID): ?array
 {
     if ($addressID <= 0) {
         return null;
@@ -154,7 +154,7 @@ $loadedAddressLine1 = '';
 $loadedAddressLine2 = '';
 $loadedAddressCity = '';
 $loadedAddressState = '';
-$loadedAddressPostalCode = '';
+$loadedPostalCode = '';
 
 $updateAddressOnFile = false;
 $saveNewAddress = false;
@@ -162,7 +162,7 @@ $newAddressLabel = '';
 $savedAddresses = [];
 
 $requestAction = '';
-$submittedSecurityToken = '';
+$submittedToken = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['create_order'])) {
@@ -173,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $requestAction = 'load_customer';
     }
 
-    $submittedSecurityToken =
+    $submittedToken =
         $_POST['form_security_token']
         ?? '';
 
@@ -268,7 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ?? ''
         );
 
-    if (!formSecurityTokenIsValid($submittedSecurityToken)) {
+    if (!tokenIsValid($submittedToken)) {
         $errorMessage = 'The form expired. Please try again.';
     }
 }
@@ -281,8 +281,8 @@ if (
 ) {
     try {
         $savedAddresses =
-            loadActiveCustomerAddresses(
-                $databaseConnection,
+            loadAddresses(
+                $db,
                 $selectedCustomerID
             );
     } catch (PDOException $exception) {
@@ -313,13 +313,12 @@ if (
             $loadedAddressLine2 = '';
             $loadedAddressCity = '';
             $loadedAddressState = '';
-            $loadedAddressPostalCode = '';
+            $loadedPostalCode = '';
             $deliveryAddressLine1 = '';
             $deliveryAddressLine2 = '';
             $deliveryCity = '';
             $deliveryState = '';
             $deliveryPostalCode = '';
-            $fulfillmentMethod = 'Curbside';
             $updateAddressOnFile = false;
             $saveNewAddress = false;
             $newAddressLabel = '';
@@ -337,7 +336,7 @@ if (
                 'Select the saved address you want to load.';
         } else {
             $loadedAddress =
-                findLoadedCustomerAddress(
+                findAddress(
                     $savedAddresses,
                     $selectedAddressID
                 );
@@ -367,7 +366,7 @@ if (
                     $deliveryCity;
                 $loadedAddressState =
                     $deliveryState;
-                $loadedAddressPostalCode =
+                $loadedPostalCode =
                     $deliveryPostalCode;
 
                 $fulfillmentMethod = 'Delivery';
@@ -377,8 +376,34 @@ if (
             }
         }
     } elseif ($requestAction === 'create_order') {
+        $chosenRegister = null;
+        foreach ($registerRecords as $candidateRegister) {
+            if ((int) $candidateRegister['RegisterID'] === $selectedRegisterID) {
+                $chosenRegister = $candidateRegister;
+                break;
+            }
+        }
+        if (!$chosenRegister ||
+            ($chosenRegister['RegisterType'] ?? '') !== 'Express' ||
+            !empty($chosenRegister['OpenReceiptID'])) {
+            $errorMessage = 'Select an available Express register.';
+        }
+
+        // Curbside pickup does not accept, require, or save a delivery address
+        if ($fulfillmentMethod === 'Curbside') {
+            $selectedAddressID = 0;
+            $loadedAddressID = 0;
+            $deliveryAddressLine1 = '';
+            $deliveryAddressLine2 = '';
+            $deliveryCity = '';
+            $deliveryState = '';
+            $deliveryPostalCode = '';
+            $updateAddressOnFile = false;
+            $saveNewAddress = false;
+            $newAddressLabel = '';
+        }
         // Check that the loaded address belongs to this customer
-        if ($customerMode === 'new' && $loadedAddressID > 0) {
+        if ($fulfillmentMethod === 'Delivery' && $customerMode === 'new' && $loadedAddressID > 0) {
             $errorMessage =
                 'A saved address from an existing customer cannot be used for a new customer. '
                 . 'Enter the new customer address again.';
@@ -395,12 +420,14 @@ if (
             $saveNewAddress = false;
             $newAddressLabel = '';
         } elseif (
+            $fulfillmentMethod === 'Delivery'
+            &&
             $customerMode === 'existing'
             &&
             $loadedAddressID > 0
         ) {
             $loadedAddress =
-                findLoadedCustomerAddress(
+                findAddress(
                     $savedAddresses,
                     $loadedAddressID
                 );
@@ -432,7 +459,7 @@ if (
                     $loadedAddress['City'];
                 $loadedAddressState =
                     $loadedAddress['StateCode'];
-                $loadedAddressPostalCode =
+                $loadedPostalCode =
                     $loadedAddress['PostalCode'];
             }
         }
@@ -459,7 +486,7 @@ if (
             } elseif (
                 $customerMode === 'new'
                 &&
-                !phoneNumberIsValid($newPhone)
+                !phoneIsValid($newPhone)
             ) {
                 $errorMessage =
                     'Phone number must contain exactly 10 digits or be left blank.';
@@ -511,12 +538,12 @@ if (
         }
 
         if ($errorMessage === '') {
-            $newCustomerCreatedForOrder = 0;
+            $newCustomerCreated = 0;
 
             try {
                 if ($customerMode === 'new') {
                     $customerStatement =
-                        $databaseConnection->prepare(
+                        $db->prepare(
                             'CALL sp_create_express_customer(?, ?, ?, ?)'
                         );
 
@@ -541,20 +568,21 @@ if (
                     $customerID =
                         (int) $newCustomer['CustomerID'];
 
-                    $newCustomerCreatedForOrder =
+                    $newCustomerCreated =
                         $customerID;
                 } else {
                     $customerID =
                         $selectedCustomerID;
                 }
 
-                $statement = $databaseConnection->prepare(
-                    'CALL sp_create_express_order(?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                $statement = $db->prepare(
+                    'CALL sp_create_express_order(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
                 );
 
                 $statement->execute([
-                    (int) $_SESSION['store_id'],
-                    (int) $_SESSION['operator_id'],
+                    signedInStoreID(),
+                    $selectedRegisterID,
+                    signedInOperatorID(),
                     $customerID,
                     $fulfillmentMethod,
                     $deliveryAddressLine1,
@@ -585,7 +613,7 @@ if (
                             &&
                             $updateAddressOnFile
                         ) {
-                            $addressUpdateStatement = $databaseConnection->prepare(
+                            $addressUpdateStatement = $db->prepare(
                                 'CALL sp_update_customer_address(?, ?, ?, ?, ?, ?, ?)'
                             );
 
@@ -607,7 +635,7 @@ if (
                             &&
                             $newAddressLabel !== ''
                         ) {
-                            $addressCreateStatement = $databaseConnection->prepare(
+                            $addressCreateStatement = $db->prepare(
                                 'CALL sp_create_customer_address(?, ?, ?, ?, ?, ?, ?)'
                             );
 
@@ -636,29 +664,29 @@ if (
                 header(
                     'Location: '
                     . APPLICATION_URL
-                    . '/express/order.php?id='
+                    . '/express/ex_order.php?id='
                     . (int) $created['ExpressOrderID']
                     . $addressSaveWarning
                 );
                 exit;
             } catch (PDOException $exception) {
-                if ($newCustomerCreatedForOrder > 0) {
-                    removeUnusedExpressCustomer(
-                        $databaseConnection,
-                        $newCustomerCreatedForOrder
+                if ($newCustomerCreated > 0) {
+                    removeUnusedCustomer(
+                        $db,
+                        $newCustomerCreated
                     );
                 }
 
                 $errorMessage =
-                    getSafeDatabaseErrorMessage(
+                    databaseMessage(
                         $exception,
                         'The Express order could not be created.'
                     );
             } catch (RuntimeException $exception) {
-                if ($newCustomerCreatedForOrder > 0) {
-                    removeUnusedExpressCustomer(
-                        $databaseConnection,
-                        $newCustomerCreatedForOrder
+                if ($newCustomerCreated > 0) {
+                    removeUnusedCustomer(
+                        $db,
+                        $newCustomerCreated
                     );
                 }
 
@@ -669,7 +697,7 @@ if (
     }
 }
 
-$pageTitle = 'New Express Order';
+$pageTitle = 'Take New Order';
 $currentSection = 'express';
 $currentPage = 'express-new';
 
@@ -678,8 +706,11 @@ require __DIR__ . '/../includes/header.php';
 
 <section class="content-panel form-panel express-panel">
     <div class="page-intro">
-        <h1>New Express Order</h1>
-        <p><?= escapeOutput($capacity['OrdersRemaining'] ?? 0) ?> of 20 Express orders remain available today.</p>
+        <h1>Take New Order</h1>
+        <p>
+            <?= escapeOutput($capacity['OrdersRemaining'] ?? 0) ?>
+            of <?= EXPRESS_DAILY_CAPACITY ?> Express orders remain available today.
+        </p>
     </div>
 
     <?php if ($loadErrorMessage !== ''): ?>
@@ -699,8 +730,39 @@ require __DIR__ . '/../includes/header.php';
         <input
             type="hidden"
             name="form_security_token"
-            value="<?= escapeOutput(getFormSecurityToken()) ?>"
+            value="<?= escapeOutput(formToken()) ?>"
         >
+
+        <div class="form-field">
+            <label for="register_id">Express Register</label>
+            <select
+                id="register_id"
+                name="register_id"
+                required
+            >
+                <option value="">Choose an available Express register</option>
+                <?php foreach ($registerRecords as $registerRecord): ?>
+                    <?php
+                    $isExpress = ($registerRecord['RegisterType'] ?? '') === 'Express';
+                    $busy = !empty($registerRecord['OpenReceiptID']);
+                    ?>
+                    <option
+                        value="<?= (int) $registerRecord['RegisterID'] ?>"
+                        <?= (!$isExpress || $busy) ? 'disabled' : '' ?>
+                        <?= $selectedRegisterID === (int) $registerRecord['RegisterID'] ? 'selected' : '' ?>
+                    >
+                        Register <?= (int) $registerRecord['RegisterNumber'] ?>
+                        <?php if (!$isExpress): ?>
+                            - Reserved for Regular Sales
+                        <?php elseif ($busy): ?>
+                            - In Use By: <?= escapeOutput($registerRecord['OpenOperatorName']) ?>
+                        <?php else: ?>
+                            - Available
+                        <?php endif; ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
 
         <input
             type="hidden"
@@ -731,7 +793,7 @@ require __DIR__ . '/../includes/header.php';
         <input
             type="hidden"
             id="loadedAddressPostalCode"
-            value="<?= escapeOutput($loadedAddressPostalCode) ?>"
+            value="<?= escapeOutput($loadedPostalCode) ?>"
         >
         <input
             type="hidden"
@@ -807,47 +869,6 @@ require __DIR__ . '/../includes/header.php';
                     Loading a customer shows their saved addresses below. This reloads the page.
                 </p>
             </div>
-
-            <?php if ($selectedCustomerID > 0 && $savedAddresses): ?>
-
-                <div
-                    class="form-field express-address"
-                    id="savedAddressField"
-                >
-                    <label for="saved_address_select">Saved Address</label>
-                    <select
-                        id="saved_address_select"
-                        name="address_id"
-                    >
-                        <option value="">Select a Saved Address</option>
-                        <?php foreach ($savedAddresses as $savedAddress): ?>
-                            <option
-                                value="<?= (int) $savedAddress['CustomerAddressID'] ?>"
-                                <?= $loadedAddressID === (int) $savedAddress['CustomerAddressID'] ? 'selected' : '' ?>
-                            >
-                                <?= escapeOutput($savedAddress['AddressLabel']) ?>
-                                -
-                                <?= escapeOutput($savedAddress['AddressLine1']) ?>,
-                                <?= escapeOutput($savedAddress['City']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-
-                    <button
-                        type="submit"
-                        name="load_address"
-                        value="1"
-                        class="button button-secondary"
-                    >
-                        Load Address
-                    </button>
-
-                    <p class="field-help">
-                        Loading a saved address fills in the delivery fields below. This reloads the page too.
-                    </p>
-                </div>
-
-            <?php endif; ?>
 
             <div
                 class="express-new-customer"
@@ -928,14 +949,62 @@ require __DIR__ . '/../includes/header.php';
                         value="Delivery"
                         <?= $fulfillmentMethod === 'Delivery' ? 'checked' : '' ?>
                     >
-                    Home Delivery (+$10.00)
+                    Home Delivery (+$<?= number_format(EXPRESS_DELIVERY_FEE, 2) ?>)
                 </label>
 
                 <p class="field-help">
-                    Delivery is accepted only for orders placed from 8:00 AM through 4:00 PM.
+                    Delivery is accepted only for orders placed from
+                    <?= EXPRESS_DELIVERY_OPENS ?> through <?= EXPRESS_DELIVERY_CLOSES ?>.
                     The database verifies the time when the order is submitted.
                 </p>
             </fieldset>
+
+            <div
+                id="deliveryDetails"
+                class="express-address"
+                <?= $fulfillmentMethod === 'Delivery' ? '' : 'hidden' ?>
+            >
+                <div class="form-grid">
+            <?php if ($selectedCustomerID > 0 && $savedAddresses): ?>
+
+                <div
+                    class="form-field express-address"
+                    id="savedAddressField"
+                >
+                    <label for="saved_address_select">Saved Address</label>
+                    <select
+                        id="saved_address_select"
+                        name="address_id"
+                    >
+                        <option value="">Select a Saved Address</option>
+                        <?php foreach ($savedAddresses as $savedAddress): ?>
+                            <option
+                                value="<?= (int) $savedAddress['CustomerAddressID'] ?>"
+                                <?= $loadedAddressID === (int) $savedAddress['CustomerAddressID'] ? 'selected' : '' ?>
+                            >
+                                <?= escapeOutput($savedAddress['AddressLabel']) ?>
+                                -
+                                <?= escapeOutput($savedAddress['AddressLine1']) ?>,
+                                <?= escapeOutput($savedAddress['City']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+
+                    <button
+                        type="submit"
+                        name="load_address"
+                        value="1"
+                        class="button button-secondary"
+                    >
+                        Load Address
+                    </button>
+
+                    <p class="field-help">
+                        Loading a saved address fills in the delivery fields below. This reloads the page too.
+                    </p>
+                </div>
+
+            <?php endif; ?>
 
             <div class="form-field">
                 <label for="delivery_address_1">Delivery Address</label>
@@ -1022,6 +1091,9 @@ require __DIR__ . '/../includes/header.php';
 
             <?php endif; ?>
 
+                </div>
+            </div>
+
         </div>
 
         <div class="form-actions">
@@ -1032,7 +1104,7 @@ require __DIR__ . '/../includes/header.php';
                     name="create_order"
                     value="1"
                 >
-                    Create Express Order
+                    Create Order
                 </button>
             <?php else: ?>
                 <span
@@ -1067,6 +1139,9 @@ require __DIR__ . '/../includes/header.php';
         document.getElementById('newCustomerFields');
     var customerSelect =
         document.getElementById('customer_id');
+    var deliveryDetails = document.getElementById('deliveryDetails');
+    var deliveryRadio = form.querySelector('[name="fulfillment_method"][value="Delivery"]');
+    var curbsideRadio = form.querySelector('[name="fulfillment_method"][value="Curbside"]');
     var savedAddressField =
         document.getElementById('savedAddressField');
     var savedAddressSelect =
@@ -1098,7 +1173,7 @@ require __DIR__ . '/../includes/header.php';
         });
     }
 
-    function clearLoadedAddressState(clearDeliveryValues) {
+    function clearAddress(clearDeliveryValues) {
         loadedAddressID.value = '0';
         updateFlag.value = '0';
 
@@ -1130,6 +1205,22 @@ require __DIR__ . '/../includes/header.php';
         }
     }
 
+    function updateFulfillmentFields() {
+        var isDelivery = deliveryRadio && deliveryRadio.checked;
+        deliveryDetails.hidden = !isDelivery;
+        ['delivery_address_1', 'delivery_city', 'delivery_state', 'delivery_postal_code'].forEach(function (id) {
+            document.getElementById(id).required = Boolean(isDelivery);
+        });
+        // A saved address only applies to an existing customer's delivery
+        if (savedAddressField) {
+            savedAddressField.hidden = !isDelivery || newRadio.checked;
+        }
+    }
+
+    [deliveryRadio, curbsideRadio].forEach(function (radio) {
+        if (radio) radio.addEventListener('change', updateFulfillmentFields);
+    });
+
     function updateCustomerFields() {
         var useNew = newRadio.checked;
         existingField.hidden = useNew;
@@ -1141,8 +1232,8 @@ require __DIR__ . '/../includes/header.php';
     }
 
     customerSelect.addEventListener('change', function () {
-        clearLoadedAddressState(true);
-        selectCurbside();
+        clearAddress(true);
+        updateFulfillmentFields();
     });
 
     existingRadio.addEventListener('change', function () {
@@ -1151,14 +1242,16 @@ require __DIR__ . '/../includes/header.php';
 
     newRadio.addEventListener('change', function () {
         if (newRadio.checked) {
-            clearLoadedAddressState(true);
+            clearAddress(true);
             selectCurbside();
         }
 
         updateCustomerFields();
+        updateFulfillmentFields();
     });
 
     updateCustomerFields();
+    updateFulfillmentFields();
 
     form.addEventListener('submit', function (event) {
         var submitter = event.submitter;

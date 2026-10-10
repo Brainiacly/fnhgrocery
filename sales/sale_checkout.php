@@ -6,14 +6,15 @@
  */
 
 require_once __DIR__ . '/../includes/access_control.php';
+require_once __DIR__ . '/../includes/discounts.php';
 
-requireRegularPOSAccess();
+requireRegister();
 
 $storeID =
-    (int) ($_SESSION['store_id'] ?? 0);
+    signedInStoreID();
 
 $operatorID =
-    (int) ($_SESSION['operator_id'] ?? 0);
+    signedInOperatorID();
 
 $receiptID =
     isset($_GET['receipt'])
@@ -28,6 +29,10 @@ $saleItems = [];
 
 $subtotal = 0.00;
 
+$couponRecords = [];
+
+$couponTotal = 0.00;
+
 $receiptDiscount = 0.00;
 
 $netSubtotal = 0.00;
@@ -38,15 +43,19 @@ $taxAmount = 0.00;
 
 $totalAmount = 0.00;
 
+$postTaxDiscount = 0.00;
+
+$discountRecords = [];
+
 
 try {
 
-    $databaseConnection =
+    $db =
         connectDatabase();
 
 
     $saleStatement =
-        $databaseConnection->prepare(
+        $db->prepare(
             '
             SELECT
                 ReceiptID,
@@ -54,7 +63,6 @@ try {
                 RegisterID,
                 TransactionDateTime,
                 Status,
-                ReceiptDiscountAmount,
                 SubtotalAmount
             FROM salesreceipt
             WHERE ReceiptID =
@@ -99,7 +107,7 @@ try {
 
 
     $itemStatement =
-        $databaseConnection->prepare(
+        $db->prepare(
             '
             SELECT
                 ProductName,
@@ -137,75 +145,36 @@ try {
     }
 
 
+    $saleTotals =
+        fetchSaleTotals(
+            $db,
+            $receiptID
+        );
+
+    $discountRecords = fetchSaleDiscounts( $db, $receiptID );
+    $couponRecords = fetchSaleCoupons($db, $receiptID);
+    $couponTotal = array_sum(array_map('floatval', array_column($couponRecords, 'AppliedAmount')));
+
     $subtotal =
-        (float) $saleRecord['SubtotalAmount'];
+        (float) $saleTotals['GrossSubtotal'];
 
     $receiptDiscount =
-        (float) $saleRecord['ReceiptDiscountAmount'];
+        (float) $saleTotals['PreTaxDiscount'];
 
     $netSubtotal =
-        round(
-            max(
-                $subtotal - $receiptDiscount,
-                0.00
-            ),
-            2
-        );
-
-    $grossTaxableSubtotal = 0.00;
-
-
-    foreach ($saleItems as $saleItem) {
-
-        if ((int) $saleItem['Taxable'] === 1) {
-
-            $grossTaxableSubtotal +=
-                (float) $saleItem['LineTotal'];
-        }
-    }
-
-
-    $taxableRatio =
-        $subtotal > 0
-        ? $grossTaxableSubtotal / $subtotal
-        : 0.00;
-
-    $taxableDiscount =
-        round(
-            $receiptDiscount
-            * $taxableRatio,
-            2
-        );
+        (float) $saleTotals['SubtotalAfterDiscount'];
 
     $taxableSubtotal =
-        round(
-            max(
-                $grossTaxableSubtotal
-                - $taxableDiscount,
-                0.00
-            ),
-            2
-        );
-
-    $taxableSubtotal =
-        min(
-            $taxableSubtotal,
-            $netSubtotal
-        );
+        (float) $saleTotals['TaxableSubtotal'];
 
     $taxAmount =
-        round(
-            $taxableSubtotal
-            * 0.0775,
-            2
-        );
+        (float) $saleTotals['TaxAmount'];
+
+    $postTaxDiscount =
+        (float) $saleTotals['PostTaxDiscount'];
 
     $totalAmount =
-        round(
-            $netSubtotal
-            + $taxAmount,
-            2
-        );
+        (float) $saleTotals['TotalDue'];
 
 
     if (
@@ -214,14 +183,14 @@ try {
         isset($_POST['cancel_sale'])
     ) {
 
-        $submittedSecurityToken =
+        $submittedToken =
             $_POST['form_security_token']
             ?? '';
 
 
         if (
-            !formSecurityTokenIsValid(
-                $submittedSecurityToken
+            !tokenIsValid(
+                $submittedToken
             )
         ) {
 
@@ -233,7 +202,7 @@ try {
             try {
 
                 $cancelStatement =
-                    $databaseConnection->prepare(
+                    $db->prepare(
                         '
                         CALL sp_void_sale(
                             :receiptID,
@@ -254,7 +223,7 @@ try {
 
 
                 $startStatement =
-                    $databaseConnection->prepare(
+                    $db->prepare(
                         '
                         CALL sp_start_sale(
                             :storeID,
@@ -294,7 +263,7 @@ try {
             } catch (PDOException $exception) {
 
                 $errorMessage =
-                    getSafeDatabaseErrorMessage(
+                    databaseMessage(
                         $exception,
                         'The sale could not be cancelled.'
                     );
@@ -309,14 +278,14 @@ try {
         isset($_POST['close_register'])
     ) {
 
-        $submittedSecurityToken =
+        $submittedToken =
             $_POST['form_security_token']
             ?? '';
 
 
         if (
-            !formSecurityTokenIsValid(
-                $submittedSecurityToken
+            !tokenIsValid(
+                $submittedToken
             )
         ) {
 
@@ -361,7 +330,7 @@ try {
             try {
 
                 $closeStatement =
-                    $databaseConnection->prepare(
+                    $db->prepare(
                         '
                         CALL sp_void_sale(
                             :receiptID,
@@ -391,7 +360,7 @@ try {
             } catch (PDOException $exception) {
 
                 $errorMessage =
-                    getSafeDatabaseErrorMessage(
+                    databaseMessage(
                         $exception,
                         'The register could not be closed.'
                     );
@@ -406,14 +375,14 @@ try {
         isset($_POST['complete_sale'])
     ) {
 
-        $submittedSecurityToken =
+        $submittedToken =
             $_POST['form_security_token']
             ?? '';
 
 
         if (
-            !formSecurityTokenIsValid(
-                $submittedSecurityToken
+            !tokenIsValid(
+                $submittedToken
             )
         ) {
 
@@ -422,20 +391,24 @@ try {
 
         } else {
 
+            $paymentMethod =
+                ($_POST['payment_method'] ?? 'Cash') === 'Charge'
+                    ? 'Charge'
+                    : 'Cash';
+            // A charge is for exactly the total, so no cash amount is needed
             $amountTendered =
-                filter_var(
-                    $_POST['amount_tendered']
-                    ?? null,
-                    FILTER_VALIDATE_FLOAT
-                );
-
-
+                $paymentMethod === 'Charge'
+                    ? $totalAmount
+                    : filter_var(
+                        $_POST['amount_tendered']
+                        ?? null,
+                        FILTER_VALIDATE_FLOAT
+                    );
             if (
                 $amountTendered === false
                 ||
                 $amountTendered < 0
             ) {
-
                 $errorMessage =
                     'Enter a valid cash amount.';
 
@@ -444,12 +417,13 @@ try {
                 try {
 
                     $checkoutStatement =
-                        $databaseConnection->prepare(
+                        $db->prepare(
                             '
                             CALL sp_checkout_sale(
                                 :receiptID,
                                 :amountTendered,
-                                :operatorID
+                                :operatorID,
+                                :paymentMethod
                             )
                             '
                         );
@@ -457,12 +431,12 @@ try {
                     $checkoutStatement->execute([
                         ':receiptID' =>
                             $receiptID,
-
                         ':amountTendered' =>
                             $amountTendered,
-
                         ':operatorID' =>
-                            $operatorID
+                            $operatorID,
+                        ':paymentMethod' =>
+                            $paymentMethod
                     ]);
 
                     $checkoutStatement->fetch();
@@ -482,7 +456,7 @@ try {
                 } catch (PDOException $exception) {
 
                     $errorMessage =
-                        getSafeDatabaseErrorMessage(
+                        databaseMessage(
                             $exception,
                             'The checkout could not be completed.'
                         );
@@ -526,15 +500,18 @@ require __DIR__ . '/../includes/header.php';
     <?php endif; ?>
 
 
+    <div class="checkout-layout">
+
+    <div class="checkout-items">
+
     <div class="checkout-transaction-number">
 
         <strong>
             Transaction:
         </strong>
 
-        <?= escapeOutput(
-            $saleRecord['TransactionNumber']
-            ?? ''
+        <?= transactionNumberHtml(
+            $saleRecord['TransactionNumber'] ?? ''
         ) ?>
 
     </div>
@@ -618,10 +595,35 @@ require __DIR__ . '/../includes/header.php';
     </div>
 
 
+    </div>
+
+    <div class="checkout-payment">
+
     <section class="checkout-totals">
-
+        <?php if (!empty($couponRecords)): ?>
+            <div class="checkout-total-row">
+                <span>
+                    Items
+                </span>
+                <strong>
+                    $<?= escapeOutput(number_format($subtotal + $couponTotal, 2)) ?>
+                </strong>
+            </div>
+            <?php foreach ($couponRecords as $couponRecord): ?>
+                <div class="checkout-total-row checkout-discount-row">
+                    <span>
+                        Coupon
+                        <small>
+                            <?= escapeOutput($couponRecord['Description']) ?>
+                        </small>
+                    </span>
+                    <strong>
+                        -$<?= escapeOutput(number_format((float) $couponRecord['AppliedAmount'], 2)) ?>
+                    </strong>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
         <div class="checkout-total-row">
-
             <span>
                 Subtotal
             </span>
@@ -638,30 +640,41 @@ require __DIR__ . '/../includes/header.php';
         </div>
 
 
+        <?php foreach ($discountRecords as $discountRecord): ?>
+
+            <?php if ($discountRecord['TaxTiming'] === 'Before Tax'): ?>
+
+                <div class="checkout-total-row checkout-discount-row">
+
+                    <span>
+                        <?= escapeOutput(describeDiscount($discountRecord)) ?>
+                        <small>
+                            <?= escapeOutput($discountRecord['Reason']) ?>
+                        </small>
+                    </span>
+
+                    <strong>
+                        -$<?= escapeOutput(
+                            number_format(
+                                (float) $discountRecord['AppliedAmount'],
+                                2
+                            )
+                        ) ?>
+                    </strong>
+
+                </div>
+
+            <?php endif; ?>
+
+        <?php endforeach; ?>
+
+
         <?php if ($receiptDiscount > 0): ?>
 
             <div class="checkout-total-row">
 
                 <span>
-                    Receipt Discount
-                </span>
-
-                <strong>
-                    -$<?= escapeOutput(
-                        number_format(
-                            $receiptDiscount,
-                            2
-                        )
-                    ) ?>
-                </strong>
-
-            </div>
-
-
-            <div class="checkout-total-row">
-
-                <span>
-                    Subtotal After Discount
+                    Subtotal After Discounts
                 </span>
 
                 <strong>
@@ -699,7 +712,7 @@ require __DIR__ . '/../includes/header.php';
         <div class="checkout-total-row">
 
             <span>
-                Sales Tax (7.75%)
+                Sales Tax (<?= escapeOutput(number_format(SALES_TAX_RATE * 100, 2)) ?>%)
             </span>
 
             <strong>
@@ -712,6 +725,35 @@ require __DIR__ . '/../includes/header.php';
             </strong>
 
         </div>
+
+
+        <?php foreach ($discountRecords as $discountRecord): ?>
+
+            <?php if ($discountRecord['TaxTiming'] === 'After Tax'): ?>
+
+                <div class="checkout-total-row checkout-discount-row">
+
+                    <span>
+                        <?= escapeOutput(describeDiscount($discountRecord)) ?>
+                        <small>
+                            <?= escapeOutput($discountRecord['Reason']) ?>
+                        </small>
+                    </span>
+
+                    <strong>
+                        -$<?= escapeOutput(
+                            number_format(
+                                (float) $discountRecord['AppliedAmount'],
+                                2
+                            )
+                        ) ?>
+                    </strong>
+
+                </div>
+
+            <?php endif; ?>
+
+        <?php endforeach; ?>
 
 
         <div class="checkout-total-row checkout-grand-total">
@@ -743,7 +785,7 @@ require __DIR__ . '/../includes/header.php';
         <input
             type="hidden"
             name="form_security_token"
-            value="<?= escapeOutput(getFormSecurityToken()) ?>"
+            value="<?= escapeOutput(formToken()) ?>"
         >
 
         <input
@@ -753,7 +795,32 @@ require __DIR__ . '/../includes/header.php';
         >
 
 
-        <div class="form-field">
+        <fieldset class="checkout-method">
+            <legend>
+                Payment
+            </legend>
+            <label class="checkout-method-option">
+                <input
+                    type="radio"
+                    name="payment_method"
+                    value="Cash"
+                    checked
+                >
+                Cash
+            </label>
+            <label class="checkout-method-option">
+                <input
+                    type="radio"
+                    name="payment_method"
+                    value="Charge"
+                >
+                Charge
+            </label>
+        </fieldset>
+        <div
+            class="form-field"
+            id="checkoutCashField"
+        >
 
             <label for="amount_tendered">
                 Cash Tendered
@@ -777,6 +844,13 @@ require __DIR__ . '/../includes/header.php';
             >
 
         </div>
+        <p
+            class="checkout-charge-note"
+            id="checkoutChargeNote"
+            hidden
+        >
+            The total is charged to the customer's card. No cash is entered and no change is given.
+        </p>
 
 
         <div class="form-actions">
@@ -813,7 +887,7 @@ require __DIR__ . '/../includes/header.php';
         <input
             type="hidden"
             name="form_security_token"
-            value="<?= escapeOutput(getFormSecurityToken()) ?>"
+            value="<?= escapeOutput(formToken()) ?>"
         >
 
         <input
@@ -851,7 +925,7 @@ require __DIR__ . '/../includes/header.php';
         <input
             type="hidden"
             name="form_security_token"
-            value="<?= escapeOutput(getFormSecurityToken()) ?>"
+            value="<?= escapeOutput(formToken()) ?>"
         >
 
         <input
@@ -876,6 +950,10 @@ require __DIR__ . '/../includes/header.php';
     </form>
 
 
+    </div>
+
+    </div>
+
     <dialog
         id="checkoutLeaveDialog"
         class="checkout-leave-dialog"
@@ -891,34 +969,72 @@ require __DIR__ . '/../includes/header.php';
 
 
         <div class="checkout-leave-actions">
+                <div class="checkout-leave-choice">
+                    <button
+                        type="button"
+                        id="checkoutStayButton"
+                        class="button button-secondary"
+                    >
+                        Stay
+                    </button>
+                    <p class="checkout-leave-note">
+                        Keep working on this transaction.
+                    </p>
+                </div>
+                <div class="checkout-leave-choice">
+                    <button
+                        type="button"
+                        id="checkoutSaveButton"
+                        class="button button-primary"
+                    >
+                        Save
+                    </button>
+                    <p class="checkout-leave-note">
+                        Leave now. The transaction stays saved on this register.
+                    </p>
+                </div>
+                <div class="checkout-leave-choice">
+                    <button
+                        type="button"
+                        id="checkoutCloseButton"
+                        class="button button-danger"
+                    >
+                        Close
+                    </button>
+                    <p class="checkout-leave-note">
+                        Cancel the transaction, return the items to stock, and close the register.
+                    </p>
+                </div>
+            </div>
+        </dialog>
 
-            <button
-                type="button"
-                id="checkoutStayButton"
-                class="button button-secondary"
-            >
-                Stay on Checkout
-            </button>
+    <script>
+        (function () {
 
-            <button
-                type="button"
-                id="checkoutSaveButton"
-                class="button button-primary"
-            >
-                Save Transaction and Leave
-            </button>
+            const cashField = document.getElementById('checkoutCashField');
+            const cashInput = document.getElementById('amount_tendered');
+            const chargeNote = document.getElementById('checkoutChargeNote');
+            const methods = document.querySelectorAll('input[name="payment_method"]');
 
-            <button
-                type="button"
-                id="checkoutCloseButton"
-                class="button button-danger"
-            >
-                Close Register and Leave
-            </button>
+            // A charge needs no cash amount, so the cash box is hidden and not required
+            function showMethod() {
 
-        </div>
+                const isCharge = document.querySelector('input[name="payment_method"]:checked').value === 'Charge';
 
-    </dialog>
+                cashField.hidden = isCharge;
+                chargeNote.hidden = !isCharge;
+                cashInput.required = !isCharge;
+            }
+
+            methods.forEach(function (method) {
+                method.addEventListener('change', showMethod);
+            });
+
+            showMethod();
+
+        })();
+    </script>
+
 
 </section>
 

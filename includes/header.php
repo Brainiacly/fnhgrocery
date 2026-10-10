@@ -5,22 +5,28 @@
  * CSC 680
  */
 
+// This file is included by pages and cannot be opened on its own
+if (basename($_SERVER['SCRIPT_NAME']) === basename(__FILE__)) {
+    http_response_code(404);
+    exit;
+}
+
 require_once __DIR__ . '/access_control.php';
 
 $pageTitle = $pageTitle ?? 'Welcome';
 $currentSection = $currentSection ?? '';
 $currentPage = $currentPage ?? '';
 
-if (!operatorIsLoggedIn()) {
+if (!isLoggedIn()) {
     $siteLayoutClass = 'site-layout site-layout-public';
-} elseif (!operatorHasAssignedAccess()) {
+} elseif (!hasAccess()) {
     $siteLayoutClass = 'site-layout site-layout-restricted';
 } else {
     $siteLayoutClass = 'site-layout site-layout-authenticated';
 }
 
 $siteHeaderClass =
-    operatorIsLoggedIn()
+    isLoggedIn()
         ? 'site-header site-header-logged-in'
         : 'site-header site-header-public';
 
@@ -34,12 +40,25 @@ if ($currentPage === 'home') {
     $pageStylesheet = 'operators.css';
 } elseif ($currentSection === 'sales') {
     $pageStylesheet = 'sales.css';
+} elseif ($currentSection === 'registers') {
+    $pageStylesheet = 'registers.css';
 } elseif ($currentSection === 'inventory') {
     $pageStylesheet = 'inventory.css';
 } elseif ($currentSection === 'express') {
     $pageStylesheet = 'express.css';
+} elseif ($currentSection === 'transactions') {
+    $pageStylesheet = 'transactions.css';
+} elseif ($currentSection === 'training') {
+    $pageStylesheet = 'training.css';
 }
 
+
+// Express orders use the same tiles and item list as the register
+$sharedStylesheet = '';
+
+if ($currentSection === 'express') {
+    $sharedStylesheet = 'sales.css';
+}
 
 // Set the page name displayed in the header
 $headerPageTitle = $pageTitle;
@@ -53,7 +72,7 @@ if (
     &&
     $currentPage === 'list'
 ) {
-    $headerPageTitle = 'Operator List';
+    $headerPageTitle = 'Employee List';
 }
 
 if (
@@ -61,7 +80,7 @@ if (
     &&
     $currentPage === 'create'
 ) {
-    $headerPageTitle = 'Create Operator';
+    $headerPageTitle = 'Create Employee';
 }
 
 if (
@@ -69,7 +88,7 @@ if (
     &&
     $currentPage === 'update'
 ) {
-    $headerPageTitle = 'Modify Operator';
+    $headerPageTitle = 'Modify Employee';
 }
 
 if (
@@ -77,7 +96,7 @@ if (
     &&
     $currentPage === 'delete'
 ) {
-    $headerPageTitle = 'Delete Operator';
+    $headerPageTitle = 'Delete Employee';
 }
 
 if (
@@ -85,7 +104,7 @@ if (
     &&
     $currentPage === 'reactivate'
 ) {
-    $headerPageTitle = 'Reactivate Operator';
+    $headerPageTitle = 'Reactivate Employee';
 }
 
 if (
@@ -118,6 +137,34 @@ if (
     $currentPage === 'list'
 ) {
     $headerPageTitle = 'Store Stock Levels';
+}
+
+if ($currentSection === 'inventory' && $currentPage === 'manage') {
+    $headerPageTitle = 'Manage Inventory';
+}
+
+if ($currentSection === 'inventory' && $currentPage === 'adjust') {
+    $headerPageTitle = 'Adjust Inventory';
+}
+
+if ($currentSection === 'inventory' && $currentPage === 'product') {
+    $headerPageTitle = $pageTitle;
+}
+
+if ($currentSection === 'transactions' && $currentPage === 'list') {
+    $headerPageTitle = 'Transaction Viewer';
+}
+
+if ($currentSection === 'transactions' && $currentPage === 'detail') {
+    $headerPageTitle = 'Transaction Details';
+}
+
+if ($currentSection === 'training') {
+    $headerPageTitle = $pageTitle;
+}
+
+if ($currentSection === 'access') {
+    $headerPageTitle = 'Access Denied';
 }
 
 
@@ -161,6 +208,15 @@ $headerUsername =
         href="<?= APPLICATION_URL ?>/assets/css/layout.css"
     >
 
+    <?php if ($sharedStylesheet !== ''): ?>
+
+        <link
+            rel="stylesheet"
+            href="<?= APPLICATION_URL ?>/assets/css/<?= escapeOutput($sharedStylesheet) ?>"
+        >
+
+    <?php endif; ?>
+
     <?php if ($pageStylesheet !== ''): ?>
 
         <link
@@ -169,6 +225,12 @@ $headerUsername =
         >
 
     <?php endif; ?>
+
+    <link
+        rel="stylesheet"
+        href="<?= APPLICATION_URL ?>/assets/css/print.css"
+        media="print"
+    >
 
 </head>
 
@@ -258,7 +320,7 @@ $headerUsername =
     </div>
 
 
-    <?php if (operatorIsLoggedIn()): ?>
+    <?php if (isLoggedIn()): ?>
 
         <div class="header-user-controls">
 

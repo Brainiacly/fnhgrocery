@@ -5,6 +5,12 @@
  * CSC 680
  */
 
+// This file is included by pages and cannot be opened on its own
+if (basename($_SERVER['SCRIPT_NAME']) === basename(__FILE__)) {
+    http_response_code(404);
+    exit;
+}
+
 if (!isset($currentSection)) {
     $currentSection = '';
 }
@@ -14,14 +20,14 @@ if (!isset($currentPage)) {
 }
 
 
-$navigationLoginErrorMessage =
+$navLoginError =
     isset($loginErrorMessage)
         ? $loginErrorMessage
         : '';
 
 
 $onOperatorPage =
-    operatorIsAdministrator()
+    canViewOperators()
     &&
     $currentSection === 'operators';
 
@@ -47,16 +53,62 @@ $onOperatorActionPage =
     );
 
 
-$onAccountPage =
-    $currentSection === 'account';
-
-
 $onSalesPage =
     $currentSection === 'sales';
 
 
-$onInventoryPage =
-    $currentSection === 'inventory';
+// Mark the link for the area the employee is in
+$activeLinkClass =
+    ' navigation-link-active';
+
+$homeLinkClass =
+    'navigation-link navigation-home-link'
+    . ($currentPage === 'home' ? $activeLinkClass : '');
+
+$salesLinkClass =
+    'navigation-link'
+    . ($currentSection === 'sales' ? $activeLinkClass : '');
+
+$expressLinkClass =
+    'navigation-link'
+    . ($currentSection === 'express' ? $activeLinkClass : '');
+
+$transactionsLinkClass =
+    'navigation-link'
+    . ($currentSection === 'transactions' ? $activeLinkClass : '');
+
+$stockLinkClass =
+    'navigation-link'
+    . (
+        $currentSection === 'inventory' && $currentPage === 'list'
+            ? $activeLinkClass
+            : ''
+    );
+
+$manageLinkClass =
+    'navigation-link'
+    . (
+        $currentSection === 'inventory'
+        && in_array($currentPage, ['manage', 'adjust', 'product', 'coupons'], true)
+            ? $activeLinkClass
+            : ''
+    );
+$registersLinkClass =
+    'navigation-link'
+    . ($currentSection === 'registers' ? $activeLinkClass : '');
+// An Administrator deletes an employee, a Manager inactivates one
+$statusPage = isAdministrator() ? 'op_delete.php' : 'op_access.php?to=0';
+$trainingLinkClass =
+    'navigation-link'
+    . ($currentSection === 'training' ? $activeLinkClass : '');
+
+$accountLinkClass =
+    'navigation-link'
+    . ($currentSection === 'account' ? $activeLinkClass : '');
+
+$operatorsLinkClass =
+    'navigation-link'
+    . ($currentSection === 'operators' ? $activeLinkClass : '');
 
 
 // Set the sales navigation action for the current operator
@@ -66,23 +118,23 @@ $saleNavigationHref =
 $saleNavigationLabel =
     'New Sale';
 
-$saleNavigationDescription =
+$saleLinkText =
     'Ring up groceries and begin a new customer transaction.';
 
 
 if (
-    operatorIsLoggedIn()
+    isLoggedIn()
     &&
-    operatorCanUseRegularPOS()
+    canUseRegister()
 ) {
 
     try {
 
-        $saleNavigationConnection =
+        $saleLinkDb =
             connectDatabase();
 
-        $saleNavigationStatement =
-            $saleNavigationConnection->prepare(
+        $saleLinkStatement =
+            $saleLinkDb->prepare(
                 '
                 SELECT
                     sr.ReceiptID,
@@ -110,16 +162,16 @@ if (
                 '
             );
 
-        $saleNavigationStatement->execute([
+        $saleLinkStatement->execute([
             ':storeID' =>
-                (int) ($_SESSION['store_id'] ?? 0),
+                signedInStoreID(),
 
             ':operatorID' =>
-                (int) ($_SESSION['operator_id'] ?? 0)
+                signedInOperatorID()
         ]);
 
         $saleNavigationRecord =
-            $saleNavigationStatement->fetch();
+            $saleLinkStatement->fetch();
 
 
         if ($saleNavigationRecord) {
@@ -139,7 +191,7 @@ if (
                 $saleNavigationLabel =
                     'Continue Sale';
 
-                $saleNavigationDescription =
+                $saleLinkText =
                     'Return to your open transaction and continue ringing up groceries.';
 
             } else {
@@ -147,7 +199,7 @@ if (
                 $saleNavigationLabel =
                     'Return to Checkout';
 
-                $saleNavigationDescription =
+                $saleLinkText =
                     'Return to your open register session.';
             }
         }
@@ -162,7 +214,7 @@ if (
 
 
 $showSaleNavigationLink =
-    operatorCanUseRegularPOS()
+    canUseRegister()
     &&
     !(
         $onSalesPage
@@ -174,13 +226,13 @@ $showSaleNavigationLink =
 
 <aside
     class="<?=
-    operatorIsLoggedIn()
+    isLoggedIn()
     ? 'site-navigation site-navigation-logged-in'
     : 'site-navigation site-navigation-public'
     ?>"
 >
 
-    <?php if (!operatorIsLoggedIn()): ?>
+    <?php if (!isLoggedIn()): ?>
 
         <nav
             class="navigation-menu navigation-login"
@@ -197,15 +249,6 @@ $showSaleNavigationLink =
             </div>
 
 
-            <?php if ($navigationLoginErrorMessage !== ''): ?>
-
-                <div class="navigation-login-error">
-                    <?= escapeOutput($navigationLoginErrorMessage) ?>
-                </div>
-
-            <?php endif; ?>
-
-
             <form
                 id="login"
                 method="post"
@@ -216,7 +259,7 @@ $showSaleNavigationLink =
                 <input
                     type="hidden"
                     name="form_security_token"
-                    value="<?= escapeOutput(getFormSecurityToken()) ?>"
+                    value="<?= escapeOutput(formToken()) ?>"
                 >
 
 
@@ -267,63 +310,16 @@ $showSaleNavigationLink =
             </form>
 
 
-            <div class="navigation-demo-note">
-                Demo Admin, Operator, and Personal Shopper credentials are listed below
-            </div>
+            <?php if ($navLoginError !== ''): ?>
 
-
-            <div class="message message-warning navigation-demo-notice">
-
-                <strong>
-                    Demo Admin Credentials
-                </strong>
-
-                <div>
-                    Username: admin
+                <div
+                    class="navigation-login-error"
+                    role="alert"
+                >
+                    <?= escapeOutput($navLoginError) ?>
                 </div>
 
-                <div>
-                    Password: Admin#123
-                </div>
-
-
-                <strong>
-                    <br>
-                    Demo Operator Credentials
-                </strong>
-
-                <div>
-                    Username: TestBob
-                </div>
-
-                <div>
-                    Password: #Testing123
-                </div>
-
-                <div>
-                    <br>
-                    Username: TestAlice
-                </div>
-
-                <div>
-                    Password: Testing123$
-                </div>
-
-
-                <strong>
-                    <br>
-                    Demo Personal Shopper Credentials
-                </strong>
-
-                <div>
-                    Username: DellaVery
-                </div>
-
-                <div>
-                    Password: Shopper#123
-                </div>
-
-            </div>
+            <?php endif; ?>
 
         </nav>
 
@@ -335,507 +331,211 @@ $showSaleNavigationLink =
             aria-label="Main navigation"
         >
 
-            <?php if (!operatorHasAssignedAccess()): ?>
+            <?php if (!hasAccess()): ?>
 
-                <!-- No navigation until access is assigned -->
-
-
-            <?php elseif ($onOperatorList): ?>
-
-                <a
-                    href="<?= APPLICATION_URL ?>/index.php"
-                    class="navigation-link navigation-home-link"
-                >
-                    <span
-                        class="navigation-home-icon"
-                        aria-hidden="true"
-                    >
-                        &#8962;
-                    </span>
-
-                    <span>
-                        Home
-                    </span>
-                </a>
-
-
-                <a
-                    href="<?= APPLICATION_URL ?>/account.php"
-                    class="navigation-link"
-                >
-                    Manage My Account
-                </a>
-
-
-                <div class="operator-nav-actions">
-
-                    <a
-                        href="<?= APPLICATION_URL ?>/operators/create.php"
-                        class="button operator-nav-button operator-nav-create"
-                    >
-                        Create Operator
-                    </a>
-
-
-                    <button
-                        type="submit"
-                        id="operatorUpdateButton"
-                        form="operatorSelectionForm"
-                        formaction="<?= APPLICATION_URL ?>/operators/update.php"
-                        formmethod="post"
-                        class="button operator-nav-button operator-nav-update"
-                        disabled
-                    >
-                        Modify Operator
-                    </button>
-
-
-                    <button
-                        type="submit"
-                        id="operatorStatusButton"
-                        form="operatorSelectionForm"
-                        formaction="<?= APPLICATION_URL ?>/operators/delete.php"
-                        formmethod="post"
-                        class="button operator-nav-button operator-nav-delete"
-                        aria-describedby="currentAccountDeleteNote"
-                        disabled
-                    >
-                        Delete Operator
-                    </button>
-
-
-                    <button
-                        type="reset"
-                        id="operatorClearButton"
-                        form="operatorSelectionForm"
-                        class="button operator-nav-button operator-nav-clear"
-                        disabled
-                    >
-                        Clear Selection
-                    </button>
-
-
-                    <a
-                        href="#operatorListHelp"
-                        class="button operator-nav-button operator-nav-help"
-                    >
-                        Help
-                    </a>
-
-
-                    <div
-                        id="currentAccountDeleteNote"
-                        class="operator-delete-current-note"
-                    >
-                        Current account cannot be deleted.
-                    </div>
-
-                </div>
-
-
-                <?php if ($showSaleNavigationLink): ?>
-
-                    <a
-                        href="<?= escapeOutput($saleNavigationHref) ?>"
-                        class="navigation-link"
-                    >
-                        <?= escapeOutput($saleNavigationLabel) ?>
-                    </a>
-
-                <?php endif; ?>
-
-
-                <?php if (operatorCanUseExpress()): ?>
-
-                    <a
-                        href="<?= APPLICATION_URL ?>/express/ex_home.php"
-                        class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
-                    >
-                        Express Orders
-                    </a>
-
-                <?php endif; ?>
-
-
-                <a
-                    href="<?= APPLICATION_URL ?>/inventory/stock_levels.php"
-                    class="navigation-link"
-                >
-                    Store Stock Levels
-                </a>
-
-
-            <?php elseif ($onOperatorActionPage): ?>
-
-                <a
-                    href="<?= APPLICATION_URL ?>/index.php"
-                    class="navigation-link navigation-home-link"
-                >
-                    <span
-                        class="navigation-home-icon"
-                        aria-hidden="true"
-                    >
-                        &#8962;
-                    </span>
-
-                    <span>
-                        Home
-                    </span>
-                </a>
-
-
-                <a
-                    href="<?= APPLICATION_URL ?>/operators/operator_list.php"
-                    class="navigation-link"
-                >
-                    Cancel
-                </a>
-
-
-                <?php if ($showSaleNavigationLink): ?>
-
-                    <a
-                        href="<?= escapeOutput($saleNavigationHref) ?>"
-                        class="navigation-link"
-                    >
-                        <?= escapeOutput($saleNavigationLabel) ?>
-                    </a>
-
-                <?php endif; ?>
-
-
-                <?php if (operatorCanUseExpress()): ?>
-
-                    <a
-                        href="<?= APPLICATION_URL ?>/express/ex_home.php"
-                        class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
-                    >
-                        Express Orders
-                    </a>
-
-                <?php endif; ?>
-
-
-                <a
-                    href="<?= APPLICATION_URL ?>/inventory/stock_levels.php"
-                    class="navigation-link"
-                >
-                    Store Stock Levels
-                </a>
-
-
-            <?php elseif ($onOperatorPage): ?>
-
-                <a
-                    href="<?= APPLICATION_URL ?>/index.php"
-                    class="navigation-link navigation-home-link"
-                >
-                    <span
-                        class="navigation-home-icon"
-                        aria-hidden="true"
-                    >
-                        &#8962;
-                    </span>
-
-                    <span>
-                        Home
-                    </span>
-                </a>
-
-
-                <a
-                    href="<?= APPLICATION_URL ?>/operators/operator_list.php"
-                    class="navigation-link"
-                >
-                    Manage Operators
-                </a>
-
-
-                <?php if ($showSaleNavigationLink): ?>
-
-                    <a
-                        href="<?= escapeOutput($saleNavigationHref) ?>"
-                        class="navigation-link"
-                    >
-                        <?= escapeOutput($saleNavigationLabel) ?>
-                    </a>
-
-                <?php endif; ?>
-
-
-                <?php if (operatorCanUseExpress()): ?>
-
-                    <a
-                        href="<?= APPLICATION_URL ?>/express/ex_home.php"
-                        class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
-                    >
-                        Express Orders
-                    </a>
-
-                <?php endif; ?>
-
-
-                <a
-                    href="<?= APPLICATION_URL ?>/inventory/stock_levels.php"
-                    class="navigation-link"
-                >
-                    Store Stock Levels
-                </a>
-
-
-            <?php elseif (operatorIsAdministrator()): ?>
-
-                <?php if ($currentPage !== 'home'): ?>
-
+                <div class="navigation-group">
                     <a
                         href="<?= APPLICATION_URL ?>/index.php"
-                        class="navigation-link navigation-home-link"
+                        class="navigation-link navigation-home-link navigation-link-active"
                     >
                         <span
                             class="navigation-home-icon"
                             aria-hidden="true"
-                        >
-                            &#8962;
-                        </span>
-
-                        <span>
-                            Home
-                        </span>
+                        >&#8962;</span>
+                        <span>Home</span>
                     </a>
-
-                <?php endif; ?>
-
-
-                <?php if ($showSaleNavigationLink): ?>
-
-                    <a
-                        href="<?= escapeOutput($saleNavigationHref) ?>"
-                        class="navigation-link"
-                    >
-                        <?= escapeOutput($saleNavigationLabel) ?>
-                    </a>
-
-                <?php endif; ?>
-
-
-                <?php if (operatorCanUseExpress()): ?>
-
-                    <a
-                        href="<?= APPLICATION_URL ?>/express/ex_home.php"
-                        class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
-                    >
-                        Express Orders
-                    </a>
-
-                <?php endif; ?>
-
-
-                <a
-                    href="<?= APPLICATION_URL ?>/inventory/stock_levels.php"
-                    class="navigation-link"
-                >
-                    Store Stock Levels
-                </a>
-
-
-                <a
-                    href="<?= APPLICATION_URL ?>/operators/operator_list.php"
-                    class="navigation-link"
-                >
-                    Manage Operators
-                </a>
-
-
-            <?php elseif ($onSalesPage): ?>
-
-                <a
-                    href="<?= APPLICATION_URL ?>/index.php"
-                    class="navigation-link navigation-home-link"
-                >
-                    <span
-                        class="navigation-home-icon"
-                        aria-hidden="true"
-                    >
-                        &#8962;
-                    </span>
-
-                    <span>
-                        Home
-                    </span>
-                </a>
-
-
-                <?php if ($currentPage !== 'new'): ?>
-
-                    <?php if ($showSaleNavigationLink): ?>
-
-                        <a
-                            href="<?= escapeOutput($saleNavigationHref) ?>"
-                            class="navigation-link"
-                        >
-                            <?= escapeOutput($saleNavigationLabel) ?>
-                        </a>
-
-                    <?php endif; ?>
-
-                <?php endif; ?>
-
-
-                <?php if (operatorCanUseExpress()): ?>
-
-                    <a
-                        href="<?= APPLICATION_URL ?>/express/ex_home.php"
-                        class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
-                    >
-                        Express Orders
-                    </a>
-
-                <?php endif; ?>
-
-
-                <a
-                    href="<?= APPLICATION_URL ?>/inventory/stock_levels.php"
-                    class="navigation-link"
-                >
-                    Store Stock Levels
-                </a>
-
-
-                <a
-                    href="<?= APPLICATION_URL ?>/account.php"
-                    class="navigation-link"
-                >
-                    Manage My Account
-                </a>
-
-
-            <?php elseif ($onInventoryPage): ?>
-
-                <a
-                    href="<?= APPLICATION_URL ?>/index.php"
-                    class="navigation-link navigation-home-link"
-                >
-                    <span
-                        class="navigation-home-icon"
-                        aria-hidden="true"
-                    >
-                        &#8962;
-                    </span>
-
-                    <span>
-                        Home
-                    </span>
-                </a>
-
-
-                <?php if ($showSaleNavigationLink): ?>
-
-                    <a
-                        href="<?= escapeOutput($saleNavigationHref) ?>"
-                        class="navigation-link"
-                    >
-                        <?= escapeOutput($saleNavigationLabel) ?>
-                    </a>
-
-                <?php endif; ?>
-
-
-                <?php if ($currentPage !== 'list'): ?>
-
-                    <a
-                        href="<?= APPLICATION_URL ?>/inventory/stock_levels.php"
-                        class="navigation-link"
-                    >
-                        Store Stock Levels
-                    </a>
-
-                <?php endif; ?>
-
-
-                <a
-                    href="<?= APPLICATION_URL ?>/account.php"
-                    class="navigation-link"
-                >
-                    Manage My Account
-                </a>
-
+                </div>
 
             <?php else: ?>
 
-                <?php if ($currentPage !== 'home'): ?>
-
+                <div class="navigation-group">
                     <a
                         href="<?= APPLICATION_URL ?>/index.php"
-                        class="navigation-link navigation-home-link"
+                        class="<?= $homeLinkClass ?>"
                     >
                         <span
                             class="navigation-home-icon"
                             aria-hidden="true"
+                        >&#8962;</span>
+                        <span>Home</span>
+                    </a>
+                </div>
+
+                <?php if ($onOperatorList && canViewOperators()): ?>
+                    <div class="navigation-group">
+                        <div class="navigation-group-title">Employee Actions</div>
+                        <div class="operator-nav-actions">
+                            <?php if (isAdministrator()): ?>
+                                <a
+                                    href="<?= APPLICATION_URL ?>/operators/op_create.php"
+                                    class="button operator-nav-button operator-nav-create"
+                                >
+                                    Create Employee
+                                </a>
+                                <button
+                                    type="submit"
+                                    id="operatorUpdateButton"
+                                    form="operatorSelectionForm"
+                                    formaction="<?= APPLICATION_URL ?>/operators/op_update.php"
+                                    formmethod="post"
+                                    class="button operator-nav-button operator-nav-update"
+                                    disabled
+                                >
+                                    Modify Employee
+                                </button>
+                            <?php endif; ?>
+                            <button
+                                type="submit"
+                                id="operatorStatusButton"
+                                form="operatorSelectionForm"
+                                formaction="<?= APPLICATION_URL ?>/operators/<?= $statusPage ?>"
+                                formmethod="post"
+                                class="button operator-nav-button operator-nav-delete"
+                                aria-describedby="currentAccountDeleteNote"
+                                disabled
+                            >
+                                <?= isAdministrator() ? 'Delete Employee' : 'Inactivate Employee' ?>
+                            </button>
+                            <a
+                                href="#"
+                                id="operatorTransactionsLink"
+                                aria-disabled="true"
+                                class="button operator-nav-button operator-nav-update"
+                            >
+                                View Transactions
+                            </a>
+                            <button
+                                type="reset"
+                                id="operatorClearButton"
+                                form="operatorSelectionForm"
+                                class="button operator-nav-button operator-nav-clear"
+                                disabled
+                            >
+                                Clear Selection
+                            </button>
+                            <a
+                                href="#operatorListHelp"
+                                class="button operator-nav-button operator-nav-help"
+                            >
+                                Help
+                            </a>
+                            <div
+                                id="currentAccountDeleteNote"
+                                class="operator-delete-current-note"
+                            >
+                                <?= isAdministrator()
+                                    ? 'Current account cannot be deleted.'
+                                    : 'You cannot change your own access.' ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php elseif ($onOperatorActionPage): ?>
+
+                    <div class="navigation-group">
+                        <div class="navigation-group-title">Employee Actions</div>
+                        <a
+                            href="<?= APPLICATION_URL ?>/operators/op_list.php"
+                            class="navigation-link"
                         >
-                            &#8962;
-                        </span>
-
-                        <span>
-                            Home
-                        </span>
-                    </a>
+                            Back to Operators
+                        </a>
+                    </div>
 
                 <?php endif; ?>
 
+                <?php if (canUseRegister() || canUseExpress() || canViewTransactions()): ?>
 
-                <?php if ($showSaleNavigationLink): ?>
+                    <div class="navigation-group">
+                        <div class="navigation-group-title">Sales</div>
+
+                        <?php if ($showSaleNavigationLink): ?>
+                            <a
+                                href="<?= escapeOutput($saleNavigationHref) ?>"
+                                class="<?= $salesLinkClass ?>"
+                            >
+                                <?= escapeOutput($saleNavigationLabel) ?>
+                            </a>
+                        <?php endif; ?>
+
+                        <?php if (canUseExpress()): ?>
+                            <a
+                                href="<?= APPLICATION_URL ?>/express/ex_home.php"
+                                class="<?= $expressLinkClass ?>"
+                            >
+                                Express Orders
+                            </a>
+                        <?php endif; ?>
+
+                        <?php if (canViewTransactions()): ?>
+                            <a
+                                href="<?= APPLICATION_URL ?>/transactions/tr_list.php"
+                                class="<?= $transactionsLinkClass ?>"
+                            >
+                                Transactions
+                            </a>
+                        <?php endif; ?>
+                    </div>
+
+                <?php endif; ?>
+
+                <div class="navigation-group">
+                    <div class="navigation-group-title">Inventory</div>
 
                     <a
-                        href="<?= escapeOutput($saleNavigationHref) ?>"
-                        class="navigation-link"
+                        href="<?= APPLICATION_URL ?>/inventory/inv_stock.php"
+                        class="<?= $stockLinkClass ?>"
                     >
-                        <?= escapeOutput($saleNavigationLabel) ?>
+                        Stock Levels
                     </a>
 
+                    <?php if (canManageInventory()): ?>
+                        <a
+                            href="<?= APPLICATION_URL ?>/inventory/inv_manage.php"
+                            class="<?= $manageLinkClass ?>"
+                        >
+                            Manage Inventory
+                        </a>
+                    <?php endif; ?>
+                </div>
+
+                <?php if (canViewOperators()): ?>
+                    <div class="navigation-group">
+                        <a
+                            href="<?= APPLICATION_URL ?>/operators/op_list.php"
+                            class="<?= $operatorsLinkClass ?>"
+                        >
+                            Employees
+                        </a>
+                    </div>
                 <?php endif; ?>
 
-
-                <?php if (operatorCanUseExpress()): ?>
-
+                <div class="navigation-group">
                     <a
-                        href="<?= APPLICATION_URL ?>/express/ex_home.php"
-                        class="navigation-link<?= $currentSection === 'express' ? ' navigation-link-active' : '' ?>"
+                        href="<?= APPLICATION_URL ?>/training/tc_home.php"
+                        class="<?= $trainingLinkClass ?>"
                     >
-                        Express Orders
+                        Training Center
                     </a>
+                </div>
 
-                <?php endif; ?>
-
-
-                <a
-                    href="<?= APPLICATION_URL ?>/inventory/stock_levels.php"
-                    class="navigation-link"
-                >
-                    Store Stock Levels
-                </a>
-
-
-                <?php if (!$onAccountPage): ?>
-
+                <div class="navigation-group">
                     <a
                         href="<?= APPLICATION_URL ?>/account.php"
-                        class="navigation-link"
+                        class="<?= $accountLinkClass ?>"
                     >
-                        Manage My Account
+                        My Account
                     </a>
+                </div>
 
-                <?php endif; ?>
-
-
-                <?php if ($onAccountPage): ?>
-
-                    <a
-                        href="<?= APPLICATION_URL ?>/index.php"
-                        class="navigation-link"
-                    >
-                        Cancel
-                    </a>
-
+                <?php if (isAdministrator()): ?>
+                    <div class="navigation-group navigation-group-end">
+                        <a
+                            href="<?= APPLICATION_URL ?>/registers/reg_setup.php"
+                            class="<?= $registersLinkClass ?>"
+                        >
+                            Register Configuration
+                        </a>
+                    </div>
                 <?php endif; ?>
 
             <?php endif; ?>

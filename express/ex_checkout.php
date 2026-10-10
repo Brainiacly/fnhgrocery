@@ -7,20 +7,14 @@
 
 require_once __DIR__ . '/../includes/access_control.php';
 
-requireExpressAccess();
+requireExpress();
 
-$databaseConnection = connectDatabase();
+$db = connectDatabase();
 
 $storeID =
-    (int) (
-        $_SESSION['store_id']
-        ?? 0
-    );
+    signedInStoreID();
 $operatorID =
-    (int) (
-        $_SESSION['operator_id']
-        ?? 0
-    );
+    signedInOperatorID();
 $expressOrderID =
     (int) (
         $_GET['id']
@@ -32,7 +26,7 @@ $errorMessage = '';
 
 try {
     $orderStatement =
-        $databaseConnection->prepare(
+        $db->prepare(
             '
             SELECT *
             FROM vw_express_orders
@@ -57,7 +51,7 @@ try {
         header(
             'Location: '
             . APPLICATION_URL
-            . '/express/orders.php'
+            . '/express/ex_orders.php'
         );
 
         exit;
@@ -65,16 +59,25 @@ try {
 
     if (
         (int) $order['PersonalShopperID'] !== $operatorID
-        &&
-        !operatorIsAdministrator()
     ) {
-        http_response_code(403);
-
-        exit(
-            "You cannot check out another Personal Shopper's Express order."
+        showAccessDeniedPage(
+            "Take this order over from its transaction details before checking it out."
         );
     }
 
+    if (
+        $order['ReceiptStatus'] === 'Open'
+        && $order['ExpressStatus'] !== 'Ready'
+    ) {
+        header(
+            'Location: '
+            . APPLICATION_URL
+            . '/express/ex_order.php?id='
+            . $expressOrderID
+            . '&notready=1'
+        );
+        exit;
+    }
     if ($order['ReceiptStatus'] !== 'Open') {
         header(
             'Location: '
@@ -87,7 +90,7 @@ try {
     }
 
     $itemStatement =
-        $databaseConnection->prepare(
+        $db->prepare(
             '
             SELECT
                 ProductName,
@@ -121,7 +124,7 @@ if (!$saleItems) {
     header(
         'Location: '
         . APPLICATION_URL
-        . '/express/order.php?id='
+        . '/express/ex_order.php?id='
         . $expressOrderID
     );
 
@@ -191,7 +194,7 @@ $taxableSubtotal =
 $taxAmount =
     round(
         $taxableSubtotal
-        * 0.0775,
+        * SALES_TAX_RATE,
         2
     );
 
@@ -213,44 +216,35 @@ if (
     isset($_POST['complete_order'])
 ) {
 
-    $submittedSecurityToken =
+    $submittedToken =
         $_POST['form_security_token']
         ?? '';
 
-    if (!formSecurityTokenIsValid($submittedSecurityToken)) {
+    if (!tokenIsValid($submittedToken)) {
 
         $errorMessage =
             'The form expired. Please try again.';
 
     } else {
 
-        $amountTendered =
-            filter_var(
-                $_POST['amount_tendered']
-                ?? null,
-                FILTER_VALIDATE_FLOAT
-            );
-
-        if (
-            $amountTendered === false
-            ||
-            $amountTendered < 0
-        ) {
-
+        // Express orders are paid in advance by charge, so no cash is entered
+        $amountTendered = $totalAmount;
+        if ($amountTendered < 0) {
             $errorMessage =
-                'Enter a valid cash amount.';
+                'The total due is not valid.';
 
         } else {
 
             try {
 
                 $checkoutStatement =
-                    $databaseConnection->prepare(
+                    $db->prepare(
                         '
                         CALL sp_checkout_sale(
                             :receiptID,
                             :amountTendered,
-                            :operatorID
+                            :operatorID,
+                            :paymentMethod
                         )
                         '
                     );
@@ -258,12 +252,12 @@ if (
                 $checkoutStatement->execute([
                     ':receiptID' =>
                         (int) $order['ReceiptID'],
-
                     ':amountTendered' =>
                         $amountTendered,
-
                     ':operatorID' =>
-                        $operatorID
+                        $operatorID,
+                    ':paymentMethod' =>
+                        'Charge'
                 ]);
 
                 $checkoutStatement->fetch();
@@ -283,7 +277,7 @@ if (
             } catch (PDOException $exception) {
 
                 $errorMessage =
-                    getSafeDatabaseErrorMessage(
+                    databaseMessage(
                         $exception,
                         'The Express checkout could not be completed.'
                     );
@@ -315,7 +309,7 @@ require __DIR__ . '/../includes/header.php';
         </h1>
 
         <p>
-            <?= escapeOutput($order['TransactionNumber']) ?>
+            <?= transactionNumberHtml($order['TransactionNumber']) ?>
         </p>
 
     </div>
@@ -329,6 +323,10 @@ require __DIR__ . '/../includes/header.php';
 
     <?php endif; ?>
 
+
+    <div class="checkout-layout">
+
+    <div class="checkout-items">
 
     <div class="express-table-container">
 
@@ -388,6 +386,10 @@ require __DIR__ . '/../includes/header.php';
     </div>
 
 
+    </div>
+
+    <div class="checkout-payment">
+
     <div class="express-checkout-totals">
 
         <div>
@@ -421,7 +423,7 @@ require __DIR__ . '/../includes/header.php';
         <input
             type="hidden"
             name="form_security_token"
-            value="<?= escapeOutput(getFormSecurityToken()) ?>"
+            value="<?= escapeOutput(formToken()) ?>"
         >
 
         <input
@@ -431,21 +433,14 @@ require __DIR__ . '/../includes/header.php';
         >
 
 
-        <div class="form-field">
-
-            <label for="amount_tendered">
-                Cash Tendered
-            </label>
-
-            <input
-                type="number"
-                id="amount_tendered"
-                name="amount_tendered"
-                min="<?= escapeOutput(number_format($totalAmount, 2, '.', '')) ?>"
-                step="0.01"
-                required
-            >
-
+        <div class="express-charge-note">
+            <strong>
+                Payment: Charge
+            </strong>
+            <span>
+                The customer pays in advance. The total is charged to the customer's card and recorded
+                as a Charge. No cash is taken and no change is given.
+            </span>
         </div>
 
 
@@ -456,12 +451,10 @@ require __DIR__ . '/../includes/header.php';
                 name="complete_order"
                 value="1"
                 class="button button-primary"
-            >
-                Complete Express Sale
-            </button>
+            > Charge Order </button>
 
             <a
-                href="<?= APPLICATION_URL ?>/express/order.php?id=<?= $expressOrderID ?>"
+                href="<?= APPLICATION_URL ?>/express/ex_order.php?id=<?= $expressOrderID ?>"
                 class="button button-secondary"
             >
                 Back to Order
@@ -470,6 +463,11 @@ require __DIR__ . '/../includes/header.php';
         </div>
 
     </form>
+
+
+    </div>
+
+    </div>
 
 </section>
 

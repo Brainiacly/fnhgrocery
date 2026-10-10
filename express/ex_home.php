@@ -7,39 +7,41 @@
 
 require_once __DIR__ . '/../includes/access_control.php';
 
-requireExpressAccess();
+requireExpress();
 
-$databaseConnection = connectDatabase();
+$db = connectDatabase();
 
 $storeID =
-    (int) (
-        $_SESSION['store_id']
-        ?? 0
-    );
+    signedInStoreID();
 
 $operatorID =
-    (int) (
-        $_SESSION['operator_id']
-        ?? 0
-    );
+    signedInOperatorID();
 
-$isAdministrator =
-    operatorIsAdministrator();
+$isSupervisor =
+    canSupervise();
 
 
 $loadErrorMessage = '';
 $capacity = [
-    'DailyCapacity' => 20,
+    'DailyCapacity' => EXPRESS_DAILY_CAPACITY,
     'OrdersUsed' => 0,
     'OrdersRemaining' => 0
 ];
 $orders = [];
-$totalStockQuantity = 0.00;
+$board = ['Received' => [], 'Picking' => [], 'Ready' => []];
+$finishedOrders = [];
+$boardHints = [
+    'Received' => 'The order is taken. Add its items to start picking.',
+    'Picking' => 'Items are being picked. Mark the order Ready when done.',
+    'Ready' => 'Picked and waiting. Check out to charge the customer.'
+];
+$weightInStock = 0.0;
+$quantityInStock = 0;
 $stockRows = [];
 
 try {
     $capacityStatement =
-        $databaseConnection->prepare(
+        $db->prepare(
             '
             CALL sp_get_express_capacity(
                 :storeID
@@ -60,15 +62,21 @@ try {
         $capacity = $capacityRecord;
     }
 
-    if ($isAdministrator) {
+    if ($isSupervisor) {
         $ordersStatement =
-            $databaseConnection->prepare(
+            $db->prepare(
                 '
-                SELECT *
-                FROM vw_express_orders
-                WHERE StoreID = :storeID
-                  AND DATE(OrderPlacedDateTime) = CURDATE()
-                ORDER BY OrderPlacedDateTime DESC
+                SELECT
+                    eo.*,
+                    (
+                        SELECT COUNT(*)
+                        FROM salesreceiptline sl
+                        WHERE sl.ReceiptID = eo.ReceiptID
+                    ) AS LineCount
+                FROM vw_express_orders eo
+                WHERE eo.StoreID = :storeID
+                  AND DATE(eo.OrderPlacedDateTime) = CURDATE()
+                ORDER BY eo.OrderPlacedDateTime
                 '
             );
 
@@ -77,14 +85,20 @@ try {
         ]);
     } else {
         $ordersStatement =
-            $databaseConnection->prepare(
+            $db->prepare(
                 '
-                SELECT *
-                FROM vw_express_orders
-                WHERE StoreID = :storeID
-                  AND PersonalShopperID = :operatorID
-                  AND DATE(OrderPlacedDateTime) = CURDATE()
-                ORDER BY OrderPlacedDateTime DESC
+                SELECT
+                    eo.*,
+                    (
+                        SELECT COUNT(*)
+                        FROM salesreceiptline sl
+                        WHERE sl.ReceiptID = eo.ReceiptID
+                    ) AS LineCount
+                FROM vw_express_orders eo
+                WHERE eo.StoreID = :storeID
+                  AND eo.PersonalShopperID = :operatorID
+                  AND DATE(eo.OrderPlacedDateTime) = CURDATE()
+                ORDER BY eo.OrderPlacedDateTime
                 '
             );
 
@@ -97,31 +111,21 @@ try {
     $orders =
         $ordersStatement->fetchAll();
 
-    $totalStockStatement =
-        $databaseConnection->prepare(
-            '
-            SELECT
-                TotalStockQuantity
-            FROM vw_store_stock_total
-            WHERE StoreID = :storeID
-            LIMIT 1
-            '
-        );
+    // Open orders go on the board by status, the rest are finished
+    foreach ($orders as $order) {
+        if (
+            $order['ReceiptStatus'] === 'Open'
+            && isset($board[$order['ExpressStatus']])
+        ) {
+            $board[$order['ExpressStatus']][] = $order;
+        } else {
+            $finishedOrders[] = $order;
+        }
+    }
 
-    $totalStockStatement->execute([
-        ':storeID' => $storeID
-    ]);
-
-    $totalStockRecord =
-        $totalStockStatement->fetch();
-
-    $totalStockQuantity =
-        $totalStockRecord
-            ? (float) $totalStockRecord['TotalStockQuantity']
-            : 0.00;
 
     $stockStatement =
-        $databaseConnection->prepare(
+        $db->prepare(
             '
             SELECT
                 DepartmentID,
@@ -150,6 +154,17 @@ try {
 
     $stockRows =
         $stockStatement->fetchAll();
+
+    $weightInStock = 0.0;
+    $quantityInStock = 0;
+
+    foreach ($stockRows as $stockRow) {
+        if ($stockRow['UnitType'] === 'Pound') {
+            $weightInStock += (float) $stockRow['StockQuantity'];
+        } else {
+            $quantityInStock += (int) floor((float) $stockRow['StockQuantity']);
+        }
+    }
 
 } catch (PDOException $exception) {
     error_log($exception->getMessage());
@@ -218,7 +233,7 @@ require __DIR__ . '/../includes/header.php';
                 class="button button-primary"
                 href="<?= APPLICATION_URL ?>/express/ex_new.php"
             >
-                New Express Order
+                Take New Order
             </a>
 
         <?php else: ?>
@@ -235,7 +250,7 @@ require __DIR__ . '/../includes/header.php';
 
         <a
             class="button button-secondary"
-            href="<?= APPLICATION_URL ?>/express/orders.php"
+            href="<?= APPLICATION_URL ?>/express/ex_orders.php"
         >
             View Today&apos;s Orders
         </a>
@@ -244,14 +259,113 @@ require __DIR__ . '/../includes/header.php';
 
 
     <h2>
-        Today&apos;s Express Orders
+        Order Board
     </h2>
 
+    <p class="express-steps">
+        1. Take the order. 2. Add the items (the order moves to Picking).
+        3. Mark it Ready. 4. Check out (the customer is charged).
+    </p>
 
-    <?php if (!$orders): ?>
+    <div class="express-board">
+
+        <?php foreach ($board as $statusName => $statusOrders): ?>
+
+            <section class="express-board-column">
+
+                <h3>
+                    <?= escapeOutput($statusName) ?>
+                    <span class="express-board-count">
+                        <?= count($statusOrders) ?>
+                    </span>
+                </h3>
+
+                <p class="express-board-hint">
+                    <?= escapeOutput($boardHints[$statusName]) ?>
+                </p>
+
+                <?php if (!$statusOrders): ?>
+
+                    <p class="express-empty">
+                        No orders.
+                    </p>
+
+                <?php endif; ?>
+
+                <?php foreach ($statusOrders as $order): ?>
+
+                    <?php
+                    $belongsToCurrentShopper =
+                        (int) $order['PersonalShopperID'] === $operatorID;
+
+                    // A supervisor opening someone else's order chooses View, Assist, or Take Over first
+                    $orderURL =
+                        $isSupervisor && !$belongsToCurrentShopper
+                            ? APPLICATION_URL
+                                . '/transactions/tr_view.php?receipt='
+                                . (int) $order['ReceiptID']
+                            : APPLICATION_URL
+                                . '/express/ex_order.php?id='
+                                . (int) $order['ExpressOrderID'];
+
+                    $customerName = trim(
+                        ($order['CustomerFirstName'] ?? '')
+                        . ' '
+                        . ($order['CustomerLastName'] ?? '')
+                    );
+                    ?>
+
+                    <article class="express-card">
+
+                        <?= transactionNumberHtml($order['TransactionNumber'], true) ?>
+
+                        <strong>
+                            <?= escapeOutput($customerName) ?>
+                        </strong>
+
+                        <span>
+                            <?= escapeOutput($order['FulfillmentMethod']) ?>
+                            |
+                            <?= (int) $order['LineCount'] ?>
+                            <?= (int) $order['LineCount'] === 1 ? 'product' : 'products' ?>
+                            |
+                            $<?= escapeOutput(number_format((float) $order['SubtotalAmount'], 2)) ?>
+                        </span>
+
+                        <?php if ($isSupervisor): ?>
+
+                            <span>
+                                Shopper:
+                                <?= escapeOutput($order['PersonalShopperUsername']) ?>
+                            </span>
+
+                        <?php endif; ?>
+
+                        <a
+                            class="button button-secondary"
+                            href="<?= $orderURL ?>"
+                        >
+                            Open
+                        </a>
+
+                    </article>
+
+                <?php endforeach; ?>
+
+            </section>
+
+        <?php endforeach; ?>
+
+    </div>
+
+    <h2>
+        Finished Today
+    </h2>
+
+    <?php if (!$finishedOrders): ?>
 
         <p class="express-empty">
-            No Express orders have been recorded today.
+            No Express orders have been completed or cancelled today.
         </p>
 
     <?php else: ?>
@@ -261,56 +375,31 @@ require __DIR__ . '/../includes/header.php';
             <table class="express-table">
 
                 <thead>
-
                     <tr>
-                        <th>
-                            Order
-                        </th>
-
-                        <th>
-                            Customer
-                        </th>
-
-                        <th>
-                            Method
-                        </th>
-
-                        <?php if ($isAdministrator): ?>
-                            <th>
-                                Personal Shopper
-                            </th>
-                        <?php endif; ?>
-
-                        <th>
-                            Status
-                        </th>
-
-                        <th>
-                            Total
-                        </th>
-
-                        <th>
-                            Open
-                        </th>
+                        <th>Order</th>
+                        <th>Customer</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th>Total</th>
+                        <th>View</th>
                     </tr>
-
                 </thead>
 
                 <tbody>
 
-                    <?php foreach ($orders as $order): ?>
+                    <?php foreach ($finishedOrders as $order): ?>
 
                         <?php
                         $orderURL =
                             APPLICATION_URL
-                            . '/express/order.php?id='
+                            . '/express/ex_order.php?id='
                             . (int) $order['ExpressOrderID'];
                         ?>
 
                         <tr>
 
                             <td>
-                                <?= escapeOutput($order['TransactionNumber']) ?>
+                                <?= transactionNumberHtml($order['TransactionNumber'], true) ?>
                             </td>
 
                             <td>
@@ -327,37 +416,22 @@ require __DIR__ . '/../includes/header.php';
                                 <?= escapeOutput($order['FulfillmentMethod']) ?>
                             </td>
 
-                            <?php if ($isAdministrator): ?>
-                                <td>
-                                    <?= escapeOutput($order['PersonalShopperUsername']) ?>
-                                </td>
-                            <?php endif; ?>
-
                             <td>
                                 <?= escapeOutput($order['ExpressStatus']) ?>
                             </td>
 
                             <td>
-                                <?php if ($order['ExpressStatus'] === 'Cancelled'): ?>
-                                    Cancelled
-                                <?php elseif ($order['ReceiptStatus'] === 'Open'): ?>
-                                    Pending
-                                <?php else: ?>
-                                    $<?= escapeOutput(
-                                        number_format(
-                                            (float) $order['TotalAmount'],
-                                            2
-                                        )
-                                    ) ?>
-                                <?php endif; ?>
+                                <?= $order['ExpressStatus'] === 'Cancelled'
+                                    ? 'Cancelled'
+                                    : '$' . escapeOutput(number_format((float) $order['TotalAmount'], 2)) ?>
                             </td>
 
                             <td>
                                 <a
                                     class="button button-secondary"
-                                    href="<?= escapeOutput($orderURL) ?>"
+                                    href="<?= $orderURL ?>"
                                 >
-                                    Open
+                                    View
                                 </a>
                             </td>
 
@@ -373,7 +447,6 @@ require __DIR__ . '/../includes/header.php';
 
     <?php endif; ?>
 
-
     <h2>
         Store Stock
     </h2>
@@ -381,18 +454,19 @@ require __DIR__ . '/../includes/header.php';
 
     <section class="express-stock-total">
 
-        <span class="express-stock-total-label">
-            Total Units Currently in Stock
-        </span>
+        <div>
+            <span class="express-stock-total-label">PLU Weight in Stock</span>
+            <strong class="express-stock-total-value">
+                <?= escapeOutput(number_format($weightInStock, 3)) ?> lb
+            </strong>
+        </div>
 
-        <strong class="express-stock-total-value">
-            <?= escapeOutput(
-                number_format(
-                    $totalStockQuantity,
-                    3
-                )
-            ) ?>
-        </strong>
+        <div>
+            <span class="express-stock-total-label">Quantity in Stock</span>
+            <strong class="express-stock-total-value">
+                <?= escapeOutput(number_format($quantityInStock, 0)) ?> each
+            </strong>
+        </div>
 
     </section>
 
@@ -425,7 +499,11 @@ require __DIR__ . '/../includes/header.php';
                     </th>
 
                     <th>
-                        Location
+                        Aisle / Section
+                    </th>
+
+                    <th>
+                        Shelf
                     </th>
                 </tr>
 
@@ -444,35 +522,18 @@ require __DIR__ . '/../includes/header.php';
                     $stockQuantity =
                         (float) $stock['StockQuantity'];
 
-                    $locationParts = [];
+                    $sectionParts = [];
 
-                    if (
-                        trim(
-                            (string) $stock['Aisle']
-                        ) !== ''
-                    ) {
-                        $locationParts[] =
-                            'Aisle '
-                            . $stock['Aisle'];
+                    if (trim((string) $stock['Aisle']) !== '') {
+                        $sectionParts[] = 'Aisle ' . $stock['Aisle'];
                     }
 
-                    if (
-                        trim(
-                            (string) $stock['SectionName']
-                        ) !== ''
-                    ) {
-                        $locationParts[] =
-                            $stock['SectionName'];
+                    if (trim((string) $stock['SectionName']) !== '') {
+                        $sectionParts[] = $stock['SectionName'];
                     }
 
-                    if (
-                        trim(
-                            (string) $stock['ShelfLocation']
-                        ) !== ''
-                    ) {
-                        $locationParts[] =
-                            $stock['ShelfLocation'];
-                    }
+                    $sectionText = implode(', ', $sectionParts);
+                    $shelfText = trim((string) $stock['ShelfLocation']);
                     ?>
 
                     <tr
@@ -516,7 +577,7 @@ require __DIR__ . '/../includes/header.php';
                                             $stockQuantity,
                                             3
                                         )
-                                ) ?>
+                                ) ?> <?= $stock['UnitType'] === 'Each' ? 'each' : 'lb' ?>
                             </strong>
 
                             <?php if ($stockQuantity <= 0): ?>
@@ -527,12 +588,11 @@ require __DIR__ . '/../includes/header.php';
                         </td>
 
                         <td>
-                            <?= escapeOutput(
-                                implode(
-                                    ' | ',
-                                    $locationParts
-                                )
-                            ) ?>
+                            <?= escapeOutput($sectionText) ?>
+                        </td>
+
+                        <td>
+                            <?= escapeOutput($shelfText) ?>
                         </td>
 
                     </tr>

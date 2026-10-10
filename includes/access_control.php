@@ -5,11 +5,75 @@
  * CSC 680
  */
 
+// This file is included by pages and cannot be opened on its own
+if (basename($_SERVER['SCRIPT_NAME']) === basename(__FILE__)) {
+    http_response_code(404);
+    exit;
+}
+
 require_once __DIR__ . '/../config/database.php';
+
+// Keep session files for the whole sign-in time
+ini_set('session.gc_maxlifetime', (string) (SIGN_IN_HOURS * 3600));
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
+
+// End the sign-in when the time limit has passed
+if (
+    isset($_SESSION['operator_id'])
+    && time() - (int) ($_SESSION['signed_in_at'] ?? 0) > SIGN_IN_HOURS * 3600
+) {
+    $_SESSION = [];
+    session_regenerate_id(true);
+    header('Location: ' . APPLICATION_URL . '/index.php?expired=1');
+    exit;
+}
+
+// Split a transaction number in two so tables can show it on two lines
+function transactionNumberParts($number)
+{
+    if (preg_match('/^([A-Z]\d{3}-\d{8})(\d+-\d+)$/', (string) $number, $match)) {
+        return [$match[1], $match[2]];
+    }
+
+    return [(string) $number, ''];
+}
+
+
+// Show a transaction number in two parts that break only between the parts
+function transactionNumberHtml($number, $stacked = false)
+{
+    $parts = transactionNumberParts($number);
+
+    $class = 'transaction-number';
+
+    if ($stacked) {
+        $class .= ' transaction-number-stacked';
+    }
+
+    $html =
+        '<span class="' . $class . '" title="' . escapeOutput($number) . '">'
+        . '<span class="transaction-number-line">'
+        . escapeOutput($parts[0])
+        . '</span>';
+
+    if ($parts[1] !== '') {
+        // Stacked lines are already apart, so only side-by-side parts need a break point
+        if (!$stacked) {
+            $html .= '<wbr>';
+        }
+
+        $html .=
+            '<span class="transaction-number-line">'
+            . escapeOutput($parts[1])
+            . '</span>';
+    }
+
+    return $html . '</span>';
+}
+
 
 // Escape output
 function escapeOutput($value)
@@ -21,112 +85,221 @@ function escapeOutput($value)
     );
 }
 
+// A stock quantity with its unit: whole numbers for each items, three decimals for pounds
+function formatStock($quantity, $unitType)
+{
+    return $unitType === 'Each'
+        ? number_format((float) $quantity, 0) . ' each'
+        : number_format((float) $quantity, 3) . ' lb';
+}
+
 // Check login
-function operatorIsLoggedIn()
+function isLoggedIn()
 {
     return isset($_SESSION['operator_id']);
 }
 
-// Check assigned access
-function operatorHasAssignedAccess()
+// The signed-in operator's store, id, and role, read from the session in one place
+function signedInStoreID()
 {
-    return operatorIsLoggedIn()
+    return (int) ($_SESSION['store_id'] ?? 0);
+}
+
+function signedInOperatorID()
+{
+    return (int) ($_SESSION['operator_id'] ?? 0);
+}
+
+function signedInRole()
+{
+    return (string) ($_SESSION['role'] ?? '');
+}
+
+function signedInStoreName()
+{
+    return (string) ($_SESSION['store_name'] ?? '');
+}
+
+// Check assigned access
+function hasAccess()
+{
+    return isLoggedIn()
         && in_array(
             $_SESSION['role'] ?? '',
-            ['Administrator', 'Operator', 'Personal Shopper'],
+            ['Administrator', 'Manager', 'Operator', 'Personal Shopper'],
             true
         );
 }
 
 // Check administrator
-function operatorIsAdministrator()
+function isManager()
 {
-    return operatorIsLoggedIn()
+    return isLoggedIn() && ($_SESSION['role'] ?? '') === 'Manager';
+}
+
+function isOperator()
+{
+    return isLoggedIn() && signedInRole() === 'Operator';
+}
+
+function isPersonalShopper()
+{
+    return isLoggedIn() && signedInRole() === 'Personal Shopper';
+}
+
+// A supervisor who chose Assist for this one transaction may work on it
+function isAssisting($receiptID)
+{
+    return canSupervise()
+        && (int) ($_SESSION['supervisor_assist_receipt'] ?? 0) === (int) $receiptID;
+}
+
+function canSupervise()
+{
+    return isAdministrator() || isManager();
+}
+
+function isAdministrator()
+{
+    return isLoggedIn()
         && ($_SESSION['role'] ?? '') === 'Administrator';
 }
 
 // Check regular point-of-sale access
-function operatorCanUseRegularPOS()
+function canUseRegister()
 {
-    return operatorIsLoggedIn()
+    return isLoggedIn()
         && in_array(
             $_SESSION['role'] ?? '',
-            ['Administrator', 'Operator'],
+            ['Administrator', 'Manager', 'Operator'],
             true
         );
 }
 
 // Check FnH Express access
-function operatorCanUseExpress()
+function canUseExpress()
 {
-    return operatorIsLoggedIn()
+    return isLoggedIn()
         && in_array(
             $_SESSION['role'] ?? '',
-            ['Administrator', 'Personal Shopper'],
+            ['Administrator', 'Manager', 'Personal Shopper'],
             true
         );
 }
 
-// Require regular point-of-sale access
-function requireRegularPOSAccess()
+// Display a full access-denied page while preserving the site navigation
+function showAccessDeniedPage($message)
 {
-    requireOperatorLogin();
+    http_response_code(403);
 
-    if (!operatorCanUseRegularPOS()) {
-        http_response_code(403);
-        exit('Point of Sale access is required.');
+    $pageTitle = 'Access Denied';
+    $currentSection = 'access';
+    $currentPage = 'denied';
+    $accessDeniedMessage = $message;
+
+    require __DIR__ . '/header.php';
+    require __DIR__ . '/access_denied.php';
+    require __DIR__ . '/footer.php';
+    exit;
+}
+
+// Require regular point-of-sale access
+function requireRegister()
+{
+    requireLogin();
+
+    if (!canUseRegister()) {
+        showAccessDeniedPage(
+            'Point of Sale access is required. Use the navigation menu to open the areas available to your account.'
+        );
     }
 }
 
 // Require FnH Express access
-function requireExpressAccess()
+function requireExpress()
 {
-    requireOperatorLogin();
+    requireLogin();
 
-    if (!operatorCanUseExpress()) {
-        http_response_code(403);
-        exit('FnH Express access is required.');
+    if (!canUseExpress()) {
+        showAccessDeniedPage(
+            'FnH Express access is required. Use the navigation menu to open the areas available to your account.'
+        );
     }
 }
 
 // Require login and refresh the current operator before checking privileges
-function requireOperatorLogin()
+function requireLogin()
 {
-    if (!operatorIsLoggedIn()) {
+    if (!isLoggedIn()) {
         header('Location: ' . APPLICATION_URL . '/index.php');
         exit;
     }
 
-    if (!refreshCurrentOperatorSession()) {
+    if (!refreshSession()) {
         header('Location: ' . APPLICATION_URL . '/index.php');
         exit;
     }
 }
 
 // Require assigned access
-function requireAssignedAccess()
+function requireAccess()
 {
-    requireOperatorLogin();
+    requireLogin();
 
-    if (!operatorHasAssignedAccess()) {
-        header('Location: ' . APPLICATION_URL . '/index.php');
-        exit;
+    if (!hasAccess()) {
+        showAccessDeniedPage(
+            'Your account does not currently have access to this area. '
+            . 'Use the navigation menu to return Home or contact an Administrator for access.'
+        );
     }
 }
 
 // Require administrator
 function requireAdministrator()
 {
-    requireAssignedAccess();
+    requireAccess();
 
-    if (!operatorIsAdministrator()) {
-        http_response_code(403);
-        exit('Administrator access is required.');
+    if (!isAdministrator()) {
+        showAccessDeniedPage(
+            'Administrator access is required. '
+            . 'Use the navigation menu to continue to an area available to your account.'
+        );
     }
 }
 
+// Require an Administrator or a Manager
+function requireSupervisor()
+{
+    requireAccess();
+
+    if (!canSupervise()) {
+        showAccessDeniedPage(
+            'Administrator or Manager access is required. '
+            . 'Use the navigation menu to continue to an area available to your account.'
+        );
+    }
+}
+
+// Check inventory-management access
+function canManageInventory()
+{
+    return canSupervise();
+}
+
+// Check employee-directory access
+function canViewOperators()
+{
+    return canSupervise();
+}
+
+// Check transaction-viewer access
+function canViewTransactions()
+{
+    return hasAccess();
+}
+
 // Create form security token
-function getFormSecurityToken()
+function formToken()
 {
     if (empty($_SESSION['form_security_token'])) {
         $_SESSION['form_security_token'] =
@@ -137,7 +310,7 @@ function getFormSecurityToken()
 }
 
 // Validate form security token
-function formSecurityTokenIsValid($submittedToken)
+function tokenIsValid($submittedToken)
 {
     return isset($_SESSION['form_security_token'])
         && is_string($submittedToken)
@@ -148,7 +321,7 @@ function formSecurityTokenIsValid($submittedToken)
 }
 
 // Check password requirements
-function passwordMeetsRequirements($password)
+function passwordIsValid($password)
 {
     return preg_match(
         '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{8,}$/',
@@ -157,13 +330,13 @@ function passwordMeetsRequirements($password)
 }
 
 // Password requirement text
-function passwordRequirementText()
+function passwordRules()
 {
     return 'Minimum 8 characters with at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 symbol';
 }
 
 // Check middle initial
-function middleInitialIsValid($middleInitial)
+function initialIsValid($middleInitial)
 {
     return $middleInitial === ''
         || preg_match('/^[A-Za-z]$/', $middleInitial) === 1;
@@ -171,7 +344,7 @@ function middleInitialIsValid($middleInitial)
 
 
 // Check optional phone number
-function phoneNumberIsValid($phone)
+function phoneIsValid($phone)
 {
     return $phone === ''
         || preg_match('/^[0-9]{10}$/', $phone) === 1;
@@ -179,7 +352,7 @@ function phoneNumberIsValid($phone)
 
 
 // Get logged-in operator display name
-function getLoggedInOperatorDisplayName()
+function signedInName()
 {
     $firstName =
         trim(
@@ -233,16 +406,16 @@ function getLoggedInOperatorDisplayName()
 }
 
 // Refresh current session from the database
-function refreshCurrentOperatorSession()
+function refreshSession()
 {
-    if (!operatorIsLoggedIn()) {
+    if (!isLoggedIn()) {
         return false;
     }
 
     try {
-        $databaseConnection = connectDatabase();
+        $db = connectDatabase();
 
-        $statement = $databaseConnection->prepare(
+        $statement = $db->prepare(
             '
             SELECT
                 OperatorID,

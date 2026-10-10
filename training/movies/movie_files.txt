@@ -1,0 +1,13 @@
+FnH Groceries - CSC 680 Assignment 4 Training Movies
+Brian Phillips
+
+Save the five training movies in this folder with these exact names:
+
+01_getting_started.mp4
+02_operator_administration.mp4
+03_point_of_sale.mp4
+04_fnh_express.mp4
+05_inventory_and_transactions.mp4
+
+Each topic page links to the movie that shows it. To open a topic at the right moment,
+set its 'start' value (in seconds) in training/tc_data.php.

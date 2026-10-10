@@ -5,6 +5,18 @@ USE `csc680-fnhgroceries_fnh_groceries`;
 
 START TRANSACTION;
 
+-- Standard discount reasons used by the POS forms.
+-- Definitions belong with seed data; the table itself is created by 01.
+INSERT INTO discountreason (ReasonText)
+VALUES
+	('Coupon'),
+	('Customer service'),
+	('Damaged package'),
+	('Loyalty reward'),
+	('Manager approval'),
+	('Price match'),
+	('Store promotion');
+
 -- Insert data in foreign-key dependency order
 
 -- store
@@ -402,36 +414,58 @@ VALUES
 		'2026-10-01 08:00:00'
 	);
 
+
+-- Manager sample account; password hash matches TestBob (use TestBob's test password).
+INSERT INTO operator (
+	OperatorID,
+	StoreID,
+	EmployeeNumber,
+	Username,
+	PasswordHash,
+	FirstName,
+	MiddleInitial,
+	LastName,
+	Email,
+	Phone,
+	Role,
+	HireDate,
+	Active,
+	CreatedAt
+)
+SELECT
+	6,
+	1,
+	1006,
+	'ManAGer',
+	PasswordHash,
+	'Man',
+	'A',
+	'Ger',
+	'manager@fnh.local',
+	NULL,
+	'Manager',
+	'2026-10-05',
+	1,
+	'2026-10-05 08:00:00'
+FROM operator
+WHERE OperatorID = 3;
+
 -- register
 INSERT INTO register (
 	RegisterID,
 	StoreID,
 	RegisterNumber,
 	RegisterName,
+	RegisterType,
 	Active
 )
 VALUES
-	(
-		1,
-		1,
-		1,
-		'Express Register',
-		1
-	),
-	(
-		2,
-		1,
-		2,
-		'Front Register 2',
-		1
-	),
-	(
-		3,
-		1,
-		3,
-		'Front Register 3',
-		1
-	);
+	(1, 1, 1, 'Express Register 1', 'Express', 1),
+	(2, 1, 2, 'Express Register 2', 'Express', 1),
+	(3, 1, 3, 'Express Register 3', 'Express', 1),
+	(4, 1, 4, 'Regular Register 4', 'Regular', 1),
+	(5, 1, 5, 'Regular Register 5', 'Regular', 1),
+	(6, 1, 6, 'Regular Register 6', 'Regular', 1);
 
 -- storeinventory
 INSERT INTO storeinventory (
@@ -587,7 +621,7 @@ VALUES
 		1,
 		'S001-20260914-000001',
 		1,
-		2,
+		4,
 		1,
 		1,
 		'2026-09-14 10:15:32',
@@ -606,7 +640,7 @@ VALUES
 		2,
 		'S001-20260921040636-0001',
 		1,
-		2,
+		4,
 		1,
 		NULL,
 		'2026-09-21 04:06:36',
@@ -625,7 +659,7 @@ VALUES
 		3,
 		'S001-20260921040918-0004',
 		1,
-		3,
+		5,
 		4,
 		NULL,
 		'2026-09-21 04:09:18',
@@ -644,7 +678,7 @@ VALUES
 		4,
 		'S001-20260921094205-0001',
 		1,
-		2,
+		4,
 		1,
 		NULL,
 		'2026-09-21 09:42:05',
@@ -663,7 +697,7 @@ VALUES
 		5,
 		'S001-20260921094659-0001',
 		1,
-		2,
+		4,
 		1,
 		NULL,
 		'2026-09-21 09:46:59',
@@ -682,7 +716,7 @@ VALUES
 		6,
 		'S001-20260921113344-0001',
 		1,
-		2,
+		4,
 		1,
 		NULL,
 		'2026-09-21 11:33:44',
@@ -701,7 +735,7 @@ VALUES
 		7,
 		'S001-20260921140852776581-0001',
 		1,
-		2,
+		4,
 		1,
 		NULL,
 		'2026-09-21 14:08:52',
@@ -720,7 +754,7 @@ VALUES
 		8,
 		'S001-20260921140857502640-0001',
 		1,
-		2,
+		4,
 		1,
 		NULL,
 		'2026-09-21 14:08:57',
@@ -739,7 +773,7 @@ VALUES
 		9,
 		'S001-20260921140912525214-0001',
 		1,
-		2,
+		4,
 		1,
 		NULL,
 		'2026-09-21 14:09:12',
@@ -758,7 +792,7 @@ VALUES
 		10,
 		'S001-20260921141021876972-0001',
 		1,
-		2,
+		4,
 		1,
 		NULL,
 		'2026-09-21 14:10:21',
@@ -777,7 +811,7 @@ VALUES
 		11,
 		'S001-20260921141032050072-0001',
 		1,
-		2,
+		4,
 		1,
 		NULL,
 		'2026-09-21 14:10:32',
@@ -796,7 +830,7 @@ VALUES
 		12,
 		'S001-20260921141213649186-0004',
 		1,
-		2,
+		4,
 		4,
 		NULL,
 		'2026-09-21 14:12:13',
@@ -815,7 +849,7 @@ VALUES
 		13,
 		'S001-20260921174152601657-0004',
 		1,
-		2,
+		4,
 		4,
 		NULL,
 		'2026-09-21 17:41:52',
@@ -834,7 +868,7 @@ VALUES
 		14,
 		'S001-20260926123127781052-0004',
 		1,
-		2,
+		4,
 		4,
 		NULL,
 		'2026-09-26 12:31:27',
@@ -853,7 +887,7 @@ VALUES
 		15,
 		'S001-20260926123148342569-0004',
 		1,
-		2,
+		4,
 		4,
 		NULL,
 		'2026-09-26 12:31:48',
@@ -872,7 +906,7 @@ VALUES
 		16,
 		'S001-20260926222253997853-0003',
 		1,
-		2,
+		4,
 		3,
 		NULL,
 		'2026-09-26 22:22:53',
@@ -891,7 +925,7 @@ VALUES
 		17,
 		'S001-20260926222305891530-0003',
 		1,
-		2,
+		4,
 		3,
 		NULL,
 		'2026-09-26 22:23:05',
@@ -910,7 +944,7 @@ VALUES
 		18,
 		'S001-20260926222524688002-0003',
 		1,
-		2,
+		4,
 		3,
 		NULL,
 		'2026-09-26 22:25:24',
@@ -929,7 +963,7 @@ VALUES
 		19,
 		'S001-20260926223311458757-0003',
 		1,
-		2,
+		4,
 		3,
 		NULL,
 		'2026-09-26 22:33:11',
@@ -948,7 +982,7 @@ VALUES
 		20,
 		'S001-20260926223319235871-0003',
 		1,
-		2,
+		4,
 		3,
 		NULL,
 		'2026-09-26 22:33:19',
@@ -967,7 +1001,7 @@ VALUES
 		21,
 		'S001-20260926223330271937-0003',
 		1,
-		2,
+		4,
 		3,
 		NULL,
 		'2026-09-26 22:33:30',
@@ -986,7 +1020,7 @@ VALUES
 		22,
 		'S001-20260926223339247213-0003',
 		1,
-		2,
+		4,
 		3,
 		NULL,
 		'2026-09-26 22:33:39',
@@ -1005,7 +1039,7 @@ VALUES
 		23,
 		'S001-20260926225905518779-0003',
 		1,
-		2,
+		4,
 		3,
 		NULL,
 		'2026-09-26 22:59:05',
@@ -1024,7 +1058,7 @@ VALUES
 		24,
 		'S001-20260927000651722068-0001',
 		1,
-		2,
+		4,
 		1,
 		NULL,
 		'2026-09-27 00:06:51',
@@ -1043,7 +1077,7 @@ VALUES
 		25,
 		'S001-20260927000935481704-0001',
 		1,
-		2,
+		4,
 		1,
 		NULL,
 		'2026-09-27 00:09:35',
@@ -1062,7 +1096,7 @@ VALUES
 		26,
 		'S001-20260927001833771986-0001',
 		1,
-		2,
+		4,
 		1,
 		NULL,
 		'2026-09-27 00:18:33',
@@ -1494,7 +1528,7 @@ VALUES
 		1,
 		'S001-20260914-000001',
 		1,
-		2,
+		4,
 		1,
 		1,
 		'2026-09-14 10:15:32',
@@ -1516,7 +1550,7 @@ VALUES
 		2,
 		'S001-20260921040636-0001',
 		1,
-		2,
+		4,
 		1,
 		1,
 		'2026-09-21 04:06:36',
@@ -1538,7 +1572,7 @@ VALUES
 		3,
 		'S001-20260921040918-0004',
 		1,
-		3,
+		5,
 		4,
 		4,
 		'2026-09-21 04:09:18',
@@ -1560,7 +1594,7 @@ VALUES
 		4,
 		'S001-20260921094205-0001',
 		1,
-		2,
+		4,
 		1,
 		1,
 		'2026-09-21 09:42:05',
@@ -1582,7 +1616,7 @@ VALUES
 		5,
 		'S001-20260921094659-0001',
 		1,
-		2,
+		4,
 		1,
 		1,
 		'2026-09-21 09:46:59',
@@ -1604,7 +1638,7 @@ VALUES
 		6,
 		'S001-20260921113344-0001',
 		1,
-		2,
+		4,
 		1,
 		1,
 		'2026-09-21 11:33:44',
@@ -1626,7 +1660,7 @@ VALUES
 		7,
 		'S001-20260921140852776581-0001',
 		1,
-		2,
+		4,
 		1,
 		1,
 		'2026-09-21 14:08:52',
@@ -1648,7 +1682,7 @@ VALUES
 		8,
 		'S001-20260921140857502640-0001',
 		1,
-		2,
+		4,
 		1,
 		1,
 		'2026-09-21 14:08:57',
@@ -1670,7 +1704,7 @@ VALUES
 		9,
 		'S001-20260921140912525214-0001',
 		1,
-		2,
+		4,
 		1,
 		1,
 		'2026-09-21 14:09:12',
@@ -1692,7 +1726,7 @@ VALUES
 		10,
 		'S001-20260921141021876972-0001',
 		1,
-		2,
+		4,
 		1,
 		1,
 		'2026-09-21 14:10:21',
@@ -1714,7 +1748,7 @@ VALUES
 		11,
 		'S001-20260921141032050072-0001',
 		1,
-		2,
+		4,
 		1,
 		1,
 		'2026-09-21 14:10:32',
@@ -1736,7 +1770,7 @@ VALUES
 		12,
 		'S001-20260921141213649186-0004',
 		1,
-		2,
+		4,
 		4,
 		4,
 		'2026-09-21 14:12:13',
@@ -1758,7 +1792,7 @@ VALUES
 		13,
 		'S001-20260921174152601657-0004',
 		1,
-		2,
+		4,
 		4,
 		4,
 		'2026-09-21 17:41:52',
@@ -1780,7 +1814,7 @@ VALUES
 		14,
 		'S001-20260926123127781052-0004',
 		1,
-		2,
+		4,
 		4,
 		4,
 		'2026-09-26 12:31:27',
@@ -1802,7 +1836,7 @@ VALUES
 		15,
 		'S001-20260926123148342569-0004',
 		1,
-		2,
+		4,
 		4,
 		1,
 		'2026-09-26 12:31:48',
@@ -1824,7 +1858,7 @@ VALUES
 		16,
 		'S001-20260926222253997853-0003',
 		1,
-		2,
+		4,
 		3,
 		3,
 		'2026-09-26 22:22:53',
@@ -1846,7 +1880,7 @@ VALUES
 		17,
 		'S001-20260926222305891530-0003',
 		1,
-		2,
+		4,
 		3,
 		3,
 		'2026-09-26 22:23:05',
@@ -1868,7 +1902,7 @@ VALUES
 		18,
 		'S001-20260926222524688002-0003',
 		1,
-		2,
+		4,
 		3,
 		3,
 		'2026-09-26 22:25:24',
@@ -1890,7 +1924,7 @@ VALUES
 		19,
 		'S001-20260926223311458757-0003',
 		1,
-		2,
+		4,
 		3,
 		3,
 		'2026-09-26 22:33:11',
@@ -1912,7 +1946,7 @@ VALUES
 		20,
 		'S001-20260926223319235871-0003',
 		1,
-		2,
+		4,
 		3,
 		3,
 		'2026-09-26 22:33:19',
@@ -1934,7 +1968,7 @@ VALUES
 		21,
 		'S001-20260926223330271937-0003',
 		1,
-		2,
+		4,
 		3,
 		3,
 		'2026-09-26 22:33:30',
@@ -1956,7 +1990,7 @@ VALUES
 		22,
 		'S001-20260926223339247213-0003',
 		1,
-		2,
+		4,
 		3,
 		3,
 		'2026-09-26 22:33:39',
@@ -1978,7 +2012,7 @@ VALUES
 		23,
 		'S001-20260926225905518779-0003',
 		1,
-		2,
+		4,
 		3,
 		1,
 		'2026-09-26 22:59:05',
@@ -2000,7 +2034,7 @@ VALUES
 		24,
 		'S001-20260927000651722068-0001',
 		1,
-		2,
+		4,
 		1,
 		1,
 		'2026-09-27 00:06:51',
@@ -2022,7 +2056,7 @@ VALUES
 		25,
 		'S001-20260927000935481704-0001',
 		1,
-		2,
+		4,
 		1,
 		1,
 		'2026-09-27 00:09:35',
@@ -2044,7 +2078,7 @@ VALUES
 		26,
 		'S001-20260927001833771986-0001',
 		1,
-		2,
+		4,
 		1,
 		1,
 		'2026-09-27 00:18:33',
@@ -2062,4 +2096,4809 @@ VALUES
 		NULL
 	);
 
+COMMIT;
+
+-- Sample coupons. Each barcode is a 12-digit UPC-A code that starts with 5.
+INSERT INTO coupon (CouponCode, Description, ProductID, RequiredQuantity, DiscountKind, DiscountValue)
+SELECT '500000000012', 'Cereal, $1.00 off', ProductID, 1, 'Dollar', 1.00
+FROM product WHERE UPC = '100000000011'
+UNION ALL
+SELECT '500000000029', 'Whole Milk, buy 2 and save $1.50', ProductID, 2, 'Dollar', 1.50
+FROM product WHERE UPC = '100000000003'
+UNION ALL
+SELECT '500000000036', 'Large Eggs, 25% off', ProductID, 1, 'Percent', 25.00
+FROM product WHERE UPC = '100000000007'
+UNION ALL
+SELECT '500000000043', 'Paper Towels, $0.75 off', ProductID, 1, 'Dollar', 0.75
+FROM product WHERE UPC = '100000000013';
+
+START TRANSACTION;
+
+-- Additional demonstration products and in-store stock
+INSERT INTO product (
+	ProductID,
+	DepartmentID,
+	UPC,
+	PLUCode,
+	ProductName,
+	Description,
+	UnitType,
+	UnitCost,
+	RetailPrice,
+	Taxable,
+	Active
+)
+VALUES (
+	100,
+	1,
+	NULL,
+	'90100',
+	'Navel Oranges',
+	'Fresh navel oranges',
+	'Pound',
+	0.85,
+	1.59,
+	0,
+	1
+);
+INSERT INTO storeinventory (
+	StoreID,
+	ProductID,
+	StockQuantity,
+	Aisle,
+	SectionName,
+	ShelfLocation,
+	LastCountedAt
+)
+VALUES (
+	1,
+	100,
+	100.000,
+	'New',
+	'Sample Products',
+	'A1',
+	'2026-10-09 06:00:00'
+);
+INSERT INTO product (
+	ProductID,
+	DepartmentID,
+	UPC,
+	PLUCode,
+	ProductName,
+	Description,
+	UnitType,
+	UnitCost,
+	RetailPrice,
+	Taxable,
+	Active
+)
+VALUES (
+	101,
+	1,
+	NULL,
+	'90101',
+	'Avocados',
+	'Ripe avocados',
+	'Each',
+	0.85,
+	1.79,
+	0,
+	1
+);
+INSERT INTO storeinventory (
+	StoreID,
+	ProductID,
+	StockQuantity,
+	Aisle,
+	SectionName,
+	ShelfLocation,
+	LastCountedAt
+)
+VALUES (
+	1,
+	101,
+	100.000,
+	'New',
+	'Sample Products',
+	'A1',
+	'2026-10-09 06:00:00'
+);
+INSERT INTO product (
+	ProductID,
+	DepartmentID,
+	UPC,
+	PLUCode,
+	ProductName,
+	Description,
+	UnitType,
+	UnitCost,
+	RetailPrice,
+	Taxable,
+	Active
+)
+VALUES (
+	102,
+	1,
+	NULL,
+	'90102',
+	'Romaine Lettuce',
+	'Romaine lettuce head',
+	'Each',
+	1.10,
+	2.19,
+	0,
+	1
+);
+INSERT INTO storeinventory (
+	StoreID,
+	ProductID,
+	StockQuantity,
+	Aisle,
+	SectionName,
+	ShelfLocation,
+	LastCountedAt
+)
+VALUES (
+	1,
+	102,
+	100.000,
+	'New',
+	'Sample Products',
+	'A1',
+	'2026-10-09 06:00:00'
+);
+INSERT INTO product (
+	ProductID,
+	DepartmentID,
+	UPC,
+	PLUCode,
+	ProductName,
+	Description,
+	UnitType,
+	UnitCost,
+	RetailPrice,
+	Taxable,
+	Active
+)
+VALUES (
+	103,
+	2,
+	'200000000103',
+	NULL,
+	'Greek Yogurt - 32 oz',
+	'Plain Greek yogurt',
+	'Each',
+	3.25,
+	5.49,
+	0,
+	1
+);
+INSERT INTO storeinventory (
+	StoreID,
+	ProductID,
+	StockQuantity,
+	Aisle,
+	SectionName,
+	ShelfLocation,
+	LastCountedAt
+)
+VALUES (
+	1,
+	103,
+	100.000,
+	'New',
+	'Sample Products',
+	'A1',
+	'2026-10-09 06:00:00'
+);
+INSERT INTO product (
+	ProductID,
+	DepartmentID,
+	UPC,
+	PLUCode,
+	ProductName,
+	Description,
+	UnitType,
+	UnitCost,
+	RetailPrice,
+	Taxable,
+	Active
+)
+VALUES (
+	104,
+	2,
+	'200000000104',
+	NULL,
+	'Unsalted Butter - 1 lb',
+	'Butter four sticks',
+	'Each',
+	3.75,
+	5.99,
+	0,
+	1
+);
+INSERT INTO storeinventory (
+	StoreID,
+	ProductID,
+	StockQuantity,
+	Aisle,
+	SectionName,
+	ShelfLocation,
+	LastCountedAt
+)
+VALUES (
+	1,
+	104,
+	100.000,
+	'New',
+	'Sample Products',
+	'A1',
+	'2026-10-09 06:00:00'
+);
+INSERT INTO product (
+	ProductID,
+	DepartmentID,
+	UPC,
+	PLUCode,
+	ProductName,
+	Description,
+	UnitType,
+	UnitCost,
+	RetailPrice,
+	Taxable,
+	Active
+)
+VALUES (
+	105,
+	3,
+	'200000000105',
+	NULL,
+	'Bagels - 6 Count',
+	'Plain bagels',
+	'Each',
+	2.45,
+	4.29,
+	0,
+	1
+);
+INSERT INTO storeinventory (
+	StoreID,
+	ProductID,
+	StockQuantity,
+	Aisle,
+	SectionName,
+	ShelfLocation,
+	LastCountedAt
+)
+VALUES (
+	1,
+	105,
+	100.000,
+	'New',
+	'Sample Products',
+	'A1',
+	'2026-10-09 06:00:00'
+);
+INSERT INTO product (
+	ProductID,
+	DepartmentID,
+	UPC,
+	PLUCode,
+	ProductName,
+	Description,
+	UnitType,
+	UnitCost,
+	RetailPrice,
+	Taxable,
+	Active
+)
+VALUES (
+	106,
+	4,
+	'200000000106',
+	NULL,
+	'Pasta - 16 oz',
+	'Dry spaghetti',
+	'Each',
+	0.90,
+	1.99,
+	0,
+	1
+);
+INSERT INTO storeinventory (
+	StoreID,
+	ProductID,
+	StockQuantity,
+	Aisle,
+	SectionName,
+	ShelfLocation,
+	LastCountedAt
+)
+VALUES (
+	1,
+	106,
+	100.000,
+	'New',
+	'Sample Products',
+	'A1',
+	'2026-10-09 06:00:00'
+);
+INSERT INTO product (
+	ProductID,
+	DepartmentID,
+	UPC,
+	PLUCode,
+	ProductName,
+	Description,
+	UnitType,
+	UnitCost,
+	RetailPrice,
+	Taxable,
+	Active
+)
+VALUES (
+	107,
+	4,
+	'200000000107',
+	NULL,
+	'Tomato Sauce - 24 oz',
+	'Pasta sauce',
+	'Each',
+	1.35,
+	2.89,
+	0,
+	1
+);
+INSERT INTO storeinventory (
+	StoreID,
+	ProductID,
+	StockQuantity,
+	Aisle,
+	SectionName,
+	ShelfLocation,
+	LastCountedAt
+)
+VALUES (
+	1,
+	107,
+	100.000,
+	'New',
+	'Sample Products',
+	'A1',
+	'2026-10-09 06:00:00'
+);
+INSERT INTO product (
+	ProductID,
+	DepartmentID,
+	UPC,
+	PLUCode,
+	ProductName,
+	Description,
+	UnitType,
+	UnitCost,
+	RetailPrice,
+	Taxable,
+	Active
+)
+VALUES (
+	108,
+	4,
+	'200000000108',
+	NULL,
+	'Ground Coffee - 12 oz',
+	'Medium roast coffee',
+	'Each',
+	5.75,
+	9.99,
+	0,
+	1
+);
+INSERT INTO storeinventory (
+	StoreID,
+	ProductID,
+	StockQuantity,
+	Aisle,
+	SectionName,
+	ShelfLocation,
+	LastCountedAt
+)
+VALUES (
+	1,
+	108,
+	100.000,
+	'New',
+	'Sample Products',
+	'A1',
+	'2026-10-09 06:00:00'
+);
+INSERT INTO product (
+	ProductID,
+	DepartmentID,
+	UPC,
+	PLUCode,
+	ProductName,
+	Description,
+	UnitType,
+	UnitCost,
+	RetailPrice,
+	Taxable,
+	Active
+)
+VALUES (
+	109,
+	4,
+	'200000000109',
+	NULL,
+	'Black Beans - 15 oz',
+	'Canned black beans',
+	'Each',
+	0.65,
+	1.49,
+	0,
+	1
+);
+INSERT INTO storeinventory (
+	StoreID,
+	ProductID,
+	StockQuantity,
+	Aisle,
+	SectionName,
+	ShelfLocation,
+	LastCountedAt
+)
+VALUES (
+	1,
+	109,
+	100.000,
+	'New',
+	'Sample Products',
+	'A1',
+	'2026-10-09 06:00:00'
+);
+INSERT INTO product (
+	ProductID,
+	DepartmentID,
+	UPC,
+	PLUCode,
+	ProductName,
+	Description,
+	UnitType,
+	UnitCost,
+	RetailPrice,
+	Taxable,
+	Active
+)
+VALUES (
+	110,
+	5,
+	'200000000110',
+	NULL,
+	'Dish Soap - 20 oz',
+	'Dishwashing liquid',
+	'Each',
+	1.95,
+	3.79,
+	1,
+	1
+);
+INSERT INTO storeinventory (
+	StoreID,
+	ProductID,
+	StockQuantity,
+	Aisle,
+	SectionName,
+	ShelfLocation,
+	LastCountedAt
+)
+VALUES (
+	1,
+	110,
+	100.000,
+	'New',
+	'Sample Products',
+	'A1',
+	'2026-10-09 06:00:00'
+);
+INSERT INTO product (
+	ProductID,
+	DepartmentID,
+	UPC,
+	PLUCode,
+	ProductName,
+	Description,
+	UnitType,
+	UnitCost,
+	RetailPrice,
+	Taxable,
+	Active
+)
+VALUES (
+	111,
+	5,
+	'200000000111',
+	NULL,
+	'Trash Bags - 30 Count',
+	'Kitchen trash bags',
+	'Each',
+	5.15,
+	8.99,
+	1,
+	1
+);
+INSERT INTO storeinventory (
+	StoreID,
+	ProductID,
+	StockQuantity,
+	Aisle,
+	SectionName,
+	ShelfLocation,
+	LastCountedAt
+)
+VALUES (
+	1,
+	111,
+	100.000,
+	'New',
+	'Sample Products',
+	'A1',
+	'2026-10-09 06:00:00'
+);
+INSERT INTO product (
+	ProductID,
+	DepartmentID,
+	UPC,
+	PLUCode,
+	ProductName,
+	Description,
+	UnitType,
+	UnitCost,
+	RetailPrice,
+	Taxable,
+	Active
+)
+VALUES (
+	112,
+	4,
+	'200000000112',
+	NULL,
+	'Orange Juice - 52 oz',
+	'Refrigerated orange juice',
+	'Each',
+	2.75,
+	4.79,
+	0,
+	1
+);
+INSERT INTO storeinventory (
+	StoreID,
+	ProductID,
+	StockQuantity,
+	Aisle,
+	SectionName,
+	ShelfLocation,
+	LastCountedAt
+)
+VALUES (
+	1,
+	112,
+	100.000,
+	'New',
+	'Sample Products',
+	'A1',
+	'2026-10-09 06:00:00'
+);
+INSERT INTO product (
+	ProductID,
+	DepartmentID,
+	UPC,
+	PLUCode,
+	ProductName,
+	Description,
+	UnitType,
+	UnitCost,
+	RetailPrice,
+	Taxable,
+	Active
+)
+VALUES (
+	113,
+	4,
+	'200000000113',
+	NULL,
+	'Oatmeal - 18 oz',
+	'Rolled oats',
+	'Each',
+	2.05,
+	3.99,
+	0,
+	1
+);
+INSERT INTO storeinventory (
+	StoreID,
+	ProductID,
+	StockQuantity,
+	Aisle,
+	SectionName,
+	ShelfLocation,
+	LastCountedAt
+)
+VALUES (
+	1,
+	113,
+	100.000,
+	'New',
+	'Sample Products',
+	'A1',
+	'2026-10-09 06:00:00'
+);
+
+-- Completed test transactions with line items, Express fulfillment, and transaction journals
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	126,
+	'S001-20260925-000126',
+	1,
+	4,
+	1,
+	NULL,
+	'Regular',
+	'2026-09-25 10:10:00',
+	'2026-09-25 10:10:00',
+	'Completed',
+	0,
+	11.26,
+	0.00,
+	0.00,
+	0,
+	11.26,
+	'Charge',
+	11.26,
+	0.00
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10000,
+	126,
+	1,
+	109,
+	'Black Beans - 15 oz',
+	'Each',
+	0,
+	1.000,
+	1.49,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10001,
+	126,
+	2,
+	107,
+	'Tomato Sauce - 24 oz',
+	'Each',
+	0,
+	2.000,
+	2.89,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10002,
+	126,
+	3,
+	113,
+	'Oatmeal - 18 oz',
+	'Each',
+	0,
+	1.000,
+	3.99,
+	0
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10000,
+	126,
+	'S001-20260925-000126',
+	1,
+	4,
+	1,
+	1,
+	'2026-09-25 10:10:00',
+	'2026-09-25 10:10:00',
+	'Paid',
+	3,
+	4.000,
+	11.26,
+	0,
+	0.00,
+	0.00,
+	0,
+	11.26,
+	'Charge',
+	11.26,
+	0.00
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	127,
+	'S001-20260928-000127',
+	1,
+	4,
+	1,
+	NULL,
+	'Regular',
+	'2026-09-28 11:17:00',
+	'2026-09-28 11:17:00',
+	'Completed',
+	0,
+	21.76,
+	0.00,
+	0.00,
+	0,
+	21.76,
+	'Cash',
+	30.00,
+	8.24
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10003,
+	127,
+	1,
+	102,
+	'Romaine Lettuce',
+	'Each',
+	0,
+	1.000,
+	2.19,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10004,
+	127,
+	2,
+	112,
+	'Orange Juice - 52 oz',
+	'Each',
+	0,
+	2.000,
+	4.79,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10005,
+	127,
+	3,
+	108,
+	'Ground Coffee - 12 oz',
+	'Each',
+	0,
+	1.000,
+	9.99,
+	0
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10001,
+	127,
+	'S001-20260928-000127',
+	1,
+	4,
+	1,
+	1,
+	'2026-09-28 11:17:00',
+	'2026-09-28 11:17:00',
+	'Paid',
+	3,
+	4.000,
+	21.76,
+	0,
+	0.00,
+	0.00,
+	0,
+	21.76,
+	'Cash',
+	30.00,
+	8.24
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	128,
+	'S001-20261002-000128',
+	1,
+	4,
+	1,
+	NULL,
+	'Regular',
+	'2026-10-02 12:24:00',
+	'2026-10-02 12:24:00',
+	'Completed',
+	0,
+	28.26,
+	0.00,
+	0.00,
+	0,
+	28.26,
+	'Cash',
+	30.00,
+	1.74
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10006,
+	128,
+	1,
+	113,
+	'Oatmeal - 18 oz',
+	'Each',
+	0,
+	1.000,
+	3.99,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10007,
+	128,
+	2,
+	108,
+	'Ground Coffee - 12 oz',
+	'Each',
+	0,
+	2.000,
+	9.99,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10008,
+	128,
+	3,
+	105,
+	'Bagels - 6 Count',
+	'Each',
+	0,
+	1.000,
+	4.29,
+	0
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10002,
+	128,
+	'S001-20261002-000128',
+	1,
+	4,
+	1,
+	1,
+	'2026-10-02 12:24:00',
+	'2026-10-02 12:24:00',
+	'Paid',
+	3,
+	4.000,
+	28.26,
+	0,
+	0.00,
+	0.00,
+	0,
+	28.26,
+	'Cash',
+	30.00,
+	1.74
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	129,
+	'S001-20261006-000129',
+	1,
+	4,
+	1,
+	NULL,
+	'Regular',
+	'2026-10-06 13:31:00',
+	'2026-10-06 13:31:00',
+	'Completed',
+	0,
+	24.26,
+	17.98,
+	1.71,
+	0,
+	25.97,
+	'Charge',
+	25.97,
+	0.00
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10009,
+	129,
+	1,
+	105,
+	'Bagels - 6 Count',
+	'Each',
+	0,
+	1.000,
+	4.29,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10010,
+	129,
+	2,
+	111,
+	'Trash Bags - 30 Count',
+	'Each',
+	1,
+	2.000,
+	8.99,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10011,
+	129,
+	3,
+	106,
+	'Pasta - 16 oz',
+	'Each',
+	0,
+	1.000,
+	1.99,
+	0
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10003,
+	129,
+	'S001-20261006-000129',
+	1,
+	4,
+	1,
+	1,
+	'2026-10-06 13:31:00',
+	'2026-10-06 13:31:00',
+	'Paid',
+	3,
+	4.000,
+	24.26,
+	0,
+	17.98,
+	1.71,
+	0,
+	25.97,
+	'Charge',
+	25.97,
+	0.00
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	130,
+	'S001-20260926-000130',
+	1,
+	4,
+	2,
+	NULL,
+	'Regular',
+	'2026-09-26 10:10:00',
+	'2026-09-26 10:10:00',
+	'Completed',
+	0,
+	23.86,
+	0.00,
+	0.00,
+	0,
+	23.86,
+	'Charge',
+	23.86,
+	0.00
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10012,
+	130,
+	1,
+	108,
+	'Ground Coffee - 12 oz',
+	'Each',
+	0,
+	1.000,
+	9.99,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10013,
+	130,
+	2,
+	112,
+	'Orange Juice - 52 oz',
+	'Each',
+	0,
+	2.000,
+	4.79,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10014,
+	130,
+	3,
+	105,
+	'Bagels - 6 Count',
+	'Each',
+	0,
+	1.000,
+	4.29,
+	0
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10004,
+	130,
+	'S001-20260926-000130',
+	1,
+	4,
+	2,
+	2,
+	'2026-09-26 10:10:00',
+	'2026-09-26 10:10:00',
+	'Paid',
+	3,
+	4.000,
+	23.86,
+	0,
+	0.00,
+	0.00,
+	0,
+	23.86,
+	'Charge',
+	23.86,
+	0.00
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	131,
+	'S001-20261001-000131',
+	1,
+	4,
+	2,
+	NULL,
+	'Regular',
+	'2026-10-01 11:17:00',
+	'2026-10-01 11:17:00',
+	'Completed',
+	0,
+	15.66,
+	0.00,
+	0.00,
+	0,
+	15.66,
+	'Cash',
+	20.00,
+	4.34
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10015,
+	131,
+	1,
+	112,
+	'Orange Juice - 52 oz',
+	'Each',
+	0,
+	1.000,
+	4.79,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10016,
+	131,
+	2,
+	113,
+	'Oatmeal - 18 oz',
+	'Each',
+	0,
+	2.000,
+	3.99,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10017,
+	131,
+	3,
+	107,
+	'Tomato Sauce - 24 oz',
+	'Each',
+	0,
+	1.000,
+	2.89,
+	0
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10005,
+	131,
+	'S001-20261001-000131',
+	1,
+	4,
+	2,
+	2,
+	'2026-10-01 11:17:00',
+	'2026-10-01 11:17:00',
+	'Paid',
+	3,
+	4.000,
+	15.66,
+	0,
+	0.00,
+	0.00,
+	0,
+	15.66,
+	'Cash',
+	20.00,
+	4.34
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	132,
+	'S001-20261005-000132',
+	1,
+	4,
+	2,
+	NULL,
+	'Regular',
+	'2026-10-05 12:24:00',
+	'2026-10-05 12:24:00',
+	'Completed',
+	0,
+	9.96,
+	3.79,
+	0.36,
+	0,
+	10.32,
+	'Cash',
+	20.00,
+	9.68
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10018,
+	132,
+	1,
+	102,
+	'Romaine Lettuce',
+	'Each',
+	0,
+	1.000,
+	2.19,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10019,
+	132,
+	2,
+	106,
+	'Pasta - 16 oz',
+	'Each',
+	0,
+	2.000,
+	1.99,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10020,
+	132,
+	3,
+	110,
+	'Dish Soap - 20 oz',
+	'Each',
+	1,
+	1.000,
+	3.79,
+	0
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10006,
+	132,
+	'S001-20261005-000132',
+	1,
+	4,
+	2,
+	2,
+	'2026-10-05 12:24:00',
+	'2026-10-05 12:24:00',
+	'Paid',
+	3,
+	4.000,
+	9.96,
+	0,
+	3.79,
+	0.36,
+	0,
+	10.32,
+	'Cash',
+	20.00,
+	9.68
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	133,
+	'S001-20261008-000133',
+	1,
+	4,
+	2,
+	NULL,
+	'Regular',
+	'2026-10-08 13:31:00',
+	'2026-10-08 13:31:00',
+	'Completed',
+	0,
+	13.96,
+	0.00,
+	0.00,
+	0,
+	13.96,
+	'Charge',
+	13.96,
+	0.00
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10021,
+	133,
+	1,
+	107,
+	'Tomato Sauce - 24 oz',
+	'Each',
+	0,
+	1.000,
+	2.89,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10022,
+	133,
+	2,
+	112,
+	'Orange Juice - 52 oz',
+	'Each',
+	0,
+	2.000,
+	4.79,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10023,
+	133,
+	3,
+	109,
+	'Black Beans - 15 oz',
+	'Each',
+	0,
+	1.000,
+	1.49,
+	0
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10007,
+	133,
+	'S001-20261008-000133',
+	1,
+	4,
+	2,
+	2,
+	'2026-10-08 13:31:00',
+	'2026-10-08 13:31:00',
+	'Paid',
+	3,
+	4.000,
+	13.96,
+	0,
+	0.00,
+	0.00,
+	0,
+	13.96,
+	'Charge',
+	13.96,
+	0.00
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	134,
+	'S001-20260925-000134',
+	1,
+	4,
+	3,
+	NULL,
+	'Regular',
+	'2026-09-25 10:10:00',
+	'2026-09-25 10:10:00',
+	'Completed',
+	0,
+	26.56,
+	16.57,
+	1.57,
+	0,
+	28.13,
+	'Charge',
+	28.13,
+	0.00
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10024,
+	134,
+	1,
+	108,
+	'Ground Coffee - 12 oz',
+	'Each',
+	0,
+	1.000,
+	9.99,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10025,
+	134,
+	2,
+	110,
+	'Dish Soap - 20 oz',
+	'Each',
+	1,
+	2.000,
+	3.79,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10026,
+	134,
+	3,
+	111,
+	'Trash Bags - 30 Count',
+	'Each',
+	1,
+	1.000,
+	8.99,
+	0
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10008,
+	134,
+	'S001-20260925-000134',
+	1,
+	4,
+	3,
+	3,
+	'2026-09-25 10:10:00',
+	'2026-09-25 10:10:00',
+	'Paid',
+	3,
+	4.000,
+	26.56,
+	0,
+	16.57,
+	1.57,
+	0,
+	28.13,
+	'Charge',
+	28.13,
+	0.00
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	135,
+	'S001-20260929-000135',
+	1,
+	4,
+	3,
+	NULL,
+	'Regular',
+	'2026-09-29 11:17:00',
+	'2026-09-29 11:17:00',
+	'Completed',
+	0,
+	18.96,
+	0.00,
+	0.00,
+	0,
+	18.96,
+	'Cash',
+	20.00,
+	1.04
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10027,
+	135,
+	1,
+	109,
+	'Black Beans - 15 oz',
+	'Each',
+	0,
+	1.000,
+	1.49,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10028,
+	135,
+	2,
+	104,
+	'Unsalted Butter - 1 lb',
+	'Each',
+	0,
+	2.000,
+	5.99,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10029,
+	135,
+	3,
+	103,
+	'Greek Yogurt - 32 oz',
+	'Each',
+	0,
+	1.000,
+	5.49,
+	0
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10009,
+	135,
+	'S001-20260929-000135',
+	1,
+	4,
+	3,
+	3,
+	'2026-09-29 11:17:00',
+	'2026-09-29 11:17:00',
+	'Paid',
+	3,
+	4.000,
+	18.96,
+	0,
+	0.00,
+	0.00,
+	0,
+	18.96,
+	'Cash',
+	20.00,
+	1.04
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	136,
+	'S001-20261003-000136',
+	1,
+	4,
+	3,
+	NULL,
+	'Regular',
+	'2026-10-03 12:24:00',
+	'2026-10-03 12:24:00',
+	'Completed',
+	0,
+	21.36,
+	12.78,
+	1.21,
+	0,
+	22.57,
+	'Cash',
+	30.00,
+	7.43
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10030,
+	136,
+	1,
+	110,
+	'Dish Soap - 20 oz',
+	'Each',
+	1,
+	1.000,
+	3.79,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10031,
+	136,
+	2,
+	105,
+	'Bagels - 6 Count',
+	'Each',
+	0,
+	2.000,
+	4.29,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10032,
+	136,
+	3,
+	111,
+	'Trash Bags - 30 Count',
+	'Each',
+	1,
+	1.000,
+	8.99,
+	0
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10010,
+	136,
+	'S001-20261003-000136',
+	1,
+	4,
+	3,
+	3,
+	'2026-10-03 12:24:00',
+	'2026-10-03 12:24:00',
+	'Paid',
+	3,
+	4.000,
+	21.36,
+	0,
+	12.78,
+	1.21,
+	0,
+	22.57,
+	'Cash',
+	30.00,
+	7.43
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	137,
+	'S001-20261007-000137',
+	1,
+	4,
+	3,
+	NULL,
+	'Regular',
+	'2026-10-07 13:31:00',
+	'2026-10-07 13:31:00',
+	'Completed',
+	0,
+	15.06,
+	7.58,
+	0.72,
+	0,
+	15.78,
+	'Charge',
+	15.78,
+	0.00
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10033,
+	137,
+	1,
+	104,
+	'Unsalted Butter - 1 lb',
+	'Each',
+	0,
+	1.000,
+	5.99,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10034,
+	137,
+	2,
+	110,
+	'Dish Soap - 20 oz',
+	'Each',
+	1,
+	2.000,
+	3.79,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10035,
+	137,
+	3,
+	109,
+	'Black Beans - 15 oz',
+	'Each',
+	0,
+	1.000,
+	1.49,
+	0
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10011,
+	137,
+	'S001-20261007-000137',
+	1,
+	4,
+	3,
+	3,
+	'2026-10-07 13:31:00',
+	'2026-10-07 13:31:00',
+	'Paid',
+	3,
+	4.000,
+	15.06,
+	0,
+	7.58,
+	0.72,
+	0,
+	15.78,
+	'Charge',
+	15.78,
+	0.00
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	138,
+	'S001-20260926-000138',
+	1,
+	5,
+	4,
+	NULL,
+	'Regular',
+	'2026-09-26 10:10:00',
+	'2026-09-26 10:10:00',
+	'Completed',
+	0,
+	17.26,
+	0.00,
+	0.00,
+	0,
+	17.26,
+	'Charge',
+	17.26,
+	0.00
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10036,
+	138,
+	1,
+	108,
+	'Ground Coffee - 12 oz',
+	'Each',
+	0,
+	1.000,
+	9.99,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10037,
+	138,
+	2,
+	107,
+	'Tomato Sauce - 24 oz',
+	'Each',
+	0,
+	2.000,
+	2.89,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10038,
+	138,
+	3,
+	109,
+	'Black Beans - 15 oz',
+	'Each',
+	0,
+	1.000,
+	1.49,
+	0
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10012,
+	138,
+	'S001-20260926-000138',
+	1,
+	5,
+	4,
+	4,
+	'2026-09-26 10:10:00',
+	'2026-09-26 10:10:00',
+	'Paid',
+	3,
+	4.000,
+	17.26,
+	0,
+	0.00,
+	0.00,
+	0,
+	17.26,
+	'Charge',
+	17.26,
+	0.00
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	139,
+	'S001-20260930-000139',
+	1,
+	5,
+	4,
+	NULL,
+	'Regular',
+	'2026-09-30 11:17:00',
+	'2026-09-30 11:17:00',
+	'Completed',
+	0,
+	12.16,
+	0.00,
+	0.00,
+	0,
+	12.16,
+	'Cash',
+	20.00,
+	7.84
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10039,
+	139,
+	1,
+	104,
+	'Unsalted Butter - 1 lb',
+	'Each',
+	0,
+	1.000,
+	5.99,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10040,
+	139,
+	2,
+	102,
+	'Romaine Lettuce',
+	'Each',
+	0,
+	2.000,
+	2.19,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10041,
+	139,
+	3,
+	101,
+	'Avocados',
+	'Each',
+	0,
+	1.000,
+	1.79,
+	0
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10013,
+	139,
+	'S001-20260930-000139',
+	1,
+	5,
+	4,
+	4,
+	'2026-09-30 11:17:00',
+	'2026-09-30 11:17:00',
+	'Paid',
+	3,
+	4.000,
+	12.16,
+	0,
+	0.00,
+	0.00,
+	0,
+	12.16,
+	'Cash',
+	20.00,
+	7.84
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	140,
+	'S001-20261004-000140',
+	1,
+	5,
+	4,
+	NULL,
+	'Regular',
+	'2026-10-04 12:24:00',
+	'2026-10-04 12:24:00',
+	'Completed',
+	0,
+	19.36,
+	7.58,
+	0.72,
+	0,
+	20.08,
+	'Cash',
+	30.00,
+	9.92
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10042,
+	140,
+	1,
+	108,
+	'Ground Coffee - 12 oz',
+	'Each',
+	0,
+	1.000,
+	9.99,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10043,
+	140,
+	2,
+	110,
+	'Dish Soap - 20 oz',
+	'Each',
+	1,
+	2.000,
+	3.79,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10044,
+	140,
+	3,
+	101,
+	'Avocados',
+	'Each',
+	0,
+	1.000,
+	1.79,
+	0
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10014,
+	140,
+	'S001-20261004-000140',
+	1,
+	5,
+	4,
+	4,
+	'2026-10-04 12:24:00',
+	'2026-10-04 12:24:00',
+	'Paid',
+	3,
+	4.000,
+	19.36,
+	0,
+	7.58,
+	0.72,
+	0,
+	20.08,
+	'Cash',
+	30.00,
+	9.92
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	141,
+	'S001-20261008-000141',
+	1,
+	5,
+	4,
+	NULL,
+	'Regular',
+	'2026-10-08 13:31:00',
+	'2026-10-08 13:31:00',
+	'Completed',
+	0,
+	12.06,
+	3.79,
+	0.36,
+	0,
+	12.42,
+	'Charge',
+	12.42,
+	0.00
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10045,
+	141,
+	1,
+	105,
+	'Bagels - 6 Count',
+	'Each',
+	0,
+	1.000,
+	4.29,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10046,
+	141,
+	2,
+	106,
+	'Pasta - 16 oz',
+	'Each',
+	0,
+	2.000,
+	1.99,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10047,
+	141,
+	3,
+	110,
+	'Dish Soap - 20 oz',
+	'Each',
+	1,
+	1.000,
+	3.79,
+	0
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10015,
+	141,
+	'S001-20261008-000141',
+	1,
+	5,
+	4,
+	4,
+	'2026-10-08 13:31:00',
+	'2026-10-08 13:31:00',
+	'Paid',
+	3,
+	4.000,
+	12.06,
+	0,
+	3.79,
+	0.36,
+	0,
+	12.42,
+	'Charge',
+	12.42,
+	0.00
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	142,
+	'S001-20261002-000142',
+	1,
+	1,
+	5,
+	1,
+	'Express',
+	'2026-10-02 10:10:00',
+	'2026-10-02 10:10:00',
+	'Completed',
+	0,
+	14.26,
+	0.00,
+	0.00,
+	0,
+	14.26,
+	'Charge',
+	14.26,
+	0.00
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10048,
+	142,
+	1,
+	109,
+	'Black Beans - 15 oz',
+	'Each',
+	0,
+	1.000,
+	1.49,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10049,
+	142,
+	2,
+	113,
+	'Oatmeal - 18 oz',
+	'Each',
+	0,
+	2.000,
+	3.99,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10050,
+	142,
+	3,
+	112,
+	'Orange Juice - 52 oz',
+	'Each',
+	0,
+	1.000,
+	4.79,
+	0
+);
+INSERT INTO expressorder (
+	ExpressOrderID,
+	ReceiptID,
+	CustomerID,
+	PersonalShopperID,
+	OrderPlacedDateTime,
+	FulfillmentMethod,
+	DeliveryFee,
+	DeliveryAddressLine1,
+	DeliveryCity,
+	DeliveryStateCode,
+	DeliveryPostalCode,
+	Status
+)
+VALUES (
+	1000,
+	142,
+	1,
+	5,
+	'2026-10-02 10:10:00',
+	'Curbside',
+	0.00,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	'Completed'
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10016,
+	142,
+	'S001-20261002-000142',
+	1,
+	1,
+	5,
+	5,
+	'2026-10-02 10:10:00',
+	'2026-10-02 10:10:00',
+	'Paid',
+	3,
+	4.000,
+	14.26,
+	0,
+	0.00,
+	0.00,
+	0,
+	14.26,
+	'Charge',
+	14.26,
+	0.00
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	143,
+	'S001-20261004-000143',
+	1,
+	1,
+	5,
+	1,
+	'Express',
+	'2026-10-04 11:17:00',
+	'2026-10-04 11:17:00',
+	'Completed',
+	0,
+	14.26,
+	0.00,
+	0.00,
+	0,
+	24.26,
+	'Charge',
+	24.26,
+	0.00
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10051,
+	143,
+	1,
+	101,
+	'Avocados',
+	'Each',
+	0,
+	1.000,
+	1.79,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10052,
+	143,
+	2,
+	103,
+	'Greek Yogurt - 32 oz',
+	'Each',
+	0,
+	2.000,
+	5.49,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10053,
+	143,
+	3,
+	109,
+	'Black Beans - 15 oz',
+	'Each',
+	0,
+	1.000,
+	1.49,
+	0
+);
+INSERT INTO expressorder (
+	ExpressOrderID,
+	ReceiptID,
+	CustomerID,
+	PersonalShopperID,
+	OrderPlacedDateTime,
+	FulfillmentMethod,
+	DeliveryFee,
+	DeliveryAddressLine1,
+	DeliveryCity,
+	DeliveryStateCode,
+	DeliveryPostalCode,
+	Status
+)
+VALUES (
+	1001,
+	143,
+	1,
+	5,
+	'2026-10-04 11:17:00',
+	'Delivery',
+	10.00,
+	'100 Fresh Way',
+	'Los Angeles',
+	'CA',
+	'90001',
+	'Completed'
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10017,
+	143,
+	'S001-20261004-000143',
+	1,
+	1,
+	5,
+	5,
+	'2026-10-04 11:17:00',
+	'2026-10-04 11:17:00',
+	'Paid',
+	3,
+	4.000,
+	14.26,
+	0,
+	0.00,
+	0.00,
+	0,
+	24.26,
+	'Charge',
+	24.26,
+	0.00
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	144,
+	'S001-20261006-000144',
+	1,
+	1,
+	5,
+	1,
+	'Express',
+	'2026-10-06 12:24:00',
+	'2026-10-06 12:24:00',
+	'Completed',
+	0,
+	14.16,
+	0.00,
+	0.00,
+	0,
+	14.16,
+	'Charge',
+	14.16,
+	0.00
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10054,
+	144,
+	1,
+	105,
+	'Bagels - 6 Count',
+	'Each',
+	0,
+	1.000,
+	4.29,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10055,
+	144,
+	2,
+	102,
+	'Romaine Lettuce',
+	'Each',
+	0,
+	2.000,
+	2.19,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10056,
+	144,
+	3,
+	103,
+	'Greek Yogurt - 32 oz',
+	'Each',
+	0,
+	1.000,
+	5.49,
+	0
+);
+INSERT INTO expressorder (
+	ExpressOrderID,
+	ReceiptID,
+	CustomerID,
+	PersonalShopperID,
+	OrderPlacedDateTime,
+	FulfillmentMethod,
+	DeliveryFee,
+	DeliveryAddressLine1,
+	DeliveryCity,
+	DeliveryStateCode,
+	DeliveryPostalCode,
+	Status
+)
+VALUES (
+	1002,
+	144,
+	1,
+	5,
+	'2026-10-06 12:24:00',
+	'Curbside',
+	0.00,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	'Completed'
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10018,
+	144,
+	'S001-20261006-000144',
+	1,
+	1,
+	5,
+	5,
+	'2026-10-06 12:24:00',
+	'2026-10-06 12:24:00',
+	'Paid',
+	3,
+	4.000,
+	14.16,
+	0,
+	0.00,
+	0.00,
+	0,
+	14.16,
+	'Charge',
+	14.16,
+	0.00
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	145,
+	'S001-20261008-000145',
+	1,
+	1,
+	5,
+	1,
+	'Express',
+	'2026-10-08 13:31:00',
+	'2026-10-08 13:31:00',
+	'Completed',
+	0,
+	16.56,
+	0.00,
+	0.00,
+	0,
+	26.56,
+	'Charge',
+	26.56,
+	0.00
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10057,
+	145,
+	1,
+	112,
+	'Orange Juice - 52 oz',
+	'Each',
+	0,
+	1.000,
+	4.79,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10058,
+	145,
+	2,
+	107,
+	'Tomato Sauce - 24 oz',
+	'Each',
+	0,
+	2.000,
+	2.89,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10059,
+	145,
+	3,
+	104,
+	'Unsalted Butter - 1 lb',
+	'Each',
+	0,
+	1.000,
+	5.99,
+	0
+);
+INSERT INTO expressorder (
+	ExpressOrderID,
+	ReceiptID,
+	CustomerID,
+	PersonalShopperID,
+	OrderPlacedDateTime,
+	FulfillmentMethod,
+	DeliveryFee,
+	DeliveryAddressLine1,
+	DeliveryCity,
+	DeliveryStateCode,
+	DeliveryPostalCode,
+	Status
+)
+VALUES (
+	1003,
+	145,
+	1,
+	5,
+	'2026-10-08 13:31:00',
+	'Delivery',
+	10.00,
+	'100 Fresh Way',
+	'Los Angeles',
+	'CA',
+	'90001',
+	'Completed'
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10019,
+	145,
+	'S001-20261008-000145',
+	1,
+	1,
+	5,
+	5,
+	'2026-10-08 13:31:00',
+	'2026-10-08 13:31:00',
+	'Paid',
+	3,
+	4.000,
+	16.56,
+	0,
+	0.00,
+	0.00,
+	0,
+	26.56,
+	'Charge',
+	26.56,
+	0.00
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	146,
+	'S001-20261005-000146',
+	1,
+	5,
+	6,
+	NULL,
+	'Regular',
+	'2026-10-05 10:10:00',
+	'2026-10-05 10:10:00',
+	'Completed',
+	0,
+	22.66,
+	17.98,
+	1.71,
+	0,
+	24.37,
+	'Charge',
+	24.37,
+	0.00
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10060,
+	146,
+	1,
+	107,
+	'Tomato Sauce - 24 oz',
+	'Each',
+	0,
+	1.000,
+	2.89,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10061,
+	146,
+	2,
+	111,
+	'Trash Bags - 30 Count',
+	'Each',
+	1,
+	2.000,
+	8.99,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10062,
+	146,
+	3,
+	101,
+	'Avocados',
+	'Each',
+	0,
+	1.000,
+	1.79,
+	0
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10020,
+	146,
+	'S001-20261005-000146',
+	1,
+	5,
+	6,
+	6,
+	'2026-10-05 10:10:00',
+	'2026-10-05 10:10:00',
+	'Paid',
+	3,
+	4.000,
+	22.66,
+	0,
+	17.98,
+	1.71,
+	0,
+	24.37,
+	'Charge',
+	24.37,
+	0.00
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	147,
+	'S001-20261006-000147',
+	1,
+	1,
+	6,
+	1,
+	'Express',
+	'2026-10-06 11:17:00',
+	'2026-10-06 11:17:00',
+	'Completed',
+	0,
+	16.06,
+	0.00,
+	0.00,
+	0,
+	26.06,
+	'Charge',
+	26.06,
+	0.00
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10063,
+	147,
+	1,
+	108,
+	'Ground Coffee - 12 oz',
+	'Each',
+	0,
+	1.000,
+	9.99,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10064,
+	147,
+	2,
+	100,
+	'Navel Oranges',
+	'Pound',
+	0,
+	2.000,
+	1.59,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10065,
+	147,
+	3,
+	107,
+	'Tomato Sauce - 24 oz',
+	'Each',
+	0,
+	1.000,
+	2.89,
+	0
+);
+INSERT INTO expressorder (
+	ExpressOrderID,
+	ReceiptID,
+	CustomerID,
+	PersonalShopperID,
+	OrderPlacedDateTime,
+	FulfillmentMethod,
+	DeliveryFee,
+	DeliveryAddressLine1,
+	DeliveryCity,
+	DeliveryStateCode,
+	DeliveryPostalCode,
+	Status
+)
+VALUES (
+	1004,
+	147,
+	1,
+	6,
+	'2026-10-06 11:17:00',
+	'Delivery',
+	10.00,
+	'100 Fresh Way',
+	'Los Angeles',
+	'CA',
+	'90001',
+	'Completed'
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10021,
+	147,
+	'S001-20261006-000147',
+	1,
+	1,
+	6,
+	6,
+	'2026-10-06 11:17:00',
+	'2026-10-06 11:17:00',
+	'Paid',
+	3,
+	4.000,
+	16.06,
+	0,
+	0.00,
+	0.00,
+	0,
+	26.06,
+	'Charge',
+	26.06,
+	0.00
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	148,
+	'S001-20261007-000148',
+	1,
+	5,
+	6,
+	NULL,
+	'Regular',
+	'2026-10-07 12:24:00',
+	'2026-10-07 12:24:00',
+	'Completed',
+	0,
+	13.46,
+	0.00,
+	0.00,
+	0,
+	13.46,
+	'Cash',
+	20.00,
+	6.54
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10066,
+	148,
+	1,
+	105,
+	'Bagels - 6 Count',
+	'Each',
+	0,
+	1.000,
+	4.29,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10067,
+	148,
+	2,
+	100,
+	'Navel Oranges',
+	'Pound',
+	0,
+	2.000,
+	1.59,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10068,
+	148,
+	3,
+	104,
+	'Unsalted Butter - 1 lb',
+	'Each',
+	0,
+	1.000,
+	5.99,
+	0
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10022,
+	148,
+	'S001-20261007-000148',
+	1,
+	5,
+	6,
+	6,
+	'2026-10-07 12:24:00',
+	'2026-10-07 12:24:00',
+	'Paid',
+	3,
+	4.000,
+	13.46,
+	0,
+	0.00,
+	0.00,
+	0,
+	13.46,
+	'Cash',
+	20.00,
+	6.54
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	149,
+	'S001-20261008-000149',
+	1,
+	1,
+	6,
+	1,
+	'Express',
+	'2026-10-08 13:31:00',
+	'2026-10-08 13:31:00',
+	'Completed',
+	0,
+	16.06,
+	3.79,
+	0.36,
+	0,
+	26.42,
+	'Charge',
+	26.42,
+	0.00
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10069,
+	149,
+	1,
+	110,
+	'Dish Soap - 20 oz',
+	'Each',
+	1,
+	1.000,
+	3.79,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10070,
+	149,
+	2,
+	113,
+	'Oatmeal - 18 oz',
+	'Each',
+	0,
+	2.000,
+	3.99,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10071,
+	149,
+	3,
+	105,
+	'Bagels - 6 Count',
+	'Each',
+	0,
+	1.000,
+	4.29,
+	0
+);
+INSERT INTO expressorder (
+	ExpressOrderID,
+	ReceiptID,
+	CustomerID,
+	PersonalShopperID,
+	OrderPlacedDateTime,
+	FulfillmentMethod,
+	DeliveryFee,
+	DeliveryAddressLine1,
+	DeliveryCity,
+	DeliveryStateCode,
+	DeliveryPostalCode,
+	Status
+)
+VALUES (
+	1005,
+	149,
+	1,
+	6,
+	'2026-10-08 13:31:00',
+	'Delivery',
+	10.00,
+	'100 Fresh Way',
+	'Los Angeles',
+	'CA',
+	'90001',
+	'Completed'
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10023,
+	149,
+	'S001-20261008-000149',
+	1,
+	1,
+	6,
+	6,
+	'2026-10-08 13:31:00',
+	'2026-10-08 13:31:00',
+	'Paid',
+	3,
+	4.000,
+	16.06,
+	0,
+	3.79,
+	0.36,
+	0,
+	26.42,
+	'Charge',
+	26.42,
+	0.00
+);
+INSERT INTO salesreceipt (
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OperatorID,
+	CustomerID,
+	SaleType,
+	TransactionDateTime,
+	CheckoutDateTime,
+	Status,
+	ReceiptDiscountAmount,
+	SubtotalAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	150,
+	'S001-20261009-000150',
+	1,
+	5,
+	6,
+	NULL,
+	'Regular',
+	'2026-10-09 14:38:00',
+	'2026-10-09 14:38:00',
+	'Completed',
+	0,
+	23.86,
+	17.98,
+	1.71,
+	0,
+	25.57,
+	'Cash',
+	30.00,
+	4.43
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10072,
+	150,
+	1,
+	105,
+	'Bagels - 6 Count',
+	'Each',
+	0,
+	1.000,
+	4.29,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10073,
+	150,
+	2,
+	111,
+	'Trash Bags - 30 Count',
+	'Each',
+	1,
+	2.000,
+	8.99,
+	0
+);
+INSERT INTO salesreceiptline (
+	ReceiptLineID,
+	ReceiptID,
+	LineNumber,
+	ProductID,
+	ProductNameAtSale,
+	UnitTypeAtSale,
+	TaxableAtSale,
+	Quantity,
+	UnitPrice,
+	LineDiscountAmount
+)
+VALUES (
+	10074,
+	150,
+	3,
+	100,
+	'Navel Oranges',
+	'Pound',
+	0,
+	1.000,
+	1.59,
+	0
+);
+INSERT INTO transactionjournal (
+	JournalID,
+	ReceiptID,
+	TransactionNumber,
+	StoreID,
+	RegisterID,
+	OpenedByOperatorID,
+	ClosedByOperatorID,
+	OpenedDateTime,
+	ClosedDateTime,
+	Status,
+	LineCount,
+	ItemQuantity,
+	SubtotalAmount,
+	DiscountAmount,
+	TaxableSubtotalAmount,
+	TaxAmount,
+	PostTaxDiscountAmount,
+	TotalAmount,
+	PaymentMethod,
+	AmountTendered,
+	ChangeDue
+)
+VALUES (
+	10024,
+	150,
+	'S001-20261009-000150',
+	1,
+	5,
+	6,
+	6,
+	'2026-10-09 14:38:00',
+	'2026-10-09 14:38:00',
+	'Paid',
+	3,
+	4.000,
+	23.86,
+	0,
+	17.98,
+	1.71,
+	0,
+	25.57,
+	'Cash',
+	30.00,
+	4.43
+);
 COMMIT;

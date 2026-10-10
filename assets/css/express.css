@@ -293,3 +293,104 @@
     width: 7rem;
     min-height: var(--minimum-touch-size);
 }
+
+/* Narrow desktop and tablet: compact cells so the tables still fit */
+
+@media (max-width: 79.99rem) {
+    .express-table th,
+    .express-table td {
+        padding: 0.375rem 0.5rem;
+        font-size: 0.8125rem;
+    }
+
+    .express-table td:first-child {
+        overflow-wrap: anywhere;
+    }
+}
+
+/* Desktop layout */
+
+@media (min-width: 64rem) {
+    .express-table,
+    .express-stock-table {
+        min-width: 0;
+    }
+}
+
+/* Order board: open orders by status */
+
+.express-steps {
+    margin: 0 0 0.75rem;
+    color: var(--secondary-text-color);
+    font-size: 0.875rem;
+}
+
+.express-board {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.express-board-column {
+    padding: 0.625rem;
+    border: 0.0625rem solid var(--standard-border-color);
+    border-radius: var(--standard-border-radius);
+    background: var(--panel-background-color);
+}
+
+.express-board-column h3 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 0 0.25rem;
+}
+
+.express-board-count {
+    min-width: 1.75rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 1rem;
+    background: var(--theme-primary-dark-color);
+    color: white;
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+.express-board-hint {
+    margin: 0 0 0.5rem;
+    color: var(--secondary-text-color);
+    font-size: 0.8125rem;
+}
+
+.express-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+    padding: 0.625rem;
+    border: 0.0625rem solid var(--standard-border-color);
+    border-radius: var(--standard-border-radius);
+    background: white;
+}
+
+@media (min-width: 48rem) {
+    .express-board {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: start;
+    }
+}
+
+/* Next step on the order page, and the charge note on payment */
+
+.express-next-step,
+.express-charge-note {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0 0 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border: 0.0625rem solid var(--shared-blue-color);
+    border-radius: var(--standard-border-radius);
+    background: var(--information-background-color);
+}
