@@ -3407,6 +3407,7 @@ CREATE PROCEDURE sp_create_express_order(
 )
 BEGIN
 	DECLARE expressRegisterID INT DEFAULT NULL;
+	DECLARE lockedStoreID INT DEFAULT NULL;
 	DECLARE usedOrders INT DEFAULT 0;
 	DECLARE newReceiptID BIGINT;
 	DECLARE newExpressOrderID BIGINT;
@@ -3421,6 +3422,20 @@ BEGIN
 
 	START TRANSACTION;
 
+	-- Lock the store before reading daily capacity so concurrent Express
+	-- orders at different registers cannot both claim the final slot.
+	SELECT StoreID
+	INTO lockedStoreID
+	FROM store
+	WHERE StoreID = pStoreID
+	  AND Active = 1
+	FOR UPDATE;
+
+	IF lockedStoreID IS NULL THEN
+		SIGNAL SQLSTATE '45000'
+			SET MESSAGE_TEXT = 'The selected store is not active';
+	END IF;
+
 	SELECT RegisterID
 	INTO expressRegisterID
 	FROM register
@@ -3429,16 +3444,6 @@ BEGIN
 	  AND RegisterType = 'Express'
 	  AND Active = 1
 	FOR UPDATE;
-
-	IF NOT EXISTS (
-		SELECT 1
-		FROM store
-		WHERE StoreID = pStoreID
-		  AND Active = 1
-	) THEN
-		SIGNAL SQLSTATE '45000'
-			SET MESSAGE_TEXT = 'The selected store is not active';
-	END IF;
 
 	IF expressRegisterID IS NULL THEN
 		SIGNAL SQLSTATE '45000'
