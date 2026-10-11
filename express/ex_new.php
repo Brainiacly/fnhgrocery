@@ -820,7 +820,7 @@ require __DIR__ . '/../includes/header.php';
                     <?php endforeach; ?>
                 </select>
 
-                <button type="submit" name="load_customer" value="1" class="button button-secondary">
+                <button type="submit" name="load_customer" value="1" formnovalidate class="button button-secondary">
                     Load Customer
                 </button>
 
@@ -915,7 +915,8 @@ require __DIR__ . '/../includes/header.php';
                                 <?php endforeach; ?>
                             </select>
 
-                            <button type="submit" name="load_address" value="1" class="button button-secondary">
+                            <button type="submit" name="load_address" value="1" formnovalidate
+                                class="button button-secondary">
                                 Load Address
                             </button>
 

@@ -10,9 +10,7 @@ require_once __DIR__ . '/../includes/access_control.php';
 requireAccess();
 
 $trainingData = require __DIR__ . '/tc_data.php';
-
 $role = signedInRole();
-
 $visibleTopics = [];
 
 foreach ($trainingData['topics'] as $topicKey => $topic) {
@@ -29,100 +27,61 @@ require __DIR__ . '/../includes/header.php';
 ?>
 
 <section class="content-panel training-panel">
-
     <div class="page-intro training-compact-intro">
         <h1>Training Center</h1>
         <p>
-            Choose one of seven full training videos or select an individual use case.
-            Each topic will jump to its matching video segment once the
-            timestamps are added after recording.
+            Choose a lesson box to open its short, silent video and step-by-step directions.
+            Videos play only inside lessons. Use Previous and Next to move between lessons.
         </p>
     </div>
 
-    <h2 class="training-section-heading">Training Movies</h2>
+    <?php $lessonNumber = 0; ?>
+    <?php foreach ($trainingData['sections'] as $sectionKey => $section): ?>
+        <?php
+        $sectionTopics = [];
 
-    <div class="training-grid">
-
-        <?php foreach ($trainingData['movies'] as $movieKey => $movie): ?>
-
-            <?php
-            $movieTopics = [];
-
-            foreach ($visibleTopics as $topicKey => $topic) {
-                if ($topic['movie'] === $movieKey) {
-                    $movieTopics[$topicKey] = $topic;
-                }
+        foreach ($visibleTopics as $topicKey => $topic) {
+            if ($topic['section'] === $sectionKey) {
+                $sectionTopics[$topicKey] = $topic;
             }
+        }
+        ?>
 
-            $movieAvailable = is_file(
-                __DIR__ . '/movies/' . $movie['file']
-            );
+        <?php if ($sectionTopics): ?>
+            <section class="training-section" aria-labelledby="section-<?= escapeOutput($sectionKey) ?>">
+                <h2 id="section-<?= escapeOutput($sectionKey) ?>" class="training-section-heading">
+                    <?= escapeOutput($section['title']) ?>
+                </h2>
+                <p class="training-topic-summary">
+                    <?= escapeOutput($section['summary']) ?>
+                </p>
 
-            $movieAddress =
-                APPLICATION_URL
-                . '/training/movies/'
-                . rawurlencode($movie['file']);
-            ?>
-
-            <?php if ($movieTopics): ?>
-
-                <div class="training-movie-tile">
-
-                    <strong><?= escapeOutput($movie['title']) ?></strong>
-
-                    <span><?= escapeOutput($movie['summary']) ?></span>
-
-                    <?php if ($movieAvailable): ?>
-
-                        <a href="<?= escapeOutput($movieAddress) ?>" class="button button-primary">
-                            Watch Full Video
+                <div class="training-lesson-grid">
+                    <?php foreach ($sectionTopics as $topicKey => $topic): ?>
+                        <?php
+                        $lessonNumber++;
+                        $videoAvailable = is_file(__DIR__ . '/movies/' . $topicKey . '.mp4');
+                        $topicAddress = APPLICATION_URL
+                            . '/training/tc_topic.php?topic='
+                            . rawurlencode($topicKey);
+                        ?>
+                        <a href="<?= escapeOutput($topicAddress) ?>" class="training-lesson-card"
+                            aria-label="Open lesson <?= $lessonNumber ?>: <?= escapeOutput($topic['title']) ?>">
+                            <span class="training-lesson-number">Lesson <?= $lessonNumber ?></span>
+                            <strong class="training-lesson-title"><?= escapeOutput($topic['title']) ?></strong>
+                            <span class="training-lesson-summary"><?= escapeOutput($topic['summary']) ?></span>
+                            <span class="training-lesson-bottom">
+                                <span class="training-lesson-status">
+                                    <?= $videoAvailable ? (!empty($topic['needs_update']) ? 'Video needs update' : 'Video ready') : 'Video coming soon' ?>
+                                </span>
+                                <span class="training-lesson-open" aria-hidden="true">Open Lesson &#8594;</span>
+                            </span>
                         </a>
-
-                    <?php else: ?>
-
-                        <span class="training-movie-pending">
-                            This movie is not available yet.
-                        </span>
-
-                    <?php endif; ?>
-
+                    <?php endforeach; ?>
                 </div>
-
-            <?php endif; ?>
-
-        <?php endforeach; ?>
-
-    </div>
-
-    <h2 class="training-section-heading">Training Topics</h2>
-    <p class="training-topic-summary">
-        Choose a use case to read the steps and watch its demonstration.
-        Until the video segment times are entered, topics play their video from the beginning.
-    </p>
-
-    <div class="training-grid">
-
-        <?php foreach ($visibleTopics as $topicKey => $topic): ?>
-
-            <?php
-            $topicAddress =
-                APPLICATION_URL
-                . '/training/tc_topic.php?topic='
-                . rawurlencode($topicKey);
-            ?>
-
-            <a href="<?= escapeOutput($topicAddress) ?>" class="training-card">
-                <span class="training-assignment-label">
-                    <?= escapeOutput($topic['assignment']) ?>
-                </span>
-                <strong><?= escapeOutput($topic['title']) ?></strong>
-                <span><?= escapeOutput($topic['summary']) ?></span>
-            </a>
-
-        <?php endforeach; ?>
-
-    </div>
-
+            </section>
+        <?php endif; ?>
+    <?php endforeach; ?>
 </section>
 
 <?php require __DIR__ . '/../includes/footer.php'; ?>

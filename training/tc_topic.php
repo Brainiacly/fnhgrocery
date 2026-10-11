@@ -10,7 +10,6 @@ require_once __DIR__ . '/../includes/access_control.php';
 requireAccess();
 
 $trainingData = require __DIR__ . '/tc_data.php';
-
 $role = signedInRole();
 $topicKey = (string) ($_GET['topic'] ?? '');
 
@@ -26,21 +25,32 @@ if (!in_array($role, $topic['roles'], true)) {
     );
 }
 
-$movie = $trainingData['movies'][$topic['movie']];
-$movieAvailable = is_file(__DIR__ . '/movies/' . $movie['file']);
+// Follow the same section and lesson order used by Training Center cards.
+// Only include lessons available to this employee's role.
+$visibleTopicKeys = [];
+foreach ($trainingData['sections'] as $sectionKey => $section) {
+    foreach ($trainingData['topics'] as $candidateKey => $candidate) {
+        if (
+            $candidate['section'] === $sectionKey
+            && in_array($role, $candidate['roles'], true)
+        ) {
+            $visibleTopicKeys[] = $candidateKey;
+        }
+    }
+}
 
-// The segment time is unknown until the full lesson has been recorded and edited.
-$segmentSecond = $topic['start'] ?? null;
-$hasSegmentTime = is_int($segmentSecond) && $segmentSecond >= 0;
-$movieStartText = $hasSegmentTime
-    ? floor($segmentSecond / 60) . ':'
-    . str_pad((string) ($segmentSecond % 60), 2, '0', STR_PAD_LEFT)
-    : '';
+$lessonIndex = array_search($topicKey, $visibleTopicKeys, true);
+$lessonCount = count($visibleTopicKeys);
+$previousTopicKey = $visibleTopicKeys[($lessonIndex - 1 + $lessonCount) % $lessonCount];
+$nextTopicKey = $visibleTopicKeys[($lessonIndex + 1) % $lessonCount];
+$previousTopicAddress = APPLICATION_URL . '/training/tc_topic.php?topic=' . rawurlencode($previousTopicKey);
+$nextTopicAddress = APPLICATION_URL . '/training/tc_topic.php?topic=' . rawurlencode($nextTopicKey);
 
-$movieAddress = APPLICATION_URL
-    . '/training/movies/' . rawurlencode($movie['file']);
-$topicMovieAddress = $movieAddress
-    . ($hasSegmentTime ? '#t=' . $segmentSecond : '');
+$section = $trainingData['sections'][$topic['section']];
+$videoFile = $topicKey . '.mp4';
+$videoAvailable = is_file(__DIR__ . '/movies/' . $videoFile);
+$videoAddress = APPLICATION_URL
+    . '/training/movies/' . rawurlencode($videoFile);
 
 $pageTitle = $topic['title'];
 $currentSection = 'training';
@@ -50,10 +60,10 @@ require __DIR__ . '/../includes/header.php';
 ?>
 
 <section class="content-panel training-panel training-topic-panel">
-
     <div class="page-intro training-compact-intro">
+        <p class="training-lesson-number">Lesson <?= $lessonIndex + 1 ?> of <?= $lessonCount ?></p>
         <h1><?= escapeOutput($topic['title']) ?></h1>
-        <p><?= escapeOutput($topic['assignment']) ?></p>
+        <p><?= escapeOutput($topic['summary']) ?></p>
     </div>
 
     <div class="training-topic-meta">
@@ -62,65 +72,50 @@ require __DIR__ . '/../includes/header.php';
             <strong><?= escapeOutput($topic['audience']) ?></strong>
         </div>
         <div>
-            <span>Training Movie</span>
-            <strong><?= escapeOutput($movie['title']) ?></strong>
+            <span>Training Area</span>
+            <strong><?= escapeOutput($section['title']) ?></strong>
         </div>
     </div>
 
-    <p class="training-topic-summary">
-        <?= escapeOutput($topic['summary']) ?>
-    </p>
-
-    <section class="training-steps">
-        <h2>Steps</h2>
-        <ol>
-            <?php foreach ($topic['steps'] as $step): ?>
-                <li><?= escapeOutput($step) ?></li>
-            <?php endforeach; ?>
-        </ol>
-    </section>
-
-    <section class="training-movie-card">
-        <h2>Watch This Topic</h2>
-
-        <?php if ($movieAvailable): ?>
-
-            <video controls preload="metadata" class="training-video">
-                <source src="<?= escapeOutput($topicMovieAddress) ?>" type="video/mp4">
-                Your browser does not support the video player.
+    <figure class="training-topic-figure">
+        <?php if ($videoAvailable): ?>
+            <video controls muted playsinline preload="metadata" class="training-video"
+                aria-label="<?= escapeOutput($topic['title']) ?> demonstration">
+                <source src="<?= escapeOutput($videoAddress) ?>" type="video/mp4">
+                Your browser does not support video playback.
             </video>
-
-            <?php if ($hasSegmentTime): ?>
-                <p class="training-start-note">
-                    This topic begins at <?= escapeOutput($movieStartText) ?>
-                    in the video.
-                </p>
-            <?php else: ?>
-                <p class="training-start-note">
-                    This topic's timestamp will be added after recording.
-                    Until then, the video plays from the beginning.
-                </p>
-            <?php endif; ?>
-
-            <a href="<?= escapeOutput($topicMovieAddress) ?>" class="button button-primary">
-                Watch This Topic
-            </a>
-
         <?php else: ?>
-
-            <div class="message message-warning">
-                This training movie is not available yet.
+            <div class="training-video-pending training-topic-pending" role="status">
+                This lesson's video is not available yet. You can still follow the directions below.
             </div>
-
         <?php endif; ?>
-    </section>
 
-    <div class="page-main-actions training-topic-actions">
-        <a href="<?= APPLICATION_URL ?>/training/tc_home.php" class="button button-secondary">
-            Training Center
+        <figcaption class="training-clip-caption training-topic-directions">
+            <h2>Directions</h2>
+            <?php if (!empty($topic['video_note'])): ?>
+                <p class="training-video-note"><?= escapeOutput($topic['video_note']) ?></p>
+            <?php endif; ?>
+            <ol>
+                <?php foreach ($topic['steps'] as $step): ?>
+                    <li><?= escapeOutput($step) ?></li>
+                <?php endforeach; ?>
+            </ol>
+        </figcaption>
+    </figure>
+
+    <nav class="training-lesson-navigation" aria-label="Training lesson navigation">
+        <a href="<?= escapeOutput($previousTopicAddress) ?>" class="button button-secondary"
+            aria-label="Previous lesson: <?= escapeOutput($trainingData['topics'][$previousTopicKey]['title']) ?>">
+            &#8592; Previous
         </a>
-    </div>
-
+        <a href="<?= APPLICATION_URL ?>/training/tc_home.php" class="button button-secondary">
+            All Lessons
+        </a>
+        <a href="<?= escapeOutput($nextTopicAddress) ?>" class="button button-secondary"
+            aria-label="Next lesson: <?= escapeOutput($trainingData['topics'][$nextTopicKey]['title']) ?>">
+            Next &#8594;
+        </a>
+    </nav>
 </section>
 
 <?php require __DIR__ . '/../includes/footer.php'; ?>

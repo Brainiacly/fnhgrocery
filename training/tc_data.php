@@ -11,46 +11,39 @@ if (basename($_SERVER['SCRIPT_NAME']) === basename(__FILE__)) {
     exit;
 }
 
-// Each use case names its full movie and the second at which its segment starts.
-// Leave start => null while filming. AFTER editing, enter a whole number of seconds
-// (e.g. 02:35 = 155). Topic pages will then seek to the right part of the movie.
-// Keep each segment ending with a spoken closing line and 2-3 seconds of silence.
+// Each training topic has its own short MP4 video.
+// Save the video in training/movies using the topic key as its filename.
+// Example: login_logout => training/movies/login_logout.mp4.
+// Video players and directions are shown on lesson pages only. No timestamps are needed.
 return [
-    'movies' => [
+    'sections' => [
         'orientation' => [
-            'title' => '1. Signing In and Finding Your Way',
-            'file' => '01_sign_in_and_navigation.mp4',
-            'summary' => 'Compare roles and navigation, use My Account and the Training Center, and sign out safely.'
+            'title' => 'Signing In and Finding Your Way',
+            'summary' => 'Signing in, navigation, account settings, and training help.'
         ],
         'regular' => [
-            'title' => '2. Regular Register and Customer Sale',
-            'file' => '02_regular_checkout.mp4',
-            'summary' => 'Open a regular register, scan or tap products, apply a coupon and discount, and take payment.'
+            'title' => 'Regular Register and Customer Sale',
+            'summary' => 'Starting sales, handling items, applying discounts, and checkout.'
         ],
         'express' => [
-            'title' => '3. FnH Express Orders',
-            'file' => '03_express_orders.mp4',
-            'summary' => 'Take, pick, prepare, and check out curbside and delivery orders, including the Express rules.'
+            'title' => 'FnH Express Orders',
+            'summary' => 'Curbside pickup, delivery, order progress, and Express rules.'
         ],
         'inventory' => [
-            'title' => '4. Stock Levels and Inventory',
-            'file' => '04_inventory.mp4',
-            'summary' => 'Check stock, add or edit products, and add, remove, or set quantities with recorded reasons.'
+            'title' => 'Stock Levels and Inventory',
+            'summary' => 'Stock checks, product changes, and inventory adjustments.'
         ],
         'employees' => [
-            'title' => '5. Managing Employees and Permissions',
-            'file' => '05_employee_management.mp4',
-            'summary' => 'Create, change, inactivate, and reactivate accounts; compare Administrator and Manager authority.'
+            'title' => 'Managing Employees and Permissions',
+            'summary' => 'Employee accounts, access levels, and employee status.'
         ],
         'registers' => [
-            'title' => '6. Managing Checkout Registers',
-            'file' => '06_register_management.mp4',
-            'summary' => 'Add and update registers, choose Regular or Express, and deactivate safely.'
+            'title' => 'Managing Checkout Registers',
+            'summary' => 'Register creation, configuration, and activation.'
         ],
         'additional' => [
-            'title' => '7. Transactions, Coupons, and Supervisor Tools',
-            'file' => '07_transactions_and_coupons.mp4',
-            'summary' => 'Find receipts, inspect and assist with open transactions, and administer coupon definitions.'
+            'title' => 'Transactions, Coupons, and Supervisor Tools',
+            'summary' => 'Transaction history, supervisor tools, and coupon management.'
         ]
     ],
     'topics' => [
@@ -59,381 +52,385 @@ return [
             'assignment' => 'Assignment 1',
             'audience' => 'Everyone',
             'roles' => ['Administrator', 'Manager', 'Operator', 'Personal Shopper'],
-            'summary' => 'Sign in with your own account, check your name on the page, and log out when you step away.',
+            'summary' => 'Sign in, recognize your account, and sign out safely.',
             'steps' => [
-                'Open the FnH Groceries home page and enter your username and password.',
-                'Press Login and check that your username appears at the top of the page.',
-                'Use the left menu to move around. It only offers what your role allows.',
-                'Press Logout before you leave the workstation.'
+                'On the FnH Groceries welcome page, type your username and password into the login fields.',
+                'Click Login to open your Home page. Check the signed-in username and privilege.',
+                'Use a menu link, such as Stock Levels, to see an area your account can open.',
+                'Click Logout in the upper-right corner to return to the sign-in page.',
             ],
-            'movie' => 'orientation',
-            'start' => null
+            'section' => 'orientation',
         ],
         'top_level_menu' => [
             'title' => 'Use the Main Menu',
             'assignment' => 'Assignments 2 and 3',
             'audience' => 'Everyone',
             'roles' => ['Administrator', 'Manager', 'Operator', 'Personal Shopper'],
-            'summary' => 'See how the home page and left menu change for each role.',
+            'summary' => 'Compare the Home cards and left menu for different staff roles.',
             'steps' => [
-                'Sign in and read the username and privilege shown on the home page.',
-                'Look at the menu cards. Each card opens an area your role can use.',
-                'Use the left menu to switch between areas.',
-                'Notice that areas outside your role are not offered.'
+                'Sign in as an Operator and look at the available Home cards.',
+                'Use the left menu to open an area such as Stock Levels, then return to Home.',
+                'Sign out and sign in as a Personal Shopper.',
+                'Compare the Home cards and menu. Express Orders is offered to Personal Shoppers, while regular checkout is not.',
             ],
-            'movie' => 'orientation',
-            'start' => null
+            'section' => 'orientation',
         ],
         'account' => [
             'title' => 'My Account',
             'assignment' => 'Assignments 1 to 3',
             'audience' => 'Everyone',
             'roles' => ['Administrator', 'Manager', 'Operator', 'Personal Shopper'],
-            'summary' => 'Review your own details and change the contact information and password you may change.',
+            'summary' => 'Review your details and save changes to your own account.',
             'steps' => [
-                'Choose My Account from the left menu.',
-                'Review your store, employee number, and privilege. An Administrator controls those.',
-                'Update your contact details and save.',
-                'To change your password, enter the current one and a valid new one, then save.'
+                'Sign in and click My Account on the left.',
+                'Review the employee number, assigned store, and privilege. These fields cannot be changed here.',
+                'Edit a permitted field, such as your middle initial or contact information.',
+                'Click Save Changes. Confirm the update message appears.',
+                'If changing your password, provide the current password and matching new password before saving.',
             ],
-            'movie' => 'orientation',
-            'start' => null
+            'section' => 'orientation',
         ],
         'training_center' => [
             'title' => 'Use the Training Center',
             'assignment' => 'Assignment 4 extension',
             'audience' => 'Everyone',
             'roles' => ['Administrator', 'Manager', 'Operator', 'Personal Shopper'],
-            'summary' => 'Find the training movies and the lesson for each job you do.',
+            'summary' => 'Open a lesson, play its silent video, and read the steps below.',
             'steps' => [
-                'Choose Training Center from the left menu.',
-                'Training Movies lists the seven full videos relevant to your role. Press Watch Full Video to start a complete video.',
-                'Training Topics lists a lesson for each job you do. Press a topic to read its steps.',
-                'Open an individual topic to play its related movie. Once timestamps are entered, playback starts at the correct segment.',
-                'Use the Training Center button below the lesson to go back.'
+                'Click Training Center in the left menu.',
+                'On the current page, find the subject heading and click a lesson box.',
+                'Press Play inside that lesson. Videos do not play on the Training Center home page.',
+                'Read the numbered directions below the video.',
+                'Use Previous, Next, or All Lessons. The first and last lessons connect in a loop.',
             ],
-            'movie' => 'orientation',
-            'start' => null
+            'video_note' => 'This recording shows an older Training Center page with videos in the lesson list. The current page uses clickable lesson boxes. Replace this MP4 to show the current layout.',
+            'needs_update' => true,
+            'section' => 'orientation',
         ],
         'create_operator' => [
             'title' => 'Create an Employee',
             'assignment' => 'Assignment 1',
             'audience' => 'Administrators',
             'roles' => ['Administrator'],
-            'summary' => 'Add a new employee account with a store, a role, and a password that meets the rules.',
+            'summary' => 'Create an employee account using the Administrator employee form.',
             'steps' => [
-                'Sign in as an Administrator and open Employees.',
-                'Press Create Employee.',
-                'Enter the name, username, email, role, hire date, and password. Contact details are optional.',
-                'Save, then check that the new account appears in the employee list.'
+                'Sign in as an Administrator and click Employees.',
+                'Click Create Employee.',
+                'Select the assigned store and enter a unique username.',
+                'Fill in the employee name, email, role, hire date, and a password that meets the rules.',
+                'Click Create Employee or Save on the form.',
+                'Return to the employee list and verify that the account appears.',
             ],
-            'movie' => 'employees',
-            'start' => null
+            'section' => 'employees',
         ],
         'update_operator' => [
             'title' => 'Change an Employee',
             'assignment' => 'Assignment 1',
             'audience' => 'Administrators',
             'roles' => ['Administrator'],
-            'summary' => 'Update an existing employee\'s account, store, role, or contact information.',
+            'summary' => 'Select an employee, modify their details, and verify the saved account.',
             'steps' => [
-                'Open Employees and select an employee.',
-                'Press Modify Employee.',
-                'Change what needs to change. The page warns you if the change would cancel an open sale.',
-                'Save, then reopen the employee to confirm the new values.'
+                'As an Administrator, open Employees.',
+                'Select an employee using the circle beside their name.',
+                'Click Modify Employee.',
+                'Edit a permitted field in the employee form.',
+                'Save the change, then return to the list and check the updated record.',
             ],
-            'movie' => 'employees',
-            'start' => null
+            'section' => 'employees',
         ],
         'delete_operator' => [
-            'title' => 'Deactivate and Reactivate an Employee',
+            'title' => 'Administrator: Deactivate an Employee',
             'assignment' => 'Assignment 1',
             'audience' => 'Administrators',
             'roles' => ['Administrator'],
-            'summary' => 'Remove an employee\'s access without erasing their history, and restore it when needed.',
+            'summary' => 'Deactivate a test employee and restore the account afterward.',
             'steps' => [
-                'Select an active employee in Employees.',
-                'Press Delete Employee and confirm. The account becomes inactive. Nothing is erased.',
-                'Check Inactive in the filter bar to find the account again.',
-                'Select the inactive employee and press Reactivate Employee to restore access.'
+                'Sign in as an Administrator and open Employees.',
+                'Select the employee you want to deactivate.',
+                'Click Delete Employee or Deactivate Employee and confirm.',
+                'Use the Inactive filter to find that employee again.',
+                'Select the inactive account, click Reactivate Employee, and confirm.',
+                'Check that the account is listed as Active again.',
             ],
-            'movie' => 'employees',
-            'start' => null
+            'section' => 'employees',
         ],
         'supervisor_open' => [
             'title' => 'Open Another Employee\'s Transaction',
             'assignment' => 'Assignment 4 extension',
             'audience' => 'Administrators and Managers',
             'roles' => ['Administrator', 'Manager'],
-            'summary' => 'View, assist with, take over, or cancel a transaction that belongs to someone else.',
+            'summary' => 'Find an employee’s open sale and use the supervisor transaction controls.',
             'steps' => [
-                'Open Transactions and press Open beside the open transaction.',
-                'Press View Only to look without changing anything.',
-                'Press Assist to add items, discounts, or coupons. It stays with its owner, who can still resume it.',
-                'Press Take Over to assign it to yourself and check it out. Press Hand Back to return it.',
-                'Press Cancel Transaction to cancel it and return its items to stock.',
-                'Read Who Worked On This Transaction to see every view, assist, take over, and hand back.'
+                'As an Operator, start a Regular sale with test items and leave it open using Save.',
+                'Sign out, then sign in as a Manager or Administrator.',
+                'Click Transactions and click Open next to the employee\'s open sale.',
+                'On Transaction Details, click View Only to inspect items without editing.',
+                'Click Assist to work on the sale without changing its owner, or Take Over to transfer ownership.',
+                'Use Hand Back to restore ownership, or Cancel Transaction to cancel the test sale.',
+                'Scroll to Who Worked On This Transaction to review the access history.',
             ],
-            'movie' => 'additional',
-            'start' => null
+            'video_note' => 'The recording shows how to find an open sale, reach the supervisor controls, and access the register. It does not show a complete sequence of View Only, Assist, Take Over, Hand Back, and Cancel. Record that full sequence if every action must be demonstrated.',
+            'needs_update' => true,
+            'section' => 'additional',
         ],
         'employee_access' => [
-            'title' => 'Inactivate or Reactivate an Employee',
+            'title' => 'Manager: Employee Access and History',
             'assignment' => 'Assignment 4 extension',
             'audience' => 'Administrators and Managers',
             'roles' => ['Administrator', 'Manager'],
-            'summary' => 'Stop an employee from using the system, or let them back in, without deleting their record.',
+            'summary' => 'Review staff transactions and change a non-Administrator account’s access.',
             'steps' => [
-                'Open Employees and choose the employee in the list.',
-                'Press View Transactions to see everything they opened, worked on, or completed.',
-                'Press Inactivate Employee and confirm. They are signed out on their next click and cannot sign in.',
-                'Their open transactions stay open until a Manager takes them over or cancels them.',
-                'To restore access, show inactive employees, choose the employee, and press Reactivate.',
-                'A Manager cannot change an Administrator, and nobody can change their own access.'
+                'Sign in as a Manager and click Employees.',
+                'Choose a non-Administrator employee using the selection circle.',
+                'Click View Transactions and review the employee\'s sales in Transaction Viewer.',
+                'Return to Employees to change the employee\'s access.',
+                'Click Inactivate Employee or Reactivate Employee, as appropriate, and confirm.',
+                'Check the updated status in the employee list. Managers cannot change Administrator accounts.',
             ],
-            'movie' => 'employees',
-            'start' => null
+            'section' => 'employees',
         ],
         'registers' => [
             'title' => 'Set Up Registers',
             'assignment' => 'Assignment 4 extension',
             'audience' => 'Administrators',
             'roles' => ['Administrator'],
-            'summary' => 'Add a register or change its number, name, type, or status.',
+            'summary' => 'Edit an Express or Regular register, save it, and change its active status.',
             'steps' => [
-                'Open Register Configuration at the bottom of the menu.',
-                'Choose a register from the dropdown, or choose Add New Register.',
-                'Change the number, name, type (Express or Regular), or status in the form that opens below. Select Inactive to take a register out of service; there is no Delete Register button.',
-                'Press Add Register when making a new register, or Save Register when editing one. A register with an open transaction cannot be changed.',
-                'Register 1 always stays an active Express register, and at least one Regular register stays active.'
+                'Sign in as an Administrator and click Register Configuration.',
+                'Choose an existing register or Add New Register from the dropdown.',
+                'Enter or change the register number, name, type, and Active/Inactive status.',
+                'Click Save Register or Add Register as appropriate.',
+                'Check the saved message, then select the register again to verify the setting.',
+                'Open New Sale to see which active Regular registers are available.',
             ],
-            'movie' => 'registers',
-            'start' => null
+            'section' => 'registers',
         ],
         'stock_levels' => [
             'title' => 'View Store Stock Levels',
             'assignment' => 'Assignment 2',
             'audience' => 'Everyone',
             'roles' => ['Administrator', 'Manager', 'Operator', 'Personal Shopper'],
-            'summary' => 'Check how many of each product are on the shelf, where they are, and what is out of stock.',
+            'summary' => 'Find store products, quantities, locations, and out-of-stock items.',
             'steps' => [
-                'Choose Stock Levels from the left menu.',
-                'Read Total Stock on Hand: the weight of items sold by the pound and the number of each items.',
-                'Find a product by department and check its quantity, price, aisle, section, and shelf.',
-                'Spot the products marked Out of Stock.'
+                'Click Stock Levels on the left.',
+                'Read Total Stock on Hand at the top of the page.',
+                'Scroll through the table to locate a product and its department.',
+                'Check the quantity, unit type, price, aisle, section, and shelf location.',
+                'Look for the Out of Stock marking on products with no stock available.',
             ],
-            'movie' => 'inventory',
-            'start' => null
+            'section' => 'inventory',
         ],
         'regular_sale' => [
             'title' => 'Ring Up a Sale',
             'assignment' => 'Assignment 2',
             'audience' => 'Administrators and Operators',
             'roles' => ['Administrator', 'Manager', 'Operator'],
-            'summary' => 'Open a register, add products by touch or by code, and handle weighed items.',
+            'summary' => 'Select a Regular register and add groceries using product buttons or codes.',
             'steps' => [
-                'Choose New Sale and select an available Regular register (4-6 by default).',
-                'To add several of one item, type the quantity beside Add Item first, then touch the item.',
-                'Or type a UPC or PLU code. An item sold by weight asks for its weight in pounds.',
-                'Press + or - beside a quantity to add or remove one. Press x to remove an item sold by weight.',
-                'Press + UPC to show each product code in the Current Sale list. Press - UPC to hide them.',
-                'Close Register, next to + UPC, cancels the sale and puts the items back in stock.',
-                'Stock cannot go below zero, so a quantity that is not on the shelf is refused.'
+                'Sign in as an Operator, click New Sale, and select an available Regular register.',
+                'Click Open Register to start the sale.',
+                'Click a product button, or enter its UPC or PLU in Barcode / Product Code and click Add Item.',
+                'Set Quantity before adding several units of the same product.',
+                'Use the + and - buttons in Current Sale to change an item quantity.',
+                'For items sold by weight, enter the requested weight in pounds. Check the updated subtotal.',
             ],
-            'movie' => 'regular',
-            'start' => null
+            'section' => 'regular',
         ],
         'leave_sale' => [
             'title' => 'Leave a Sale You Have Not Finished',
             'assignment' => 'Assignment 4 extension',
             'audience' => 'Administrators, Managers, and Operators',
             'roles' => ['Administrator', 'Manager', 'Operator'],
-            'summary' => 'Choose what happens to a sale with items on it when you leave the register page.',
+            'summary' => 'Leave an unfinished sale and return without losing its items.',
             'steps' => [
-                'While a sale has items on it, press any link in the left menu.',
-                'A box asks Leave Current Transaction? and offers Stay, Save, and Close.',
-                'Stay closes the box and keeps you on the sale.',
-                'Save leaves the page and keeps the sale. Choose Continue Sale in the menu to come back to it.',
-                'Close cancels the sale, puts its items back in stock, and closes the register.'
+                'Open a Regular register and add at least one item.',
+                'Click another page in the left menu while the sale is still open.',
+                'When Leave Current Transaction? appears, choose Stay to keep editing, or Save to leave it open.',
+                'After Save, click Continue Sale to reopen the saved sale.',
+                'Choose Close only when you intend to cancel the sale and return items to stock.',
             ],
-            'movie' => 'regular',
-            'start' => null
+            'section' => 'regular',
         ],
         'discounts' => [
             'title' => 'Apply Discounts to a Sale',
             'assignment' => 'Assignment 4 extension',
             'audience' => 'Administrators and Operators',
             'roles' => ['Administrator', 'Manager', 'Operator'],
-            'summary' => 'Take money off a sale by percent or by dollars, before or after tax, and record the reason.',
+            'summary' => 'Apply a dollar discount before tax and check the updated sale total.',
             'steps' => [
-                'Add the items first. The Discount button appears once the sale has items.',
-                'Press Discount, then choose Percent off or Dollar amount off.',
-                'Choose Before tax or After tax and enter the amount.',
-                'Pick a saved reason. Or choose Other, type a new one, and keep Save checked to reuse it.',
-                'Press Apply Discount. A sale can have up to five. Use Remove to take one off.'
+                'Open a Regular sale and add a product.',
+                'Click Discount below Current Sale.',
+                'Choose Dollar amount off ($), select Before tax, and enter an amount such as 1.00.',
+                'Choose a reason and click Apply Discount.',
+                'Check that the discount appears under the items and lowers the estimated total.',
+                'Use the x beside the discount if you need to remove it.',
             ],
-            'movie' => 'regular',
-            'start' => null
+            'video_note' => 'The recording demonstrates a dollar discount before tax. Percent discounts and after-tax discounts use the same form but are not shown in this clip.',
+            'section' => 'regular',
         ],
         'coupons' => [
             'title' => 'Use Coupons',
             'assignment' => 'Assignment 4 extension',
             'audience' => 'Administrators and Operators',
             'roles' => ['Administrator', 'Manager', 'Operator'],
-            'summary' => 'Scan a coupon to take money off one item. Each coupon is used once per sale.',
+            'summary' => 'Apply a product coupon, check the reduction, and remove it.',
             'steps' => [
-                'Add the item the coupon is for. A coupon cannot be used before its item is on the sale.',
-                'Scan the coupon barcode, or type its 12 digits, in the Barcode / Product Code box.',
-                'The coupon appears under the items with its amount. It only discounts its own item.',
-                'A coupon that needs 2 items takes 2 items. Items covered by one coupon cannot be used again.',
-                'Press the x beside a coupon to take it off. The totals change right away.'
+                'Start a Regular sale and add the product associated with the coupon, such as Cereal.',
+                'Click Barcode / Product Code and scan or type the coupon barcode.',
+                'Click Add Item if the barcode was typed instead of scanned.',
+                'Check that a Coupon line appears with its dollar reduction.',
+                'Click the x beside the coupon to remove it and check the updated total.',
             ],
-            'movie' => 'regular',
-            'start' => null
+            'section' => 'regular',
         ],
         'checkout' => [
-            'title' => 'Check Out and Take Payment',
+            'title' => 'Check Out a Regular Sale',
             'assignment' => 'Assignment 2',
             'audience' => 'Administrators and Operators',
             'roles' => ['Administrator', 'Manager', 'Operator'],
-            'summary' => 'Review the totals, then take cash and give change, or charge the customer.',
+            'summary' => 'Take a cash payment, then check the receipt and change.',
             'steps' => [
-                'Review the items and any discounts, then press Checkout.',
-                'Check the subtotal, the discounts, the tax, and the total due.',
-                'Choose how the customer pays: Cash or Charge.',
-                'For Cash, enter the cash tendered. For Charge, nothing more is entered and no change is given.',
-                'Complete the sale. For Cash, hand the customer the change shown on the receipt.'
+                'In the Regular register, add the items and click Checkout.',
+                'Review the subtotal, discounts, sales tax, and Total Due.',
+                'Select Cash under Payment.',
+                'Enter the Cash Tendered amount, making it at least the total due.',
+                'Click Complete Sale and wait for the completed receipt.',
+                'Read the amount tendered and change on the receipt. Open Transactions to review the completed sale.',
             ],
-            'movie' => 'regular',
-            'start' => null
+            'video_note' => 'This video shows a Cash checkout. The system also supports simulated Charge, but that payment option is not demonstrated here.',
+            'section' => 'regular',
         ],
         'express_orders' => [
             'title' => 'Take a Curbside Express Order',
             'assignment' => 'Assignment 3',
             'audience' => 'Administrators, Managers, and Personal Shoppers',
             'roles' => ['Administrator', 'Manager', 'Personal Shopper'],
-            'summary' => 'Record a pickup order, pick the groceries, and check it out at an Express register.',
+            'summary' => 'Create a curbside order, add items, mark it Ready, and finish checkout.',
             'steps' => [
-                'Open Express Orders. The board shows every order by stage, and how many are left today.',
-                'Press Take New Order, pick or enter the customer, choose Curbside, and pick a free Express register.',
-                'Add groceries with the touch buttons or a typed code. Type a quantity first to add several.',
-                'Press + or - beside a quantity to add or remove one if something was picked by mistake.',
-                'It moves to Picking when the first item is added. Open it from the board to add a forgotten item.',
-                'Press Mark Ready when everything is picked, then press Checkout.',
-                'The customer is charged (no cash, no change). Confirm the Express receipt.'
+                'Click Express Orders, then Take New Order.',
+                'Choose an available Express register and select an existing customer.',
+                'Keep Curbside Pickup selected and click Create Order.',
+                'Add groceries with the product buttons or Barcode / Product Code field.',
+                'Use + or - to adjust quantities. The order moves from Received to Picking when items are added.',
+                'Click Mark Ready once picking is complete, then Checkout.',
+                'Confirm the completed Express order and return to the board.',
             ],
-            'movie' => 'express',
-            'start' => null
+            'section' => 'express',
         ],
         'express_delivery' => [
             'title' => 'Take a Home Delivery Express Order',
             'assignment' => 'Assignment 3',
             'audience' => 'Administrators, Managers, and Personal Shoppers',
             'roles' => ['Administrator', 'Manager', 'Personal Shopper'],
-            'summary' => 'Take an order for delivery, enter or reuse an address, and see the delivery fee at checkout.',
+            'summary' => 'Enter a delivery address, add items, and prepare the order for checkout.',
             'steps' => [
-                'Press Take New Order for a customer. Delivery is open from 8:00 AM to 4:00 PM.',
-                'Choose Delivery, then enter the address or load one the customer saved.',
-                'To keep a new address, check Save this address for reuse and give it a name such as Home.',
-                'Add the items, press Mark Ready, and confirm the $10.00 delivery fee is in the total charged.'
+                'Click Express Orders, then Take New Order. Choose an available Express register.',
+                'Choose an existing customer and click Load Customer.',
+                'Select Home Delivery.',
+                'Enter the street address, city, state, and ZIP Code into the delivery fields.',
+                'Click Create Order after reviewing the address and delivery fee.',
+                'Add groceries, then click Mark Ready when the order is complete.',
+                'Open the order or Transactions to review its delivery status and details.',
             ],
-            'movie' => 'express',
-            'start' => null
+            'video_note' => 'The video types a new delivery address manually. It does not demonstrate selecting a Saved Address and clicking Load Address. To reuse one, first Load Customer, then select a saved address and click Load Address.',
+            'needs_update' => true,
+            'section' => 'express',
         ],
         'express_today' => [
             'title' => 'See Today\'s Express Orders and Stock',
             'assignment' => 'Assignment 3',
             'audience' => 'Administrators, Managers, and Personal Shoppers',
             'roles' => ['Administrator', 'Manager', 'Personal Shopper'],
-            'summary' => 'Check how many Express orders are left, which are Curbside or Delivery, and the stock.',
+            'summary' => 'Check Express capacity, the order board, stock, and today’s orders.',
             'steps' => [
-                'Open Express Orders. The top shows how many of the 20 daily orders are still available.',
-                'Read the Order Board to see each open order by stage: Received, Picking, and Ready.',
-                'Press View Today\'s Orders to list every order with its method, Curbside or Delivery, and its status.',
-                'Scroll down to Store Stock. It shows the same stock levels the register staff see.',
-                'When all 20 orders are taken, a new order is refused until one is cancelled.'
+                'Click Express Orders to open the order board.',
+                'Read the number of orders remaining from the 20-order daily limit.',
+                'Look at the Received, Picking, and Ready columns.',
+                'Scroll down to the stock list to check which products are available.',
+                'Click View Today\'s Orders to see order status and fulfillment method.',
             ],
-            'movie' => 'express',
-            'start' => null
+            'section' => 'express',
         ],
         'express_cancel' => [
             'title' => 'Cancel an Express Order',
             'assignment' => 'Assignment 3',
             'audience' => 'Administrators, Managers, and Personal Shoppers',
             'roles' => ['Administrator', 'Manager', 'Personal Shopper'],
-            'summary' => 'Cancel an Express order that will not be picked up, and put its items back in stock.',
+            'summary' => 'Create a test Express order, cancel it, and check its final status.',
             'steps' => [
-                'Open the order from the Order Board or from Today\'s Express Orders.',
-                'Press Cancel Order and confirm that the picked items go back into stock.',
-                'The order moves to Finished Today and shows as Cancelled.',
-                'A cancelled order frees its place in the daily limit of 20.'
+                'Click Express Orders and Take New Order. Choose an available Express register.',
+                'Select or enter a test customer and choose the fulfillment method.',
+                'Enter a delivery address if Home Delivery is chosen, then click Create Order.',
+                'Add an item and open the Express order details.',
+                'Click Cancel Order and confirm the cancellation.',
+                'Return to the Express board or Transactions and verify that the order is Cancelled.',
+                'Check inventory if you need to confirm that its items were returned to stock.',
             ],
-            'movie' => 'express',
-            'start' => null
+            'section' => 'express',
         ],
         'express_rules' => [
             'title' => 'Express Rules at a Glance',
             'assignment' => 'Assignment 3',
             'audience' => 'Everyone',
             'roles' => ['Administrator', 'Manager', 'Operator', 'Personal Shopper'],
-            'summary' => 'Learn how Express registers, the 20-order daily limit, and delivery hours shape the work.',
+            'summary' => 'See available Express registers, order limits, and delivery-hour restrictions.',
             'steps' => [
-                'Registers 1-3 are reserved for FnH Express. Register 1 must remain Express-only.',
-                'Personal Shoppers do not ring regular sales. They take, pick, and check out Express orders.',
-                'The Express page shows how many of the 20 daily orders are left. A cancelled order frees its place.',
-                'Outside 8:00 AM to 4:00 PM, only curbside orders can be taken.'
+                'Sign in as a Personal Shopper and open Express Orders.',
+                'Read the daily capacity counter on the board.',
+                'Click Take New Order and inspect the available Express registers.',
+                'Review the Curbside Pickup and Home Delivery choices.',
+                'Notice that Home Delivery cannot be submitted outside the configured delivery hours.',
             ],
-            'movie' => 'express',
-            'start' => null
+            'section' => 'express',
         ],
         'inventory_management' => [
             'title' => 'Manage Products and Inventory',
             'assignment' => 'Assignment 4 extension',
             'audience' => 'Administrators and Managers',
             'roles' => ['Administrator', 'Manager'],
-            'summary' => 'Add and edit products, and add, remove, or set stock with a recorded reason.',
+            'summary' => 'Create a test product and adjust its recorded inventory.',
             'steps' => [
-                'Open Manage Inventory and search or filter the product list.',
-                'Press Add New Product and fill in the department, code, name, price, tax setting, and starting stock.',
-                'Open Edit on a product to change its details. Stock is changed separately.',
-                'Open Adjust to Add, Remove, or Set stock, type a reason, and save.',
-                'Check the change in Recent Manual Inventory Adjustments.',
-                'Administrators also have a Coupons button here. See Create and Manage Coupons.'
+                'Sign in as a Manager or Administrator and click Manage Inventory.',
+                'Use the search and filters to find a product, or click Add New Product.',
+                'Enter a department, product name, UPC or PLU, unit, price, tax setting, and starting inventory.',
+                'If the form reports an invalid starting quantity, correct the quantity and save again.',
+                'Click Edit to review product information, or Adjust to change stock.',
+                'Choose Add, Remove, or Set; enter the quantity and reason; then save.',
+                'Open Stock Levels to check the resulting quantity.',
             ],
-            'movie' => 'inventory',
-            'start' => null
+            'section' => 'inventory',
         ],
         'coupons_manage' => [
             'title' => 'Create and Manage Coupons',
             'assignment' => 'Assignment 4 extension',
             'audience' => 'Administrators',
             'roles' => ['Administrator'],
-            'summary' => 'Make a coupon with its own barcode, turn it on or off, and see how often it is used.',
+            'summary' => 'Create a product coupon, use its barcode, and manage the coupon list.',
             'steps' => [
-                'Open Manage Inventory and press Coupons.',
-                'Choose the product, how many it needs, percent or dollar, and the amount.',
-                'Type a description. The start and end dates are optional.',
-                'Press Create Coupon. The coupon appears in the list with its barcode, ready to print.',
-                'The Used column shows how many times each coupon has been used.',
-                'Press Turn Off to stop a coupon from working, or Turn On to bring it back.'
+                'Sign in as an Administrator, click Manage Inventory, then Coupons.',
+                'Choose the product, required item quantity, discount type, and amount.',
+                'Enter a description and optional start/end dates.',
+                'Click Create Coupon and find the newly generated barcode in the list.',
+                'Open a Regular sale and add the required quantity of that product.',
+                'Scan or enter the new coupon barcode and check the discount.',
+                'Return to Coupons to review the Used count or change its active status.',
             ],
-            'movie' => 'additional',
-            'start' => null
+            'section' => 'additional',
         ],
         'transaction_viewer' => [
             'title' => 'Look Up a Transaction',
             'assignment' => 'Assignment 4 extension',
             'audience' => 'Everyone',
             'roles' => ['Administrator', 'Manager', 'Operator', 'Personal Shopper'],
-            'summary' => 'Find a past sale and open its full receipt, including any discounts.',
+            'summary' => 'Search the transaction list, filter results, and open the details.',
             'steps' => [
-                'Choose Transactions from the left menu. The page is called Transaction Viewer.',
-                'Search, or filter by status and date. Supervisors can also switch between Regular and Express.',
-                'Press Open to see the lines, discounts, tax, total, payment, and change.',
-                'For an Express order, also read the status, delivery fee, and delivery address.'
+                'Click Transactions in the left menu.',
+                'Type a transaction number, customer, or employee in Search if needed.',
+                'Choose Type, Status, and optional From/To dates, then click Apply.',
+                'Find the matching transaction and click Open.',
+                'Read its item lines, discounts, tax, payment method, total, and any change.',
             ],
-            'movie' => 'additional',
-            'start' => null
+            'section' => 'additional',
         ]
     ]
 ];

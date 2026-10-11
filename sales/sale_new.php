@@ -180,6 +180,13 @@ try {
                     'Select a register.';
 
             } elseif (
+                ($selectedRegister['RegisterType'] ?? 'Regular') !== 'Regular'
+                || (int) $selectedRegister['RegisterNumber'] === 1
+            ) {
+                $errorMessage =
+                    'Express registers cannot be closed from Regular Checkout.';
+
+            } elseif (
                 empty(
                 $selectedRegister['OpenReceiptID']
             )
@@ -274,9 +281,16 @@ try {
                 } else {
 
                     if (canSupervise()) {
-
-                        $errorMessage =
-                            'That register is in use. To work on that sale, open it from Transactions.';
+                        // An occupied register remains in use. Route supervisors
+                        // through the existing View, Assist, Take Over and Cancel
+                        // permissions; never create a second sale or edit it here.
+                        header(
+                            'Location: '
+                            . APPLICATION_URL
+                            . '/transactions/tr_view.php?receipt='
+                            . (int) $selectedRegister['OpenReceiptID']
+                        );
+                        exit;
 
                     } else {
 
@@ -1287,7 +1301,7 @@ require __DIR__ . '/../includes/header.php';
                                     ? 'selected'
                                     : ''
                                     ?>
-                                <?= $reservedForExpress || $inUseByOtherOperator ? 'disabled' : '' ?>>
+                                <?= $reservedForExpress || ($inUseByOtherOperator && !canSupervise()) ? 'disabled' : '' ?>>
 
                                 Register #<?= escapeOutput($registerRecord['RegisterNumber']) ?>
 
@@ -2026,8 +2040,10 @@ require __DIR__ . '/../includes/header.php';
                     currentOperatorCanSupervise;
 
                 if (openButton) {
-                    openButton.hidden =
-                        supervisorViewingOtherOperator;
+                    openButton.hidden = false;
+                    openButton.textContent = supervisorViewingOtherOperator
+                        ? 'Open Transaction'
+                        : 'Open Register';
 
                     openButton.disabled =
                         !hasSelectedRegister
@@ -2036,6 +2052,8 @@ require __DIR__ . '/../includes/header.php';
                             registerIsOpen
                             &&
                             !belongsToCurrentOperator
+                            &&
+                            !currentOperatorCanSupervise
                         );
                 }
 
