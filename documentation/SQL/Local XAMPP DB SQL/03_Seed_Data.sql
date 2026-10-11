@@ -1,7 +1,7 @@
 -- FnH Groceries
 -- Seed Data
 -- The 7.75% tax corrections were verified after the training movies were recorded.
--- Run this seed only during a clean rebuild; use 04 to update existing databases.
+-- Run this seed only during a clean rebuild
 
 USE fnh_groceries;
 
