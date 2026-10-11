@@ -3248,11 +3248,11 @@ VALUES (
 	0,
 	24.26,
 	17.98,
-	1.71,
+	1.39,
 	0,
-	25.97,
+	25.65,
 	'Charge',
-	25.97,
+	25.65,
 	0.00
 );
 INSERT INTO salesreceiptline (
@@ -3366,11 +3366,11 @@ VALUES (
 	24.26,
 	0,
 	17.98,
-	1.71,
+	1.39,
 	0,
-	25.97,
+	25.65,
 	'Charge',
-	25.97,
+	25.65,
 	0.00
 );
 INSERT INTO salesreceipt (
@@ -3728,12 +3728,12 @@ VALUES (
 	0,
 	9.96,
 	3.79,
-	0.36,
+	0.29,
 	0,
-	10.32,
+	10.25,
 	'Cash',
 	20.00,
-	9.68
+	9.75
 );
 INSERT INTO salesreceiptline (
 	ReceiptLineID,
@@ -3846,12 +3846,12 @@ VALUES (
 	9.96,
 	0,
 	3.79,
-	0.36,
+	0.29,
 	0,
-	10.32,
+	10.25,
 	'Cash',
 	20.00,
-	9.68
+	9.75
 );
 INSERT INTO salesreceipt (
 	ReceiptID,
@@ -4048,11 +4048,11 @@ VALUES (
 	0,
 	26.56,
 	16.57,
-	1.57,
+	1.28,
 	0,
-	28.13,
+	27.84,
 	'Charge',
-	28.13,
+	27.84,
 	0.00
 );
 INSERT INTO salesreceiptline (
@@ -4166,11 +4166,11 @@ VALUES (
 	26.56,
 	0,
 	16.57,
-	1.57,
+	1.28,
 	0,
-	28.13,
+	27.84,
 	'Charge',
-	28.13,
+	27.84,
 	0.00
 );
 INSERT INTO salesreceipt (
@@ -4368,12 +4368,12 @@ VALUES (
 	0,
 	21.36,
 	12.78,
-	1.21,
+	0.99,
 	0,
-	22.57,
+	22.35,
 	'Cash',
 	30.00,
-	7.43
+	7.65
 );
 INSERT INTO salesreceiptline (
 	ReceiptLineID,
@@ -4486,12 +4486,12 @@ VALUES (
 	21.36,
 	0,
 	12.78,
-	1.21,
+	0.99,
 	0,
-	22.57,
+	22.35,
 	'Cash',
 	30.00,
-	7.43
+	7.65
 );
 INSERT INTO salesreceipt (
 	ReceiptID,
@@ -4528,11 +4528,11 @@ VALUES (
 	0,
 	15.06,
 	7.58,
-	0.72,
+	0.59,
 	0,
-	15.78,
+	15.65,
 	'Charge',
-	15.78,
+	15.65,
 	0.00
 );
 INSERT INTO salesreceiptline (
@@ -4646,11 +4646,11 @@ VALUES (
 	15.06,
 	0,
 	7.58,
-	0.72,
+	0.59,
 	0,
-	15.78,
+	15.65,
 	'Charge',
-	15.78,
+	15.65,
 	0.00
 );
 INSERT INTO salesreceipt (
@@ -5008,12 +5008,12 @@ VALUES (
 	0,
 	19.36,
 	7.58,
-	0.72,
+	0.59,
 	0,
-	20.08,
+	19.95,
 	'Cash',
 	30.00,
-	9.92
+	10.05
 );
 INSERT INTO salesreceiptline (
 	ReceiptLineID,
@@ -5126,12 +5126,12 @@ VALUES (
 	19.36,
 	0,
 	7.58,
-	0.72,
+	0.59,
 	0,
-	20.08,
+	19.95,
 	'Cash',
 	30.00,
-	9.92
+	10.05
 );
 INSERT INTO salesreceipt (
 	ReceiptID,
@@ -5168,11 +5168,11 @@ VALUES (
 	0,
 	12.06,
 	3.79,
-	0.36,
+	0.29,
 	0,
-	12.42,
+	12.35,
 	'Charge',
-	12.42,
+	12.35,
 	0.00
 );
 INSERT INTO salesreceiptline (
@@ -5286,11 +5286,11 @@ VALUES (
 	12.06,
 	0,
 	3.79,
-	0.36,
+	0.29,
 	0,
-	12.42,
+	12.35,
 	'Charge',
-	12.42,
+	12.35,
 	0.00
 );
 INSERT INTO salesreceipt (
@@ -6080,11 +6080,11 @@ VALUES (
 	0,
 	22.66,
 	17.98,
-	1.71,
+	1.39,
 	0,
-	24.37,
+	24.05,
 	'Charge',
-	24.37,
+	24.05,
 	0.00
 );
 INSERT INTO salesreceiptline (
@@ -6198,11 +6198,11 @@ VALUES (
 	22.66,
 	0,
 	17.98,
-	1.71,
+	1.39,
 	0,
-	24.37,
+	24.05,
 	'Charge',
-	24.37,
+	24.05,
 	0.00
 );
 INSERT INTO salesreceipt (
@@ -6588,11 +6588,11 @@ VALUES (
 	0,
 	16.06,
 	3.79,
-	0.36,
+	0.29,
 	0,
-	26.42,
+	26.35,
 	'Charge',
-	26.42,
+	26.35,
 	0.00
 );
 INSERT INTO salesreceiptline (
@@ -6734,11 +6734,11 @@ VALUES (
 	16.06,
 	0,
 	3.79,
-	0.36,
+	0.29,
 	0,
-	26.42,
+	26.35,
 	'Charge',
-	26.42,
+	26.35,
 	0.00
 );
 INSERT INTO salesreceipt (
@@ -6776,12 +6776,12 @@ VALUES (
 	0,
 	23.86,
 	17.98,
-	1.71,
+	1.39,
 	0,
-	25.57,
+	25.25,
 	'Cash',
 	30.00,
-	4.43
+	4.75
 );
 INSERT INTO salesreceiptline (
 	ReceiptLineID,
@@ -6894,11 +6894,11 @@ VALUES (
 	23.86,
 	0,
 	17.98,
-	1.71,
+	1.39,
 	0,
-	25.57,
+	25.25,
 	'Cash',
 	30.00,
-	4.43
+	4.75
 );
 COMMIT;

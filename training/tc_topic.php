@@ -92,9 +92,6 @@ require __DIR__ . '/../includes/header.php';
 
         <figcaption class="training-clip-caption training-topic-directions">
             <h2>Directions</h2>
-            <?php if (!empty($topic['video_note'])): ?>
-                <p class="training-video-note"><?= escapeOutput($topic['video_note']) ?></p>
-            <?php endif; ?>
             <ol>
                 <?php foreach ($topic['steps'] as $step): ?>
                     <li><?= escapeOutput($step) ?></li>

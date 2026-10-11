@@ -103,8 +103,6 @@ return [
                 'Read the numbered directions below the video.',
                 'Use Previous, Next, or All Lessons. The first and last lessons connect in a loop.',
             ],
-            'video_note' => 'This recording shows an older Training Center page with videos in the lesson list. The current page uses clickable lesson boxes. Replace this MP4 to show the current layout.',
-            'needs_update' => true,
             'section' => 'orientation',
         ],
         'create_operator' => [
@@ -159,18 +157,15 @@ return [
             'assignment' => 'Assignment 4 extension',
             'audience' => 'Administrators and Managers',
             'roles' => ['Administrator', 'Manager'],
-            'summary' => 'Find an employee’s open sale and use the supervisor transaction controls.',
+            'summary' => 'Find another employee’s open sale, review it, and access the supervisor controls.',
             'steps' => [
                 'As an Operator, start a Regular sale with test items and leave it open using Save.',
                 'Sign out, then sign in as a Manager or Administrator.',
-                'Click Transactions and click Open next to the employee\'s open sale.',
-                'On Transaction Details, click View Only to inspect items without editing.',
-                'Click Assist to work on the sale without changing its owner, or Take Over to transfer ownership.',
-                'Use Hand Back to restore ownership, or Cancel Transaction to cancel the test sale.',
-                'Scroll to Who Worked On This Transaction to review the access history.',
+                'Open Transactions and find the sale that was left open by the Operator.',
+                'Click Open to review the transaction details and the available supervisor actions.',
+                'Use the supervisor controls to access the open register when assistance is needed.',
+                'Return to Transaction Details to review the status and transaction history.',
             ],
-            'video_note' => 'The recording shows how to find an open sale, reach the supervisor controls, and access the register. It does not show a complete sequence of View Only, Assist, Take Over, Hand Back, and Cancel. Record that full sequence if every action must be demonstrated.',
-            'needs_update' => true,
             'section' => 'additional',
         ],
         'employee_access' => [
@@ -265,7 +260,6 @@ return [
                 'Check that the discount appears under the items and lowers the estimated total.',
                 'Use the x beside the discount if you need to remove it.',
             ],
-            'video_note' => 'The recording demonstrates a dollar discount before tax. Percent discounts and after-tax discounts use the same form but are not shown in this clip.',
             'section' => 'regular',
         ],
         'coupons' => [
@@ -297,7 +291,6 @@ return [
                 'Click Complete Sale and wait for the completed receipt.',
                 'Read the amount tendered and change on the receipt. Open Transactions to review the completed sale.',
             ],
-            'video_note' => 'This video shows a Cash checkout. The system also supports simulated Charge, but that payment option is not demonstrated here.',
             'section' => 'regular',
         ],
         'express_orders' => [
@@ -332,8 +325,6 @@ return [
                 'Add groceries, then click Mark Ready when the order is complete.',
                 'Open the order or Transactions to review its delivery status and details.',
             ],
-            'video_note' => 'The video types a new delivery address manually. It does not demonstrate selecting a Saved Address and clicking Load Address. To reuse one, first Load Customer, then select a saved address and click Load Address.',
-            'needs_update' => true,
             'section' => 'express',
         ],
         'express_today' => [

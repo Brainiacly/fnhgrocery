@@ -72,7 +72,7 @@ require __DIR__ . '/../includes/header.php';
                             <span class="training-lesson-summary"><?= escapeOutput($topic['summary']) ?></span>
                             <span class="training-lesson-bottom">
                                 <span class="training-lesson-status">
-                                    <?= $videoAvailable ? (!empty($topic['needs_update']) ? 'Video needs update' : 'Video ready') : 'Video coming soon' ?>
+                                    <?= $videoAvailable ? 'Video ready' : 'Video coming soon' ?>
                                 </span>
                                 <span class="training-lesson-open" aria-hidden="true">Open Lesson &#8594;</span>
                             </span>

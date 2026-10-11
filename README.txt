@@ -135,6 +135,14 @@ http://localhost/CSC_680/index.php
    2. ChatGPT was used to sort the dump and help prepare the rebuild scripts.
    3. The three scripts were reviewed and run locally.
 
+   After the training videos were recorded, a final audit identified ten
+   sample receipts with an incorrect sales tax rate. The checkout code
+   already used the required 7.75% rate. Those ten sample records were
+   corrected in both the Local XAMPP and AlwaysData seed scripts,
+   including their transaction journal, payment totals, and cash change.
+   Applying the corrected seed during the database rebuild also brings
+   the live demonstration data into agreement with the 7.75% tax rate.
+
    The rebuild scripts are included with the project.
    Sample data was cleaned for installation and testing.
 
