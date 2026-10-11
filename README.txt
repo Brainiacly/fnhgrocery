@@ -180,6 +180,7 @@ http://localhost/CSC_680/index.php
    - includes/ and config/ contain shared code and settings.
    - assets/css/ contains the stylesheets.
    - documentation/SQL/ contains the local database rebuild files.
+   - documentation/Extra Credit on Tablet Samsung.mp4 is the tablet demonstration.
 
 
 8. SECURITY AND TESTING
@@ -188,3 +189,17 @@ http://localhost/CSC_680/index.php
    - Access checks are applied in PHP and stored procedures.
    - Simulated charge payments do not use a payment processor.
    - Sales and receipts are for demonstration, not real purchases.
+
+
+9. EXTRA CREDIT - SAMSUNG TABLET DEMONSTRATION
+
+   A Samsung tablet demonstration video is included as evidence
+   for the optional touch-screen extra credit in the assignments.
+   Video location (relative to the project folder):
+   documentation/Extra Credit on Tablet Samsung.mp4
+
+   Local file path:
+   \documentation\Extra Credit on Tablet Samsung.mp4
+
+   This recording provides the Samsung tablet demonstration
+   for the touch-screen portion of the project.
